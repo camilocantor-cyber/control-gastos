@@ -100,13 +100,14 @@ export function Layout({ children, currentView, onNavigate, onOpenAddModal }: La
             </main>
 
             {/* Mobile Bottom Nav */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-20 pb-safe">
-                {navItems.map((item) => (
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 flex justify-around items-center z-20 pb-safe">
+                {/* First 2 items */}
+                {navItems.slice(0, 2).map((item) => (
                     <button
                         key={item.id}
                         onClick={() => onNavigate(item.id)}
                         className={clsx(
-                            'flex flex-col items-center gap-1 p-2 rounded-lg transition-colors',
+                            'flex flex-col items-center gap-1 p-2 rounded-lg transition-colors min-w-[64px]',
                             currentView === item.id ? 'text-blue-600' : 'text-slate-400'
                         )}
                     >
@@ -114,15 +115,32 @@ export function Layout({ children, currentView, onNavigate, onOpenAddModal }: La
                         <span className="text-[10px] font-medium">{item.label}</span>
                     </button>
                 ))}
+
+                {/* Center "Nuevo" Button */}
                 <button
                     onClick={onOpenAddModal}
-                    className="flex flex-col items-center gap-1 p-2 text-blue-600"
+                    className="flex flex-col items-center gap-1 -mt-10 mb-2 group"
                 >
-                    <div className="bg-blue-600 text-white p-3 rounded-full shadow-lg shadow-blue-200 -mt-8 border-4 border-slate-50">
-                        <PlusCircle className="w-6 h-6" />
+                    <div className="bg-blue-600 text-white p-4 rounded-full shadow-xl shadow-blue-300 border-4 border-white group-active:scale-90 transition-all duration-200">
+                        <PlusCircle className="w-7 h-7" />
                     </div>
-                    <span className="text-[10px] font-medium">Nuevo</span>
+                    <span className="text-[10px] font-bold text-blue-600">Nuevo</span>
                 </button>
+
+                {/* Remaining 3 items */}
+                {navItems.slice(2).map((item) => (
+                    <button
+                        key={item.id}
+                        onClick={() => onNavigate(item.id)}
+                        className={clsx(
+                            'flex flex-col items-center gap-1 p-2 rounded-lg transition-colors min-w-[64px]',
+                            currentView === item.id ? 'text-blue-600' : 'text-slate-400'
+                        )}
+                    >
+                        <item.icon className={clsx("w-6 h-6", currentView === item.id && "fill-current/10")} />
+                        <span className="text-[10px] font-medium">{item.label}</span>
+                    </button>
+                ))}
             </nav>
         </div>
     );
