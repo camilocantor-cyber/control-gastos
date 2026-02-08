@@ -18,7 +18,8 @@ export function useCategories(userId?: string) {
         const fetchCategories = async () => {
             const { data, error } = await supabase
                 .from('categories')
-                .select('*');
+                .select('*')
+                .eq('user_id', userId);
 
             if (error) {
                 console.error('Error fetching categories:', error);

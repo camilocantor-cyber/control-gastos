@@ -15,6 +15,7 @@ export function useTransactions(userId?: string) {
             const { data, error } = await supabase
                 .from('transactions')
                 .select('*')
+                .eq('user_id', userId)
                 .order('date', { ascending: false });
 
             if (error) {

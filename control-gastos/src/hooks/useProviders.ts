@@ -23,6 +23,7 @@ export function useProviders(userId?: string) {
             const { data, error } = await supabase
                 .from('providers')
                 .select('*')
+                .eq('user_id', userId)
                 .order('name', { ascending: true });
 
             if (error) {
