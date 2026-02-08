@@ -7,6 +7,7 @@ export interface Transaction {
     category: string;
     date: string; // ISO date string
     description?: string;
+    provider?: string;
     createdAt: number;
 }
 

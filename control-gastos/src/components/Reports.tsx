@@ -26,6 +26,21 @@ export function Reports({ transactions }: ReportsProps) {
             .sort((a, b) => b.value - a.value);
     }, [transactions]);
 
+    // Data for Provider Bar Chart (Top 5)
+    const expenseByProvider = useMemo(() => {
+        const expenses = transactions.filter(t => t.type === 'expense' && t.provider && t.provider.trim() !== '');
+        const grouped = expenses.reduce((acc, curr) => {
+            const providerName = curr.provider || 'Desconocido';
+            acc[providerName] = (acc[providerName] || 0) + curr.amount;
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(grouped)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5); // Top 5
+    }, [transactions]);
+
     // Data for Bar Chart (Balance)
     const barChartData = useMemo(() => {
         const data: Record<string, { label: string, income: number, expense: number, sortKey: string }> = {};
@@ -188,6 +203,41 @@ export function Reports({ transactions }: ReportsProps) {
                             <div className="text-slate-400">No hay gastos registrados</div>
                         )}
                     </div>
+                </div>
+            </div>
+
+            {/* Expenses by Provider (New) */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-700 mb-4">Gastos por Proveedor (Top 5)</h3>
+                <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart layout="vertical" data={expenseByProvider} margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                            <XAxis type="number" hide />
+                            <YAxis
+                                dataKey="name"
+                                type="category"
+                                width={100}
+                                tick={{ fontSize: 12 }}
+                                tickFormatter={(val) => val.length > 15 ? `${val.substring(0, 15)}...` : val}
+                            />
+                            <Tooltip
+                                cursor={{ fill: '#f8fafc' }}
+                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                formatter={(value: any) => [formatCurrency(value), '']}
+                            />
+                            <Bar dataKey="value" name="Gasto" fill="#8884d8" radius={[0, 4, 4, 0]}>
+                                {expenseByProvider.map((_, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                    {expenseByProvider.length === 0 && (
+                        <div className="flex h-full items-center justify-center -mt-64 text-slate-400">
+                            No hay datos de proveedores
+                        </div>
+                    )}
                 </div>
             </div>
 

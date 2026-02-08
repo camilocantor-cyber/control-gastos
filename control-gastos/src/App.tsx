@@ -11,11 +11,12 @@ import { calculateStats } from './utils/helpers';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import { CategoryManager } from './components/CategoryManager';
+import { ProviderManager } from './components/ProviderManager';
 
 function AuthenticatedApp() {
   const { user, loading } = useAuth();
   const { transactions, addTransaction, deleteTransaction, updateTransaction } = useTransactions(user?.id);
-  const [view, setView] = useState<'dashboard' | 'transactions' | 'reports' | 'categories'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers'>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
@@ -51,7 +52,7 @@ function AuthenticatedApp() {
       onOpenAddModal={() => setIsModalOpen(true)}
     >
       {view === 'dashboard' && (
-        <Dashboard stats={stats} recentTransactions={transactions.slice(0, 5)} />
+        <Dashboard stats={stats} transactions={transactions} />
       )}
 
       {view === 'transactions' && (
@@ -68,6 +69,10 @@ function AuthenticatedApp() {
 
       {view === 'categories' && (
         <CategoryManager />
+      )}
+
+      {view === 'providers' && (
+        <ProviderManager />
       )}
 
       {isModalOpen && (

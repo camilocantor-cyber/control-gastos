@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import type { Transaction, TransactionType } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useCategories } from '../hooks/useCategories';
-import { X, Check } from 'lucide-react';
+import { useProviders } from '../hooks/useProviders';
+import { X, Check, Building2 } from 'lucide-react';
 import clsx from 'clsx';
 
 interface TransactionFormProps {
@@ -15,12 +16,21 @@ interface TransactionFormProps {
 export function TransactionForm({ onClose, onAdd, onUpdate, initialData }: TransactionFormProps) {
     const { user } = useAuth();
     const { categories } = useCategories(user?.id);
+    const { providers } = useProviders(user?.id);
 
     const [type, setType] = useState<TransactionType>(initialData?.type || 'expense');
     const [amount, setAmount] = useState(initialData?.amount.toString() || '');
     const [category, setCategory] = useState(initialData?.category || '');
     const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState(initialData?.description || '');
+    const [provider, setProvider] = useState(initialData?.provider || '');
+    const [showProviderSuggestions, setShowProviderSuggestions] = useState(false);
+
+    // Suggestions filter
+    const providerSuggestions = providers.filter(p =>
+        p.name.toLowerCase().includes(provider.toLowerCase()) &&
+        p.name !== provider
+    );
 
     // Update category when type changes or categories load
     useEffect(() => {
@@ -38,6 +48,7 @@ export function TransactionForm({ onClose, onAdd, onUpdate, initialData }: Trans
             category,
             date,
             description,
+            provider,
         };
 
         if (initialData && onUpdate) {
@@ -52,7 +63,9 @@ export function TransactionForm({ onClose, onAdd, onUpdate, initialData }: Trans
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                    <h3 className="font-bold text-lg text-slate-800">Nuevo Movimiento</h3>
+                    <h3 className="font-bold text-lg text-slate-800">
+                        {initialData ? 'Editar Movimiento' : 'Nuevo Movimiento'}
+                    </h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
                         <X className="w-5 h-5" />
                     </button>
@@ -100,6 +113,44 @@ export function TransactionForm({ onClose, onAdd, onUpdate, initialData }: Trans
                         </div>
                     </div>
 
+                    {/* Provider (Autocomplete) */}
+                    <div className="relative">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Proveedor / Beneficiario (Opcional)</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={provider}
+                                onChange={(e) => {
+                                    setProvider(e.target.value);
+                                    setShowProviderSuggestions(true);
+                                }}
+                                onFocus={() => setShowProviderSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowProviderSuggestions(false), 200)}
+                                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                                placeholder={type === 'expense' ? "Ej: Supermercado Éxito" : "Ej: Empresa S.A.S"}
+                            />
+                        </div>
+                        {/* Suggestions Dropdown */}
+                        {showProviderSuggestions && providerSuggestions.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                {providerSuggestions.map((p) => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setProvider(p.name);
+                                            setShowProviderSuggestions(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm text-slate-700 flex items-center gap-2 transition-colors"
+                                    >
+                                        <Building2 className="w-4 h-4 text-blue-400" />
+                                        {p.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     {/* Category */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Categoría</label>
@@ -117,9 +168,6 @@ export function TransactionForm({ onClose, onAdd, onUpdate, initialData }: Trans
                                 ))
                             )}
                         </select>
-                        {categories[type].length === 0 && (
-                            <p className="text-xs text-rose-500 mt-1">Agrega categorías en la configuración.</p>
-                        )}
                     </div>
 
                     {/* Date */}

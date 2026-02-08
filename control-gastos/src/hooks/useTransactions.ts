@@ -57,6 +57,7 @@ export function useTransactions(userId?: string) {
                 amount: t.amount,
                 category: t.category,
                 description: t.description,
+                provider: t.provider,
                 date: t.date,
             });
 
@@ -110,6 +111,7 @@ export function useTransactions(userId?: string) {
                 amount: updates.amount,
                 category: updates.category,
                 description: updates.description,
+                provider: updates.provider,
                 date: updates.date,
             })
             .eq('id', id)

@@ -33,15 +33,14 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                                         {t.type === 'income' ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900">{t.category}</h4>
-                                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                                            <span>{formatDate(t.date)}</span>
-                                            {t.description && (
-                                                <>
-                                                    <span>•</span>
-                                                    <span>{t.description}</span>
-                                                </>
+                                        <p className="font-semibold text-slate-900">{t.category}</p>
+                                        <div className="flex flex-col">
+                                            {t.provider && (
+                                                <span className="text-xs text-slate-500 font-medium">
+                                                    {t.provider}
+                                                </span>
                                             )}
+                                            <span className="text-xs text-slate-400">{formatDate(t.date)}</span>
                                         </div>
                                     </div>
                                 </div>

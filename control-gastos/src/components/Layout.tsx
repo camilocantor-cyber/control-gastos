@@ -1,12 +1,12 @@
 import React from 'react';
-import { LayoutDashboard, PlusCircle, List, PieChart, Wallet, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, List, PieChart, Wallet, LogOut, User, Building2 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
     children: React.ReactNode;
-    currentView: 'dashboard' | 'transactions' | 'reports' | 'categories';
-    onNavigate: (view: 'dashboard' | 'transactions' | 'reports' | 'categories') => void;
+    currentView: 'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers';
+    onNavigate: (view: 'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers') => void;
     onOpenAddModal: () => void;
 }
 
@@ -18,6 +18,7 @@ export function Layout({ children, currentView, onNavigate, onOpenAddModal }: La
         { id: 'transactions', icon: List, label: 'Movimientos' },
         { id: 'reports', icon: PieChart, label: 'Reportes' },
         { id: 'categories', icon: List, label: 'Categorías' },
+        { id: 'providers', icon: Building2, label: 'Proveedores' },
     ] as const;
 
     return (
@@ -41,6 +42,16 @@ export function Layout({ children, currentView, onNavigate, onOpenAddModal }: La
                     </div>
                 </div>
 
+                <div className="px-6 py-2">
+                    <button
+                        onClick={onOpenAddModal}
+                        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-semibold shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <PlusCircle className="w-5 h-5" />
+                        <span>Nuevo Movimiento</span>
+                    </button>
+                </div>
+
                 <nav className="flex-1 px-4 py-4 space-y-1">
                     {navItems.map((item) => (
                         <button
@@ -60,14 +71,6 @@ export function Layout({ children, currentView, onNavigate, onOpenAddModal }: La
                 </nav>
 
                 <div className="p-4 space-y-4 border-t border-slate-100">
-                    <button
-                        onClick={onOpenAddModal}
-                        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-semibold shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        <PlusCircle className="w-5 h-5" />
-                        <span>Nuevo Movimiento</span>
-                    </button>
-
                     <button
                         onClick={signOut}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors"
