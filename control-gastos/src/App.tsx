@@ -46,34 +46,36 @@ function AuthenticatedApp() {
   const stats = calculateStats(transactions);
 
   return (
-    <Layout
-      currentView={view}
-      onNavigate={setView}
-      onOpenAddModal={() => setIsModalOpen(true)}
-    >
-      {view === 'dashboard' && (
-        <Dashboard stats={stats} transactions={transactions} />
-      )}
+    <>
+      <Layout
+        currentView={view}
+        onNavigate={setView}
+        onOpenAddModal={() => setIsModalOpen(true)}
+      >
+        {view === 'dashboard' && (
+          <Dashboard stats={stats} transactions={transactions} />
+        )}
 
-      {view === 'transactions' && (
-        <TransactionList
-          transactions={transactions}
-          onDelete={deleteTransaction}
-          onEdit={handleEdit}
-        />
-      )}
+        {view === 'transactions' && (
+          <TransactionList
+            transactions={transactions}
+            onDelete={deleteTransaction}
+            onEdit={handleEdit}
+          />
+        )}
 
-      {view === 'reports' && (
-        <Reports transactions={transactions} />
-      )}
+        {view === 'reports' && (
+          <Reports transactions={transactions} />
+        )}
 
-      {view === 'categories' && (
-        <CategoryManager />
-      )}
+        {view === 'categories' && (
+          <CategoryManager />
+        )}
 
-      {view === 'providers' && (
-        <ProviderManager />
-      )}
+        {view === 'providers' && (
+          <ProviderManager />
+        )}
+      </Layout>
 
       {isModalOpen && (
         <TransactionForm
@@ -83,7 +85,7 @@ function AuthenticatedApp() {
           initialData={editingTransaction}
         />
       )}
-    </Layout>
+    </>
   );
 }
 

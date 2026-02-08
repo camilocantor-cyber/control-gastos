@@ -60,8 +60,8 @@ export function TransactionForm({ onClose, onAdd, onUpdate, initialData }: Trans
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[100] p-4 overflow-y-auto backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-auto animate-in fade-in zoom-in duration-300 overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                     <h3 className="font-bold text-lg text-slate-800">
                         {initialData ? 'Editar Movimiento' : 'Nuevo Movimiento'}
