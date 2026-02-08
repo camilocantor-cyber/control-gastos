@@ -100,31 +100,31 @@ export function Layout({ children, currentView, onNavigate, onOpenAddModal }: La
             </main>
 
             {/* Mobile Bottom Nav */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 flex justify-around items-center z-20 pb-safe">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-1 py-1.5 flex justify-around items-center z-20 pb-safe">
                 {/* First 2 items */}
                 {navItems.slice(0, 2).map((item) => (
                     <button
                         key={item.id}
                         onClick={() => onNavigate(item.id)}
                         className={clsx(
-                            'flex flex-col items-center gap-1 p-2 rounded-lg transition-colors min-w-[64px]',
+                            'flex flex-col items-center gap-0.5 p-1 rounded-lg transition-colors flex-1 min-w-0',
                             currentView === item.id ? 'text-blue-600' : 'text-slate-400'
                         )}
                     >
-                        <item.icon className={clsx("w-6 h-6", currentView === item.id && "fill-current/10")} />
-                        <span className="text-[10px] font-medium">{item.label}</span>
+                        <item.icon className={clsx("w-5 h-5", currentView === item.id && "fill-current/10")} />
+                        <span className="text-[9px] font-medium truncate w-full text-center px-0.5">{item.label}</span>
                     </button>
                 ))}
 
                 {/* Center "Nuevo" Button */}
                 <button
                     onClick={onOpenAddModal}
-                    className="flex flex-col items-center gap-1 -mt-10 mb-2 group"
+                    className="flex flex-col items-center gap-0.5 -mt-8 mb-1 group px-1"
                 >
-                    <div className="bg-blue-600 text-white p-4 rounded-full shadow-xl shadow-blue-300 border-4 border-white group-active:scale-90 transition-all duration-200">
-                        <PlusCircle className="w-7 h-7" />
+                    <div className="bg-blue-600 text-white p-3 rounded-full shadow-xl shadow-blue-300 border-4 border-white group-active:scale-90 transition-all duration-200">
+                        <PlusCircle className="w-6 h-6" />
                     </div>
-                    <span className="text-[10px] font-bold text-blue-600">Nuevo</span>
+                    <span className="text-[9px] font-bold text-blue-600">Nuevo</span>
                 </button>
 
                 {/* Remaining 3 items */}
@@ -133,12 +133,12 @@ export function Layout({ children, currentView, onNavigate, onOpenAddModal }: La
                         key={item.id}
                         onClick={() => onNavigate(item.id)}
                         className={clsx(
-                            'flex flex-col items-center gap-1 p-2 rounded-lg transition-colors min-w-[64px]',
+                            'flex flex-col items-center gap-0.5 p-1 rounded-lg transition-colors flex-1 min-w-0',
                             currentView === item.id ? 'text-blue-600' : 'text-slate-400'
                         )}
                     >
-                        <item.icon className={clsx("w-6 h-6", currentView === item.id && "fill-current/10")} />
-                        <span className="text-[10px] font-medium">{item.label}</span>
+                        <item.icon className={clsx("w-5 h-5", currentView === item.id && "fill-current/10")} />
+                        <span className="text-[9px] font-medium truncate w-full text-center px-0.5">{item.label}</span>
                     </button>
                 ))}
             </nav>
