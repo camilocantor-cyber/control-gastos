@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bim-bpm-erp">
+
+  <bpmn:process id="Proceso_Gestion_Cambio_BIM" name="Gestión de Cambio BIM con impacto ERP" isExecutable="true">
+
+    <!-- Start -->
+    <bpmn:startEvent id="Start_BIM_Modificado" name="Modelo BIM Modificado"/>
+    
+    <bpmn:task id="Detectar_Cambios" name="Detectar elementos modificados"/>
+    <bpmn:task id="Calcular_Diferencias" name="Calcular diferencias de cantidades"/>
+    <bpmn:task id="Enviar_Cambios_BPM" name="Enviar cambios a BPM"/>
+
+    <bpmn:task id="Evaluar_Impacto" name="Evaluar impacto (reglas negocio)"/>
+    <bpmn:exclusiveGateway id="Gateway_Aprobacion" name="¿Requiere aprobación?"/>
+
+    <bpmn:task id="Actualizar_ERP_Auto" name="Actualizar ERP automáticamente"/>
+
+    <bpmn:task id="Crear_Tramite" name="Crear trámite de aprobación"/>
+    <bpmn:userTask id="Revisar_Cambio" name="Revisar cambio (Supervisor)"/>
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="¿Aprueba?"/>
+
+    <bpmn:task id="Notificar_Rechazo" name="Notificar rechazo a BIM"/>
+    <bpmn:endEvent id="End_Rechazo" name="Cambio rechazado"/>
+
+    <bpmn:task id="Generar_OC" name="Generar orden de compra"/>
+    <bpmn:task id="Registrar_Compra" name="Registrar compra en ERP"/>
+    <bpmn:task id="Actualizar_Inventario" name="Actualizar inventario"/>
+    <bpmn:task id="Actualizar_Presupuesto" name="Actualizar presupuesto"/>
+
+    <bpmn:task id="Actualizar_Estado" name="Actualizar estado del trámite"/>
+    <bpmn:task id="Notificar_BIM" name="Notificar éxito a BIM"/>
+    <bpmn:endEvent id="End_Exito" name="Cambio implementado"/>
+
+    <!-- Flows -->
+    <bpmn:sequenceFlow id="F1" sourceRef="Start_BIM_Modificado" targetRef="Detectar_Cambios"/>
+    <bpmn:sequenceFlow id="F2" sourceRef="Detectar_Cambios" targetRef="Calcular_Diferencias"/>
+    <bpmn:sequenceFlow id="F3" sourceRef="Calcular_Diferencias" targetRef="Enviar_Cambios_BPM"/>
+    <bpmn:sequenceFlow id="F4" sourceRef="Enviar_Cambios_BPM" targetRef="Evaluar_Impacto"/>
+    <bpmn:sequenceFlow id="F5" sourceRef="Evaluar_Impacto" targetRef="Gateway_Aprobacion"/>
+
+    <bpmn:sequenceFlow id="F6" sourceRef="Gateway_Aprobacion" targetRef="Actualizar_ERP_Auto" name="No"/>
+    <bpmn:sequenceFlow id="F7" sourceRef="Actualizar_ERP_Auto" targetRef="Actualizar_Estado"/>
+
+    <bpmn:sequenceFlow id="F8" sourceRef="Gateway_Aprobacion" targetRef="Crear_Tramite" name="Sí"/>
+    <bpmn:sequenceFlow id="F9" sourceRef="Crear_Tramite" targetRef="Revisar_Cambio"/>
+    <bpmn:sequenceFlow id="F10" sourceRef="Revisar_Cambio" targetRef="Gateway_Decision"/>
+
+    <bpmn:sequenceFlow id="F11" sourceRef="Gateway_Decision" targetRef="Notificar_Rechazo" name="No"/>
+    <bpmn:sequenceFlow id="F12" sourceRef="Notificar_Rechazo" targetRef="End_Rechazo"/>
+
+    <bpmn:sequenceFlow id="F13" sourceRef="Gateway_Decision" targetRef="Generar_OC" name="Sí"/>
+    <bpmn:sequenceFlow id="F14" sourceRef="Generar_OC" targetRef="Registrar_Compra"/>
+    <bpmn:sequenceFlow id="F15" sourceRef="Registrar_Compra" targetRef="Actualizar_Inventario"/>
+    <bpmn:sequenceFlow id="F16" sourceRef="Actualizar_Inventario" targetRef="Actualizar_Presupuesto"/>
+    <bpmn:sequenceFlow id="F17" sourceRef="Actualizar_Presupuesto" targetRef="Actualizar_Estado"/>
+    <bpmn:sequenceFlow id="F18" sourceRef="Actualizar_Estado" targetRef="Notificar_BIM"/>
+    <bpmn:sequenceFlow id="F19" sourceRef="Notificar_BIM" targetRef="End_Exito"/>
+
+  </bpmn:process>
+
+</bpmn:definitions>
