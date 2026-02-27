@@ -178,7 +178,15 @@ export function useExecution() {
                     allData?.forEach(d => context[d.field_name] = d.value);
 
                     const steps = (targetActivity.action_config as any)?.steps || [{ id: '1', ...targetActivity.action_config }];
-                    const actionResult = await executeServiceTask(steps as any, context);
+
+                    // Fetch organization settings for parameter substitution
+                    const { data: orgData } = await supabase
+                        .from('organizations')
+                        .select('settings')
+                        .eq('id', instance?.organization_id)
+                        .single();
+
+                    const actionResult = await executeServiceTask(steps as any, context, orgData?.settings || {});
 
                     if (!actionResult.success) {
                         await supabase.from('process_history').insert({
@@ -243,6 +251,7 @@ export function useExecution() {
 
     async function saveProcessData(processId: string, activityId: string, fields: Record<string, string>) {
         try {
+            setLoading(true);
             // Delete existing data for this activity in this process to avoid duplicates
             await supabase
                 .from('process_data')
@@ -261,9 +270,62 @@ export function useExecution() {
                 const { error } = await supabase.from('process_data').insert(dataToInsert);
                 if (error) throw error;
             }
+
+            // --- RESOLVE DYNAMIC NAME LOGIC ---
+            // 1. Get process instance and workflow info
+            const { data: instance } = await supabase
+                .from('process_instances')
+                .select('*, workflows(name_template, name)')
+                .eq('id', processId)
+                .single();
+
+            if (instance && instance.workflows?.name_template) {
+                // 2. Check if this is the START activity
+                const { data: startActivity } = await supabase
+                    .from('activities')
+                    .select('id')
+                    .eq('workflow_id', instance.workflow_id)
+                    .eq('type', 'start')
+                    .single();
+
+                if (activityId === startActivity?.id) {
+                    let fullyResolved = true;
+                    let newName = instance.workflows.name_template;
+
+                    // Replace variables {{field_name}}
+                    newName = newName.replace(/{{(.*?)}}/g, (match: string, fieldName: string) => {
+                        const cleanName = fieldName.trim();
+                        // 1. Try direct match
+                        if (fields[cleanName] !== undefined && fields[cleanName] !== '') {
+                            return fields[cleanName];
+                        }
+                        // 2. Try normalized match (lowercase, spaces to underscores)
+                        const normalizedName = cleanName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+                        if (fields[normalizedName] !== undefined && fields[normalizedName] !== '') {
+                            return fields[normalizedName];
+                        }
+
+                        fullyResolved = false;
+                        return match;
+                    });
+
+                    // Update instance name only if fully resolved and it actually changed
+                    if (fullyResolved && newName !== instance.name) {
+                        await supabase
+                            .from('process_instances')
+                            .update({ name: newName })
+                            .eq('id', processId);
+                    }
+                }
+            }
+            // ----------------------------------
+
             return { success: true };
         } catch (err: any) {
+            console.error('Error saving process data:', err);
             return { success: false, error: err.message };
+        } finally {
+            setLoading(false);
         }
     }
 

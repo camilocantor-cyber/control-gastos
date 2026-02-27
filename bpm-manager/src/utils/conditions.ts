@@ -61,6 +61,7 @@ export function evaluateCondition(condition: string | undefined, data: Record<st
         case '<=':
             return isNumeric ? numActual <= numTarget : actualValue <= targetValue;
         case '=':
+        case '==':
             // For loose equality
             return isNumeric ? numActual === numTarget : actualValue.toLowerCase() === targetValue.toLowerCase();
         case '!=':
@@ -68,4 +69,49 @@ export function evaluateCondition(condition: string | undefined, data: Record<st
         default:
             return true;
     }
+}
+
+/**
+ * Translates a condition string into a natural language sentence in Spanish.
+ */
+export function translateCondition(condition: string | undefined, fields: any[] = []): string {
+    if (!condition || !condition.trim()) return '';
+
+    const operatorsMap: Record<string, string> = {
+        '>=': 'al menos',
+        '<=': 'máximo',
+        '!=': 'diferente a',
+        '==': 'igual a',
+        '=': 'igual a',
+        '>': 'mayor que',
+        '<': 'menor que'
+    };
+
+    let operator = '';
+    const sortedOps = ['>=', '<=', '!=', '==', '=', '>', '<'];
+    for (const op of sortedOps) {
+        if (condition.includes(op)) {
+            operator = op;
+            break;
+        }
+    }
+
+    if (!operator) return condition;
+
+    const [leftRaw, rightRaw] = condition.split(operator);
+    const fieldName = leftRaw.trim();
+    const targetValue = rightRaw.trim().replace(/^['"]|['"]$/g, '');
+
+    const field = fields.find(f => f.name === fieldName);
+    const label = field?.label || fieldName;
+
+    const expression = operatorsMap[operator];
+
+    // Format target value based on field type if possible
+    let displayValue = targetValue;
+    if (field?.type === 'currency' && !isNaN(parseFloat(targetValue))) {
+        displayValue = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(parseFloat(targetValue));
+    }
+
+    return `El campo "${label}" debe ser ${expression} ${displayValue}`;
 }

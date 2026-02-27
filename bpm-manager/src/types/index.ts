@@ -5,6 +5,7 @@ export interface Organization {
     name: string;
     plan: UserPlan;
     created_at: string;
+    settings?: Record<string, any>;
 }
 
 export type UserRole = 'admin' | 'editor' | 'viewer';
@@ -30,6 +31,18 @@ export interface Workflow {
     status: WorkflowStatus;
     version?: string;
     parent_id?: string;
+    name_template?: string;
+    details?: WorkflowDetail[]; // List of available master-detail folders for this workflow
+}
+
+export interface WorkflowDetail {
+    id: string;
+    workflow_id: string;
+    name: string;
+    description?: string;
+    form_columns?: number;
+    fields: FieldDefinition[];
+    actions: AutomatedAction[];
 }
 
 export type ActivityType = 'start' | 'task' | 'decision' | 'end';
@@ -72,7 +85,16 @@ export interface ProcessHistory {
     user_id: string;
 }
 
-export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone';
+export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup';
+
+export interface GridColumn {
+    id: string;
+    name: string;
+    label: string;
+    type: FieldType;
+    required?: boolean;
+    options?: string[]; // For select type within grid
+}
 
 export interface FieldDefinition {
     id: string;
@@ -91,6 +113,30 @@ export interface FieldDefinition {
     source_field_name?: string;
     order_index?: number;
     visibility_condition?: string; // Logic to show/hide field based on other field values
+    default_value?: string;
+    // For Grid type
+    grid_columns?: GridColumn[]; // Columns for master-detail
+    // For Lookup type
+    lookup_entity?: string; // e.g., 'providers', 'users', 'departments'
+    lookup_endpoint?: string; // In case we want external API lookups
+    lookup_config?: {
+        type: 'rest' | 'database';
+        // Options for REST API
+        url?: string;
+        method?: 'GET' | 'POST';
+        headers?: Record<string, string>;
+        search_param?: string;
+        result_path?: string;
+
+        // Options for Database Catalog Search
+        table_name?: string;
+        search_column?: string;
+
+        // Shared options
+        display_fields?: string[];
+        value_field?: string;
+        mapping?: Record<string, string>; // Maps response/row column names to current target form field names
+    };
 }
 
 export interface ActivityField {
@@ -99,6 +145,63 @@ export interface ActivityField {
     activity_id: string;
     field_name: string;
     value: string;
+}
+
+export interface ProcessDetailRow {
+    id: string;
+    detail_id: string;
+    created_at: string;
+    created_by: string;
+    data: Record<string, any>;
+}
+
+export type AssignmentType = 'manual' | 'position' | 'department' | 'specific_user' | 'creator';
+export type AssignmentStrategy = 'manual' | 'workload' | 'efficiency' | 'random';
+
+export type AutomatedActionType = 'none' | 'webhook' | 'soap' | 'finance' | 'email';
+export type ActionExecutionTiming = 'on_save_row' | 'on_submit_activity' | 'manual';
+
+export interface AutomatedAction {
+    id: string;
+    type: AutomatedActionType;
+    name: string;
+    execution_timing?: ActionExecutionTiming; // Specifically useful for actions inside Details
+    config: {
+        steps?: {
+            id: string;
+            url: string;
+            method: string;
+            headers?: Record<string, string>;
+            body?: string;
+            auth_type?: 'none' | 'bearer' | 'basic';
+            auth_token?: string;
+            output_variable?: string;
+        }[];
+        url?: string;
+        method?: string;
+        headers?: Record<string, string>;
+        body?: string;
+        auth_type?: 'none' | 'bearer' | 'basic';
+        auth_token?: string;
+        output_variable?: string;
+        finance_url?: string;
+        api_key?: string;
+        amount?: string;
+        description?: string;
+        movement_type?: 'expense' | 'income';
+        category?: string;
+        provider?: string;
+        concept_id?: string;
+        email_to?: string;
+        email_cc?: string;
+        email_subject?: string;
+        email_body?: string;
+        email_smtp_host?: string;
+        email_smtp_port?: string;
+        email_smtp_user?: string;
+        email_smtp_pass?: string;
+        email_smtp_secure?: boolean;
+    };
 }
 
 // Single updated Activity interface
@@ -112,47 +215,23 @@ export interface Activity {
     y_pos: number;
     width?: number;
     height?: number;
-    // x and y might be deprecated or used by some other lib, keeping optional or removing?
-    // Let's keep them optional to avoid breaking if used elsewhere, but marked
     x?: number;
     y?: number;
     fields?: FieldDefinition[];
-    due_date_hours?: number; // Hours before activity is considered overdue (default: 24)
+    associated_details?: string[]; // IDs of WorkflowDetails linked to this activity
+    due_date_hours?: number;
+    sla_alert_hours?: number;
+    enable_supervisor_alerts?: boolean;
     form_columns?: number;
     assignment_type?: AssignmentType;
     assignment_strategy?: AssignmentStrategy;
     assigned_position_id?: string;
     assigned_department_id?: string;
     assigned_user_id?: string;
-    action_type?: 'none' | 'webhook' | 'soap' | 'finance';
-    action_config?: {
-        steps?: {
-            id: string;
-            url: string;
-            method: string;
-            headers?: Record<string, string>;
-            body?: string;
-            auth_type?: 'none' | 'bearer' | 'basic';
-            auth_token?: string;
-            output_variable?: string; // e.g. "access_token" to be used in next steps as {{access_token}}
-        }[];
-        url?: string; // Keep for backward compatibility of single step
-        method?: string;
-        headers?: Record<string, string>;
-        body?: string;
-        auth_type?: 'none' | 'bearer' | 'basic';
-        auth_token?: string;
-        output_variable?: string;
-        // Finance integration fields
-        finance_url?: string;
-        api_key?: string;
-        amount?: string;
-        description?: string;
-        movement_type?: 'expense' | 'income';
-        category?: string;
-        provider?: string;
-        concept_id?: string;
-    };
+    actions?: AutomatedAction[];
+    // Legacy single action support
+    action_type?: AutomatedActionType;
+    action_config?: AutomatedAction['config'];
 }
 
 export interface Provider {
@@ -200,9 +279,6 @@ export interface EmployeePosition {
     end_date?: string;
     created_at: string;
 }
-
-export type AssignmentType = 'manual' | 'position' | 'department' | 'specific_user' | 'creator';
-export type AssignmentStrategy = 'manual' | 'workload' | 'efficiency' | 'random';
 
 export interface DepartmentWithChildren extends Department {
     children?: DepartmentWithChildren[];

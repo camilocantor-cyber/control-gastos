@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Activity, Transition } from '../types';
+import type { Activity, Transition, WorkflowDetail } from '../types';
 
 export function useWorkflowModeler(workflowId: string) {
     const [activities, setActivities] = useState<Activity[]>([]);
     const [transitions, setTransitions] = useState<Transition[]>([]);
+    const [details, setDetails] = useState<WorkflowDetail[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -18,14 +19,18 @@ export function useWorkflowModeler(workflowId: string) {
         try {
             setLoading(true);
 
-            // Fetch activities and transitions first
-            const [activitiesRes, transitionsRes] = await Promise.all([
+            // Fetch activities, transitions and details first
+            const [activitiesRes, transitionsRes, detailsRes] = await Promise.all([
                 supabase.from('activities').select('*').eq('workflow_id', workflowId),
-                supabase.from('transitions').select('*').eq('workflow_id', workflowId)
+                supabase.from('transitions').select('*').eq('workflow_id', workflowId),
+                supabase.from('workflow_details').select('*').eq('workflow_id', workflowId)
             ]);
 
             if (activitiesRes.error) throw activitiesRes.error;
             if (transitionsRes.error) throw transitionsRes.error;
+            if (detailsRes.error) throw detailsRes.error;
+
+            setDetails(detailsRes.data || []);
 
             const activityIds = (activitiesRes.data || []).map(a => a.id);
 
@@ -63,7 +68,7 @@ export function useWorkflowModeler(workflowId: string) {
         }
     }
 
-    async function saveModel(newActivities: Activity[], newTransitions: Transition[]) {
+    async function saveModel(newActivities: Activity[], newTransitions: Transition[], newDetails: WorkflowDetail[] = details) {
         try {
             setSaving(true);
 
@@ -136,9 +141,19 @@ export function useWorkflowModeler(workflowId: string) {
                 }
             }
 
+            // 3.5 Upsert Details (Carpetas)
+            if (newDetails.length > 0) {
+                const { error: upsDetailsError } = await supabase.from('workflow_details').upsert(newDetails);
+                if (upsDetailsError) {
+                    console.error('❌ Error al upsertar detalles:', upsDetailsError);
+                    throw upsDetailsError;
+                }
+            }
+
             // 4. Delete orphans
             const activityIds = newActivities.map(a => a.id);
             const transitionIds = newTransitions.map(t => t.id);
+            const detailIds = newDetails.map(d => d.id);
             const fieldIds = newActivities.flatMap(a => (a.fields || []).map(f => f.id));
 
 
@@ -181,8 +196,20 @@ export function useWorkflowModeler(workflowId: string) {
                 await supabase.from('activities').delete().eq('workflow_id', workflowId);
             }
 
+            // Delete orphaned details
+            if (detailIds.length > 0) {
+                const { error: delDetailsError } = await supabase.from('workflow_details')
+                    .delete()
+                    .eq('workflow_id', workflowId)
+                    .not('id', 'in', detailIds);
+                if (delDetailsError) console.warn('⚠️ No se pudieron borrar detalles:', delDetailsError);
+            } else {
+                await supabase.from('workflow_details').delete().eq('workflow_id', workflowId);
+            }
+
             setActivities(newActivities);
             setTransitions(newTransitions);
+            setDetails(newDetails);
 
             return { success: true };
         } catch (error: any) {
@@ -198,6 +225,8 @@ export function useWorkflowModeler(workflowId: string) {
         setActivities,
         transitions,
         setTransitions,
+        details,
+        setDetails,
         loading,
         saving,
         saveModel,

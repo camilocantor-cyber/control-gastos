@@ -64,7 +64,12 @@ export function StartProcessModal({ onClose, onStarted }: { onClose: () => void,
                             <div className="relative">
                                 <select
                                     value={selectedWorkflowId}
-                                    onChange={(e) => setSelectedWorkflowId(e.target.value)}
+                                    onChange={(e) => {
+                                        const id = e.target.value;
+                                        setSelectedWorkflowId(id);
+                                        const wf = workflows.find(w => w.id === id);
+                                        if (wf) setProcessName(wf.name);
+                                    }}
                                     className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all font-bold text-slate-700 appearance-none"
                                 >
                                     <option value="">Selecciona una plantilla...</option>

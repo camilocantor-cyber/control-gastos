@@ -110,6 +110,7 @@ function AppContent() {
       )}
       {activeSection === 'users' && <UserManagement />}
       {activeSection === 'organization' && <OrganizationSettings />}
+      {activeSection === 'parameters' && <OrganizationSettings onlyParameters />}
       {activeSection === 'settings' && (
         <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-200">
           <div className="p-4 bg-slate-50 rounded-full mb-4">

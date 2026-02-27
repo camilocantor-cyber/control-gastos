@@ -2,7 +2,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../contexts/ThemeContext';
-import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, PlusCircle, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap } from 'lucide-react';
+import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, PlusCircle, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -115,8 +115,8 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
     };
 
     const isOperacionesActive = ['new-process', 'search'].includes(activeSection);
-    const isHerramientasActive = ['calendar', 'reports', 'providers', 'orgchart'].includes(activeSection);
-    const isConfigActive = ['workflows', 'users', 'organization', 'accounts'].includes(activeSection);
+    const isHerramientasActive = ['calendar', 'reports', 'monitor'].includes(activeSection);
+    const isConfigActive = ['workflows', 'users', 'organization', 'accounts', 'parameters', 'providers', 'orgchart'].includes(activeSection);
 
     return (
         <aside className={cn(
@@ -229,20 +229,6 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
                                 isCollapsed={isCollapsed}
                             />
                             <SidebarItem
-                                icon={Package}
-                                label="Proveedores"
-                                active={activeSection === 'providers'}
-                                onClick={() => onSectionChange('providers')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Network}
-                                label="Organigrama"
-                                active={activeSection === 'orgchart'}
-                                onClick={() => onSectionChange('orgchart')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
                                 icon={Zap}
                                 label="Monitor de API"
                                 active={activeSection === 'monitor'}
@@ -277,6 +263,27 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
                                 label="Mi Empresa"
                                 active={activeSection === 'organization'}
                                 onClick={() => onSectionChange('organization')}
+                                isCollapsed={isCollapsed}
+                            />
+                            <SidebarItem
+                                icon={Settings}
+                                label="Parámetros"
+                                active={activeSection === 'parameters'}
+                                onClick={() => onSectionChange('parameters')}
+                                isCollapsed={isCollapsed}
+                            />
+                            <SidebarItem
+                                icon={Package}
+                                label="Proveedores"
+                                active={activeSection === 'providers'}
+                                onClick={() => onSectionChange('providers')}
+                                isCollapsed={isCollapsed}
+                            />
+                            <SidebarItem
+                                icon={Network}
+                                label="Organigrama"
+                                active={activeSection === 'orgchart'}
+                                onClick={() => onSectionChange('orgchart')}
                                 isCollapsed={isCollapsed}
                             />
                             <SidebarItem

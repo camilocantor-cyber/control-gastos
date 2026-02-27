@@ -3,7 +3,7 @@ import type { Workflow } from '../types';
 import { useWorkflows } from '../hooks/useWorkflows';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardStats } from '../hooks/useDashboardStats';
-import { GitBranch, Plus, Search, Trash2, Edit2, Play, GitMerge, Users, Activity, X, MoreVertical, LayoutGrid, List } from 'lucide-react';
+import { GitBranch, Plus, Search, Trash2, Play, GitMerge, Users, Activity, X, MoreVertical, LayoutGrid, List } from 'lucide-react';
 
 export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
     onSelectWorkflow: (workflow: Workflow) => void,
@@ -178,7 +178,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {filteredWorkflows.map((workflow) => (
-                                    <tr key={workflow.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-50 dark:border-slate-800">
+                                    <tr key={workflow.id} onClick={() => onSelectWorkflow(workflow)} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-50 dark:border-slate-800 cursor-pointer">
                                         <td className="px-5 py-2">
                                             <div>
                                                 <p className="text-[13px] font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors leading-tight mb-0.5">{workflow.name}</p>
@@ -213,36 +213,27 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                         </td>
                                         <td className="px-5 py-2 text-right">
                                             <div className="flex justify-end gap-1.5 Items-center">
+
                                                 <button
-                                                    onClick={() => {
-                                                        setEditingWorkflow(workflow);
-                                                        setIsFormOpen(true);
-                                                    }}
-                                                    className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
-                                                    title="Editar"
-                                                >
-                                                    <Edit2 className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDuplicate(workflow.id)}
+                                                    onClick={(e) => { e.stopPropagation(); handleDuplicate(workflow.id); }}
                                                     className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
                                                     title="Versionar (Duplicar)"
                                                 >
                                                     <GitBranch className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(workflow.id)}
+                                                    onClick={(e) => { e.stopPropagation(); handleDelete(workflow.id); }}
                                                     className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
                                                     title="Eliminar"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
-                                                    onClick={() => onSelectWorkflow(workflow)}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-lg hover:bg-blue-700 transition-all ml-1 shadow-sm shadow-blue-200 active:scale-95 uppercase tracking-wider"
+                                                    onClick={(e) => { e.stopPropagation(); onSelectWorkflow(workflow); }}
+                                                    className="w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all ml-1 shadow-sm shadow-blue-200 active:scale-95"
+                                                    title="Abrir Editor"
                                                 >
-                                                    <Play className="w-2.5 h-2.5 fill-current" />
-                                                    ABRIR
+                                                    <Play className="w-3 h-3 fill-current" />
                                                 </button>
                                             </div>
                                         </td>
@@ -275,7 +266,8 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
     const [formData, setFormData] = useState({
         name: workflow?.name || '',
         description: workflow?.description || '',
-        status: workflow?.status || 'draft'
+        status: workflow?.status || 'draft',
+        name_template: workflow?.name_template || ''
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -285,46 +277,60 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-                <div className="px-8 py-6 border-b border-slate-200 bg-slate-100/50 flex items-center justify-between">
-                    <h3 className="text-xl font-bold text-slate-900">
-                        {workflow ? 'Editar Flujo' : 'Nuevo Flujo'}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border border-slate-100 dark:border-slate-800">
+                <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                        {workflow ? 'Configurar Flujo' : 'Crear Nuevo Flujo'}
                     </h3>
                     <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-slate-600 shadow-sm border border-transparent hover:border-slate-100">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-5">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Nombre del Proceso</label>
+                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Nombre del Proceso</label>
                         <input
                             type="text"
                             required
                             value={formData.name}
                             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900"
+                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
                             placeholder="Ej: Aprobación de Vacaciones"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Descripción</label>
+                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Descripción del Proceso</label>
                         <textarea
-                            rows={3}
+                            rows={2}
                             value={formData.description}
                             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all resize-none font-medium text-slate-900"
-                            placeholder="Describe brevemente el flujo..."
+                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all resize-none font-medium text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
+                            placeholder="Propósito de este flujo..."
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Estado Inicial</label>
+                        <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-widest">Plantilla de Nombre del Trámite</label>
+                        <input
+                            type="text"
+                            value={formData.name_template}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name_template: e.target.value }))}
+                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
+                            placeholder="Ej: Solicitud de {{empleado}}"
+                        />
+                        <p className="mt-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-relaxed">
+                            Usa <span className="text-blue-500">{'{{nombre_campo}}'}</span> de la primera actividad para generar nombres dinámicos.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Estado Inicial</label>
                         <select
                             value={formData.status}
                             onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all bg-white font-medium text-slate-900"
+                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all bg-white dark:bg-slate-900 font-bold text-slate-700 dark:text-slate-300 text-xs shadow-sm appearance-none cursor-pointer"
                         >
                             <option value="draft">Borrador (Draft)</option>
                             <option value="active">Activo (Active)</option>
@@ -342,7 +348,7 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
+                            className="flex-1 py-3.5 px-4 bg-blue-600 text-white font-black rounded-xl shadow-lg shadow-blue-200 dark:shadow-none hover:bg-blue-700 transition-all active:scale-95 text-[10px] uppercase tracking-widest"
                         >
                             {workflow ? 'Guardar Cambios' : 'Crear Flujo'}
                         </button>
@@ -353,9 +359,8 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
     );
 }
 
-function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
+function WorkflowCard({ workflow, onDelete, onDuplicate, onSelect }: {
     workflow: Workflow,
-    onEdit: () => void,
     onDelete: () => void,
     onDuplicate: () => void,
     onSelect: () => void
@@ -367,7 +372,7 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
     };
 
     return (
-        <div className="group bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 flex flex-col h-full">
+        <div onClick={onSelect} className="group bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 flex flex-col h-full cursor-pointer">
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <div className={statusColors[workflow.status] + " px-3 py-1 rounded-full text-xs font-bold border"}>
@@ -406,16 +411,7 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
                     <span className="text-xs font-medium">8 Actividades</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit();
-                        }}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                        title="Editar"
-                    >
-                        <Edit2 className="w-4 h-4" />
-                    </button>
+
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -441,10 +437,10 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
                             e.stopPropagation();
                             onSelect();
                         }}
-                        className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-all ml-2"
+                        className="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all ml-2 shadow-lg shadow-blue-200"
+                        title="Abrir Editor"
                     >
-                        <Play className="w-3 h-3 fill-current" />
-                        ABRIR
+                        <Play className="w-4 h-4 fill-current" />
                     </button>
                 </div>
             </div>
