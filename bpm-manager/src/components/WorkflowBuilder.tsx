@@ -820,30 +820,41 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
 
                         <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
                         <button
-                            disabled={!selectedActivityId && (!selectedTransitionId || isReadOnly)}
+                            disabled={!selectedActivityId}
                             onClick={() => {
-                                if (isReadOnly) {
-                                    if (selectedActivityId) setShowFormPreview(true);
-                                } else {
-                                    setShowPropertiesModal(true);
-                                }
+                                if (selectedActivityId) setShowFormPreview(true);
                             }}
                             className={cn(
-                                "p-2.5 rounded-xl transition-all flex items-center gap-2 group/edit active:scale-95",
-                                (selectedActivityId || (!isReadOnly && selectedTransitionId))
-                                    ? "bg-blue-600 text-white shadow-blue-500/20 shadow-lg hover:bg-blue-700"
+                                "p-2.5 rounded-xl transition-all flex items-center gap-2 group/preview active:scale-95",
+                                selectedActivityId
+                                    ? "bg-amber-500 text-white shadow-amber-500/20 shadow-lg hover:bg-amber-600"
                                     : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-700 cursor-not-allowed"
                             )}
-                            title={isReadOnly && selectedActivityId ? "Vista Previa del Formulario" : "Editar Propiedades"}
+                            title="Vista Previa del Formulario"
                         >
-                            {isReadOnly && selectedActivityId ? <Eye className="w-4 h-4" /> : <Settings2 className="w-4 h-4" />}
-                            <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/edit:max-w-[100px] transition-all duration-300">
-                                {isReadOnly && selectedActivityId ? "Previsualizar" : "Propiedades"}
+                            <Eye className="w-4 h-4" />
+                            <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/preview:max-w-[100px] transition-all duration-300">
+                                Previsualizar
                             </span>
                         </button>
 
                         {!isReadOnly && (
                             <>
+                                <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                                <button
+                                    disabled={!selectedActivityId && !selectedTransitionId}
+                                    onClick={() => setShowPropertiesModal(true)}
+                                    className={cn(
+                                        "p-2.5 rounded-xl transition-all flex items-center gap-2 group/edit active:scale-95",
+                                        (selectedActivityId || selectedTransitionId)
+                                            ? "bg-blue-600 text-white shadow-blue-500/20 shadow-lg hover:bg-blue-700"
+                                            : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                                    )}
+                                    title="Editar Propiedades"
+                                >
+                                    <Settings2 className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/edit:max-w-[100px] transition-all duration-300">Propiedades</span>
+                                </button>
                                 <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
                                 <button onClick={handleAutoLayout} className="p-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all flex items-center gap-2 group/layout active:scale-95" title="Auto-Organizar">
                                     <GitBranch className="w-4 h-4 rotate-180" />
