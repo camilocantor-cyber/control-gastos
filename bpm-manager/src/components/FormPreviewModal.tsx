@@ -15,6 +15,7 @@ interface FormPreviewModalProps {
     onDeleteField: (fieldId: string) => void;
     onReorderFields: (newFields: FieldDefinition[]) => void;
     onSave?: () => Promise<void> | void;
+    isReadOnly?: boolean;
 }
 
 const FIELD_TYPES: { value: FieldType; label: string }[] = [
@@ -32,7 +33,7 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
     { value: 'consecutivo', label: 'Consecutivo (Autogenerado)' },
 ];
 
-export function FormPreviewModal({ fields, formColumns = 1, activityName, workflowName, onClose, onAddField, onUpdateField, onDeleteField, onReorderFields, onSave }: FormPreviewModalProps) {
+export function FormPreviewModal({ fields, formColumns = 1, activityName, workflowName, onClose, onAddField, onUpdateField, onDeleteField, onReorderFields, onSave, isReadOnly = false }: FormPreviewModalProps) {
     const [formData, setFormData] = useState<Record<string, string>>({});
     const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
     const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
@@ -126,13 +127,15 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={onAddField}
-                            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition-all shadow-lg active:scale-95 text-[11px] uppercase tracking-widest group/add"
-                        >
-                            <Plus className="w-5 h-5 group-hover/add:rotate-90 transition-transform" />
-                            Nueva Propiedad
-                        </button>
+                        {!isReadOnly && (
+                            <button
+                                onClick={onAddField}
+                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition-all shadow-lg active:scale-95 text-[11px] uppercase tracking-widest group/add"
+                            >
+                                <Plus className="w-5 h-5 group-hover/add:rotate-90 transition-transform" />
+                                Nueva Propiedad
+                            </button>
+                        )}
                         <button onClick={onClose} className="p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-2xl text-slate-400 hover:text-rose-500 transition-all border border-slate-100 dark:border-white/5">
                             <X className="w-7 h-7" />
                         </button>
@@ -164,17 +167,19 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                         fields.map((field) => (
                                             <div
                                                 key={field.id}
-                                                draggable
+                                                draggable={!isReadOnly}
                                                 onDragStart={(e) => handleDragStart(e, field.id)}
                                                 onDragOver={handleDragOver}
                                                 onDrop={(e) => handleDrop(e, field.id)}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setSelectedFieldId(field.id);
+                                                    if (!isReadOnly) setSelectedFieldId(field.id);
                                                 }}
                                                 className={clsx(
-                                                    "space-y-1.5 p-2 rounded-xl transition-all cursor-grab active:cursor-grabbing group/field relative border-2",
+                                                    "space-y-1.5 p-2 rounded-xl transition-all relative border-2 flex-col",
+                                                    !isReadOnly && "cursor-grab active:cursor-grabbing group/field",
                                                     field.type === 'textarea' ? "col-span-full" : "",
+
                                                     selectedFieldId === field.id
                                                         ? "border-blue-500 bg-blue-50/30 dark:bg-blue-500/5 shadow-inner"
                                                         : "border-transparent hover:border-slate-200 dark:hover:border-slate-800",
@@ -192,10 +197,12 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                                         {field.label || field.name}
                                                         {field.required && <span className="text-rose-500 ml-1 text-xs">*</span>}
                                                     </label>
-                                                    <span className="text-[8px] font-black text-blue-500/0 group-hover/field:text-blue-500 transition-colors uppercase tracking-widest flex items-center gap-1 pointer-events-auto">
-                                                        <Settings2 className="w-2.5 h-2.5" />
-                                                        Propiedades
-                                                    </span>
+                                                    {!isReadOnly && (
+                                                        <span className="text-[8px] font-black text-blue-500/0 group-hover/field:text-blue-500 transition-colors uppercase tracking-widest flex items-center gap-1 pointer-events-auto">
+                                                            <Settings2 className="w-2.5 h-2.5" />
+                                                            Propiedades
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className={clsx(
                                                     "relative",
@@ -301,190 +308,192 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                     </div>
 
                     {/* Editor Sidebar - Ultra Narrow */}
-                    <div className="w-64 border-l border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col relative transition-all">
-                        {selectedField ? (
-                            <div className="flex-1 flex flex-col animate-in slide-in-from-right duration-300">
-                                {/* Sidebar Header with Discrete Save */}
-                                <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900/40">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                            <Settings2 className="w-3.5 h-3.5 text-blue-600" />
+                    {!isReadOnly && (
+                        <div className="w-64 border-l border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col relative transition-all">
+                            {selectedField ? (
+                                <div className="flex-1 flex flex-col animate-in slide-in-from-right duration-300">
+                                    {/* Sidebar Header with Discrete Save */}
+                                    <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900/40">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                <Settings2 className="w-3.5 h-3.5 text-blue-600" />
+                                            </div>
+                                            <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none">Editor</h3>
                                         </div>
-                                        <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none">Editor</h3>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={() => {
-                                                if (confirm('¿Eliminar este campo?')) {
-                                                    onDeleteField(selectedField.id);
-                                                    setSelectedFieldId(null);
-                                                }
-                                            }}
-                                            className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-slate-300 hover:text-rose-500 rounded-lg transition-all"
-                                            title="Eliminar Campo"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                            onClick={handleSaveClick}
-                                            disabled={saving}
-                                            className={clsx(
-                                                "px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all shadow-md active:scale-95 flex items-center gap-1.5 disabled:opacity-50",
-                                                showSaveSuccess
-                                                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200"
-                                                    : "bg-blue-600 text-white hover:bg-blue-700"
-                                            )}
-                                        >
-                                            {showSaveSuccess ? (
-                                                <CheckCircle2 className="w-3 h-3 animate-in zoom-in duration-300" />
-                                            ) : (
-                                                <Save className={clsx("w-3 h-3", saving && "animate-pulse")} />
-                                            )}
-                                            {showSaveSuccess ? '¡Guardado!' : (saving ? 'Guardando...' : 'Guardar')}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto p-4 space-y-5 pb-20 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-                                    <div className="space-y-3">
-                                        <h4 className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest px-1">Básico</h4>
-                                        <div className="space-y-3">
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Etiqueta del Campo</label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedField.label || ''}
-                                                    onChange={(e) => {
-                                                        const label = e.target.value;
-                                                        const name = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-                                                        onUpdateField(selectedField.id, { label, name });
-                                                    }}
-                                                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-bold text-slate-900 dark:text-white"
-                                                    placeholder="Ej: Nombre Completo"
-                                                />
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Tipo de Dato</label>
-                                                <select
-                                                    value={selectedField.type}
-                                                    onChange={(e) => onUpdateField(selectedField.id, { type: e.target.value as FieldType })}
-                                                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-bold text-slate-900 dark:text-white appearance-none cursor-pointer"
-                                                >
-                                                    {FIELD_TYPES.map(t => (
-                                                        <option key={t.value} value={t.value}>{t.label}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Identificador (Name)</label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedField.name || ''}
-                                                    onChange={(e) => onUpdateField(selectedField.id, { name: e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') })}
-                                                    className="w-full px-2.5 py-1.5 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] font-mono text-blue-600 dark:text-blue-400 font-bold"
-                                                    placeholder="campo_id"
-                                                />
-                                            </div>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('¿Eliminar este campo?')) {
+                                                        onDeleteField(selectedField.id);
+                                                        setSelectedFieldId(null);
+                                                    }
+                                                }}
+                                                className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-slate-300 hover:text-rose-500 rounded-lg transition-all"
+                                                title="Eliminar Campo"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={handleSaveClick}
+                                                disabled={saving}
+                                                className={clsx(
+                                                    "px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all shadow-md active:scale-95 flex items-center gap-1.5 disabled:opacity-50",
+                                                    showSaveSuccess
+                                                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200"
+                                                        : "bg-blue-600 text-white hover:bg-blue-700"
+                                                )}
+                                            >
+                                                {showSaveSuccess ? (
+                                                    <CheckCircle2 className="w-3 h-3 animate-in zoom-in duration-300" />
+                                                ) : (
+                                                    <Save className={clsx("w-3 h-3", saving && "animate-pulse")} />
+                                                )}
+                                                {showSaveSuccess ? '¡Guardado!' : (saving ? 'Guardando...' : 'Guardar')}
+                                            </button>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                        <h4 className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest px-1">Lógica y Visibilidad</h4>
-
+                                    <div className="flex-1 overflow-y-auto p-4 space-y-5 pb-20 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
                                         <div className="space-y-3">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center justify-between px-1">
-                                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Condición para Mostrar</label>
-                                                    <Info className="w-2.5 h-2.5 text-slate-300 pointer-events-none" />
+                                            <h4 className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest px-1">Básico</h4>
+                                            <div className="space-y-3">
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Etiqueta del Campo</label>
+                                                    <input
+                                                        type="text"
+                                                        value={selectedField.label || ''}
+                                                        onChange={(e) => {
+                                                            const label = e.target.value;
+                                                            const name = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+                                                            onUpdateField(selectedField.id, { label, name });
+                                                        }}
+                                                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-bold text-slate-900 dark:text-white"
+                                                        placeholder="Ej: Nombre Completo"
+                                                    />
                                                 </div>
-                                                <input
-                                                    type="text"
-                                                    value={selectedField.visibility_condition || ''}
-                                                    onChange={(e) => onUpdateField(selectedField.id, { visibility_condition: e.target.value })}
-                                                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] font-mono text-blue-600 dark:text-blue-400"
-                                                    placeholder="Ej: valor > 1000"
-                                                />
-                                                <p className="px-1 text-[8px] text-slate-400 leading-tight italic">Usa nombres de otros campos para crear condiciones dinámicas.</p>
-                                            </div>
 
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Valor por Defecto</label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedField.default_value || ''}
-                                                    onChange={(e) => onUpdateField(selectedField.id, { default_value: e.target.value })}
-                                                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] text-slate-600 dark:text-slate-400"
-                                                    placeholder="Ej: Pendiente"
-                                                />
-                                            </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Tipo de Dato</label>
+                                                    <select
+                                                        value={selectedField.type}
+                                                        onChange={(e) => onUpdateField(selectedField.id, { type: e.target.value as FieldType })}
+                                                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-bold text-slate-900 dark:text-white appearance-none cursor-pointer"
+                                                    >
+                                                        {FIELD_TYPES.map(t => (
+                                                            <option key={t.value} value={t.value}>{t.label}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
 
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Validación (Regex)</label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedField.regex_pattern || ''}
-                                                    onChange={(e) => onUpdateField(selectedField.id, { regex_pattern: e.target.value })}
-                                                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] font-mono text-slate-500"
-                                                    placeholder="Ej: ^[0-9]{10}$"
-                                                />
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Identificador (Name)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={selectedField.name || ''}
+                                                        onChange={(e) => onUpdateField(selectedField.id, { name: e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') })}
+                                                        className="w-full px-2.5 py-1.5 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] font-mono text-blue-600 dark:text-blue-400 font-bold"
+                                                        placeholder="campo_id"
+                                                    />
+                                                </div>
                                             </div>
-
-                                            <label className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900 rounded-lg cursor-pointer border border-transparent hover:border-blue-500/30 transition-all">
-                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">¿Es Obligatorio?</span>
-                                                <button
-                                                    onClick={() => onUpdateField(selectedField.id, { required: !selectedField.required })}
-                                                    className={clsx(
-                                                        "w-8 h-4 rounded-full transition-all relative overflow-hidden",
-                                                        selectedField.required ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
-                                                    )}
-                                                >
-                                                    <div className={clsx(
-                                                        "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all shadow-sm",
-                                                        selectedField.required ? "left-4.5" : "left-0.5"
-                                                    )} />
-                                                </button>
-                                            </label>
                                         </div>
-                                    </div>
 
-                                    {/* Options for Select */}
-                                    {selectedField.type === 'select' && (
-                                        <div className="space-y-1.5 bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100/50 dark:border-blue-800/30">
-                                            <label className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block px-1">Opciones de Lista</label>
+                                        <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                            <h4 className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest px-1">Lógica y Visibilidad</h4>
+
+                                            <div className="space-y-3">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center justify-between px-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Condición para Mostrar</label>
+                                                        <Info className="w-2.5 h-2.5 text-slate-300 pointer-events-none" />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={selectedField.visibility_condition || ''}
+                                                        onChange={(e) => onUpdateField(selectedField.id, { visibility_condition: e.target.value })}
+                                                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] font-mono text-blue-600 dark:text-blue-400"
+                                                        placeholder="Ej: valor > 1000"
+                                                    />
+                                                    <p className="px-1 text-[8px] text-slate-400 leading-tight italic">Usa nombres de otros campos para crear condiciones dinámicas.</p>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Valor por Defecto</label>
+                                                    <input
+                                                        type="text"
+                                                        value={selectedField.default_value || ''}
+                                                        onChange={(e) => onUpdateField(selectedField.id, { default_value: e.target.value })}
+                                                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] text-slate-600 dark:text-slate-400"
+                                                        placeholder="Ej: Pendiente"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Validación (Regex)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={selectedField.regex_pattern || ''}
+                                                        onChange={(e) => onUpdateField(selectedField.id, { regex_pattern: e.target.value })}
+                                                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] font-mono text-slate-500"
+                                                        placeholder="Ej: ^[0-9]{10}$"
+                                                    />
+                                                </div>
+
+                                                <label className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900 rounded-lg cursor-pointer border border-transparent hover:border-blue-500/30 transition-all">
+                                                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">¿Es Obligatorio?</span>
+                                                    <button
+                                                        onClick={() => onUpdateField(selectedField.id, { required: !selectedField.required })}
+                                                        className={clsx(
+                                                            "w-8 h-4 rounded-full transition-all relative overflow-hidden",
+                                                            selectedField.required ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
+                                                        )}
+                                                    >
+                                                        <div className={clsx(
+                                                            "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all shadow-sm",
+                                                            selectedField.required ? "left-4.5" : "left-0.5"
+                                                        )} />
+                                                    </button>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Options for Select */}
+                                        {selectedField.type === 'select' && (
+                                            <div className="space-y-1.5 bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100/50 dark:border-blue-800/30">
+                                                <label className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block px-1">Opciones de Lista</label>
+                                                <textarea
+                                                    value={selectedField.options?.join('\n') || ''}
+                                                    onChange={(e) => onUpdateField(selectedField.id, { options: e.target.value.split('\n').filter(o => o.trim()) })}
+                                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-blue-100 dark:border-blue-800 rounded-lg outline-none text-[10px] font-bold min-h-[70px]"
+                                                    placeholder="Una opción por línea..."
+                                                />
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-1 pt-2">
+                                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Descripción / Ayuda</label>
                                             <textarea
-                                                value={selectedField.options?.join('\n') || ''}
-                                                onChange={(e) => onUpdateField(selectedField.id, { options: e.target.value.split('\n').filter(o => o.trim()) })}
-                                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-blue-100 dark:border-blue-800 rounded-lg outline-none text-[10px] font-bold min-h-[70px]"
-                                                placeholder="Una opción por línea..."
+                                                value={selectedField.description || ''}
+                                                onChange={(e) => onUpdateField(selectedField.id, { description: e.target.value })}
+                                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-[10px] text-slate-500 dark:text-slate-400 min-h-[50px] resize-none"
+                                                placeholder="Detalle para el usuario..."
                                             />
                                         </div>
-                                    )}
-
-                                    <div className="space-y-1 pt-2">
-                                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Descripción / Ayuda</label>
-                                        <textarea
-                                            value={selectedField.description || ''}
-                                            onChange={(e) => onUpdateField(selectedField.id, { description: e.target.value })}
-                                            className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-[10px] text-slate-500 dark:text-slate-400 min-h-[50px] resize-none"
-                                            placeholder="Detalle para el usuario..."
-                                        />
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4">
-                                <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800">
-                                    <Layout className="w-8 h-8 text-slate-300" />
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4">
+                                    <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800">
+                                        <Layout className="w-8 h-8 text-slate-300" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Editor de Diseño</p>
+                                        <p className="text-[9px] text-slate-400 italic leading-relaxed">Selecciona un campo para configurar su lógica.</p>
+                                    </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Editor de Diseño</p>
-                                    <p className="text-[9px] text-slate-400 italic leading-relaxed">Selecciona un campo para configurar su lógica.</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

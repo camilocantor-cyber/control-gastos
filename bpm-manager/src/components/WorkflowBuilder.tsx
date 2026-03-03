@@ -2572,6 +2572,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                         onDeleteField={handleDeleteField}
                         onReorderFields={handleReorderFields}
                         onSave={handleSave}
+                        isReadOnly={isReadOnly}
                     />
                 )
             }
