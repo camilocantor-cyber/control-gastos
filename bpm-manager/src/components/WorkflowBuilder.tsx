@@ -17,6 +17,37 @@ import { AIWorkflowGeneratorModal } from './AIWorkflowGeneratorModal';
 import { useAuth } from '../hooks/useAuth';
 
 
+function FormulaValidationFeedback({ value, availableFields }: { value: string, availableFields: string[] }) {
+    if (!value) return null;
+    const matches = value.match(/\{\{([^}]+)\}\}/g);
+    if (!matches || matches.length === 0) return null;
+
+    const uniqueMatches = Array.from(new Set(matches));
+
+    return (
+        <div className="flex flex-wrap gap-1 mt-1.5">
+            {uniqueMatches.map((m, i) => {
+                const varName = m.slice(2, -2).trim();
+                const isValid = availableFields.includes(varName);
+                return (
+                    <span
+                        key={i}
+                        className={cn(
+                            "text-[9px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1 cursor-help",
+                            isValid
+                                ? "bg-emerald-100/50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                                : "bg-red-100/50 text-red-600 dark:bg-red-900/40 dark:text-red-400 border border-red-200 dark:border-red-800"
+                        )}
+                        title={isValid ? "Variable válida" : "Esta variable no existe en el flujo de trabajo"}
+                    >
+                        {varName} {isValid ? <CheckCircle2 className="w-2 h-2" /> : <AlertCircle className="w-2 h-2" />}
+                    </span>
+                );
+            })}
+        </div>
+    );
+}
+
 interface WorkflowBuilderProps {
     workflow: Workflow;
     onBack: () => void;
@@ -2047,6 +2078,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                             if (!selectedActivity) return null;
 
                                                             const editingAction = selectedActivity.actions?.find(act => act.id === editingActionId);
+                                                            const availableFields = ['date', 'user_name', 'user_email', 'organization_name', ...activities.flatMap(a => a.fields?.map(f => f.name) || [])];
 
                                                             return (
                                                                 <>
@@ -2186,6 +2218,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                     <div>
                                                                                                         <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Cantidad / Monto ( campo )</label>
                                                                                                         <input type="text" value={editingAction.config?.amount || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { amount: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="Ej: {{monto_total}}" />
+                                                                                                        <FormulaValidationFeedback value={editingAction.config?.amount || ''} availableFields={availableFields} />
                                                                                                     </div>
                                                                                                     <div>
                                                                                                         <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Tipo de Movimiento</label>
@@ -2198,6 +2231,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                 <div>
                                                                                                     <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Descripción del Movimiento</label>
                                                                                                     <input type="text" value={editingAction.config?.description || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { description: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" />
+                                                                                                    <FormulaValidationFeedback value={editingAction.config?.description || ''} availableFields={availableFields} />
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
@@ -2213,6 +2247,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                 <div>
                                                                                                     <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Para ( Destinatario - Ej: {"{{ email }}"} )</label>
                                                                                                     <input type="text" value={editingAction.config?.email_to || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_to: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="usuario@correo.com o {{campo}}" />
+                                                                                                    <FormulaValidationFeedback value={editingAction.config?.email_to || ''} availableFields={availableFields} />
                                                                                                 </div>
                                                                                             </div>
                                                                                             <div>
@@ -2222,10 +2257,12 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                             <div>
                                                                                                 <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Asunto</label>
                                                                                                 <input type="text" value={editingAction.config?.email_subject || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_subject: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold" />
+                                                                                                <FormulaValidationFeedback value={editingAction.config?.email_subject || ''} availableFields={availableFields} />
                                                                                             </div>
                                                                                             <div>
                                                                                                 <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Cuerpo del Mensaje</label>
                                                                                                 <textarea rows={4} value={editingAction.config?.email_body || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_body: e.target.value })} className="w-full p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono scrollbar-thin" />
+                                                                                                <FormulaValidationFeedback value={editingAction.config?.email_body || ''} availableFields={availableFields} />
                                                                                             </div>
 
                                                                                             <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
@@ -2295,10 +2332,12 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                 <div>
                                                                                                     <label className="block text-[8px] font-black text-emerald-700/70 dark:text-emerald-400/70 uppercase mb-2 ml-1">Número Destino (Ej: +573001234567 o {"{{telefono}}"})</label>
                                                                                                     <input type="text" value={editingAction.config?.whatsapp_number || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { whatsapp_number: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-bold" placeholder="+573001234567" />
+                                                                                                    <FormulaValidationFeedback value={editingAction.config?.whatsapp_number || ''} availableFields={availableFields} />
                                                                                                 </div>
                                                                                                 <div>
                                                                                                     <label className="block text-[8px] font-black text-emerald-700/70 dark:text-emerald-400/70 uppercase mb-2 ml-1">Mensaje (Usa {"{{variables}}"})</label>
                                                                                                     <textarea rows={5} value={editingAction.config?.whatsapp_message || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { whatsapp_message: e.target.value })} className="w-full p-4 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-medium resize-none shadow-sm" placeholder="Hola, tu trámite {{id_tramite}} ha sido aprobado..." />
+                                                                                                    <FormulaValidationFeedback value={editingAction.config?.whatsapp_message || ''} availableFields={availableFields} />
                                                                                                 </div>
                                                                                             </div>
 
@@ -2369,6 +2408,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                                         steps: editingAction.config?.steps?.map(s => s.id === step.id ? { ...s, url: e.target.value } : s)
                                                                                                                     });
                                                                                                                 }} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" />
+                                                                                                                <FormulaValidationFeedback value={step.url || ''} availableFields={availableFields} />
                                                                                                             </div>
                                                                                                             <div>
                                                                                                                 <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Método</label>
@@ -2424,6 +2464,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                                     steps: editingAction.config?.steps?.map(s => s.id === step.id ? { ...s, body: e.target.value } : s)
                                                                                                                 });
                                                                                                             }} className="w-full p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono" />
+                                                                                                            <FormulaValidationFeedback value={step.body || ''} availableFields={availableFields} />
                                                                                                         </div>
                                                                                                     </div>
                                                                                                 ))}
