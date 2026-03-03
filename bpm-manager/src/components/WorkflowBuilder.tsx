@@ -790,9 +790,6 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                         <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
                         <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }} className="p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all shadow-sm active:scale-95" title="Centrar Vista"><Maximize className="w-4 h-4" /></button>
 
-                        <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                        <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }} className="p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all shadow-sm active:scale-95" title="Centrar Vista"><Maximize className="w-4 h-4" /></button>
-
                         {!isReadOnly && (
                             <>
                                 <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
