@@ -144,20 +144,19 @@ export function useWorkflows() {
                 .eq('workflow_id', id);
             if (transError) throw transError;
 
-            // 5. Create new workflow
-            // Note: version might be e.g. "v1.2", parse the numeric part
             const currentVersionStr = (workflow.version || 'v1.0').replace('v', '');
-            const nextVersionNum = (parseFloat(currentVersionStr) + 0.1).toFixed(1);
+            const isDifferentOrg = user?.organization_id && user.organization_id !== workflow.organization_id;
+            const nextVersionNum = isDifferentOrg ? '1.0' : (parseFloat(currentVersionStr) + 0.1).toFixed(1);
             const nextVersion = `v${nextVersionNum}`;
 
             const newWfData: any = {
-                organization_id: workflow.organization_id,
-                name: `${workflow.name} (${nextVersion})`,
+                organization_id: user?.organization_id || workflow.organization_id,
+                name: isDifferentOrg ? `${workflow.name} (Copia)` : `${workflow.name} (${nextVersion})`,
                 description: workflow.description,
-                created_by: workflow.created_by,
+                created_by: user?.id || workflow.created_by,
                 status: 'draft',
                 version: nextVersion,
-                parent_id: workflow.parent_id || workflow.id,
+                parent_id: isDifferentOrg ? null : (workflow.parent_id || workflow.id),
                 name_template: workflow.name_template
             };
 

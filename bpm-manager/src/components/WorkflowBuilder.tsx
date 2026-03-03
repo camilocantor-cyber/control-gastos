@@ -14,6 +14,7 @@ import { SOPGenerator } from './SOPGenerator';
 import { FormPreviewModal } from './FormPreviewModal';
 import { DetailsManagerModal } from './DetailsManagerModal';
 import { AIWorkflowGeneratorModal } from './AIWorkflowGeneratorModal';
+import { useAuth } from '../hooks/useAuth';
 
 
 interface WorkflowBuilderProps {
@@ -22,6 +23,8 @@ interface WorkflowBuilderProps {
 }
 
 export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
+    const { user } = useAuth();
+    const isReadOnly = workflow.organization_id !== user?.organization_id;
     const { avgResolutionTimeByWorkflow } = useDashboardAnalytics();
 
     // Filter stats for this specific workflow
@@ -314,7 +317,11 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
             setSelectedTransitionId(null);
             setEditingActionId(null); // Reset action editing state
             if (isDoubleClick) {
-                setShowPropertiesModal(true);
+                if (isReadOnly) {
+                    setShowFormPreview(true);
+                } else {
+                    setShowPropertiesModal(true);
+                }
             }
         }
     };
@@ -566,7 +573,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                             {isFocusMode ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
                         </button>
 
-                        {!isFocusMode && (
+                        {!isFocusMode && !isReadOnly && (
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={handleSave}
@@ -643,7 +650,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
 
             <div className="flex-1 flex gap-6 overflow-hidden relative">
                 {/* Toolbox */}
-                {!isFocusMode && (
+                {!isFocusMode && !isReadOnly && (
                     <aside className="w-52 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-4 shadow-sm overflow-y-auto animate-in slide-in-from-left duration-300 transition-colors">
                         <div>
                             <div className="flex items-center justify-between mb-3">
@@ -723,6 +730,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                         }}
                                         onDoubleClick={(e) => {
                                             e.stopPropagation();
+                                            if (isReadOnly) return;
                                             setSelectedTransitionId(transition.id);
                                             setSelectedActivityId(null);
                                             setShowPropertiesModal(true);
@@ -783,66 +791,86 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                         <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }} className="p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all shadow-sm active:scale-95" title="Centrar Vista"><Maximize className="w-4 h-4" /></button>
 
                         <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                        <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }} className="p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all shadow-sm active:scale-95" title="Centrar Vista"><Maximize className="w-4 h-4" /></button>
+
+                        {!isReadOnly && (
+                            <>
+                                <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                                <button
+                                    disabled={!selectedActivityId}
+                                    onClick={() => {
+                                        if (selectedActivityId) {
+                                            setConnectionSourceId(selectedActivityId);
+                                            setSelectedActivityId(null);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "p-2.5 rounded-xl transition-all flex items-center gap-2 group/conn active:scale-95",
+                                        selectedActivityId
+                                            ? "bg-emerald-500 text-white shadow-emerald-500/20 shadow-lg hover:emerald-600"
+                                            : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                                    )}
+                                    title="Conectar Actividades"
+                                >
+                                    <Link className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/conn:max-w-[100px] transition-all duration-300">Conectar</span>
+                                </button>
+                            </>
+                        )}
+
+                        <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
                         <button
-                            disabled={!selectedActivityId}
+                            disabled={!selectedActivityId && (!selectedTransitionId || isReadOnly)}
                             onClick={() => {
-                                if (selectedActivityId) {
-                                    setConnectionSourceId(selectedActivityId);
-                                    setSelectedActivityId(null);
+                                if (isReadOnly) {
+                                    if (selectedActivityId) setShowFormPreview(true);
+                                } else {
+                                    setShowPropertiesModal(true);
                                 }
                             }}
                             className={cn(
-                                "p-2.5 rounded-xl transition-all flex items-center gap-2 group/conn active:scale-95",
-                                selectedActivityId
-                                    ? "bg-emerald-500 text-white shadow-emerald-500/20 shadow-lg hover:emerald-600"
-                                    : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                            )}
-                            title="Conectar Actividades"
-                        >
-                            <Link className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/conn:max-w-[100px] transition-all duration-300">Conectar</span>
-                        </button>
-
-                        <button
-                            disabled={!selectedActivityId && !selectedTransitionId}
-                            onClick={() => setShowPropertiesModal(true)}
-                            className={cn(
                                 "p-2.5 rounded-xl transition-all flex items-center gap-2 group/edit active:scale-95",
-                                (selectedActivityId || selectedTransitionId)
+                                (selectedActivityId || (!isReadOnly && selectedTransitionId))
                                     ? "bg-blue-600 text-white shadow-blue-500/20 shadow-lg hover:bg-blue-700"
                                     : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-700 cursor-not-allowed"
                             )}
-                            title="Editar Propiedades"
+                            title={isReadOnly && selectedActivityId ? "Vista Previa del Formulario" : "Editar Propiedades"}
                         >
-                            <Settings2 className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/edit:max-w-[100px] transition-all duration-300">Propiedades</span>
+                            {isReadOnly && selectedActivityId ? <Eye className="w-4 h-4" /> : <Settings2 className="w-4 h-4" />}
+                            <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/edit:max-w-[100px] transition-all duration-300">
+                                {isReadOnly && selectedActivityId ? "Previsualizar" : "Propiedades"}
+                            </span>
                         </button>
 
-                        <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                        <button onClick={handleAutoLayout} className="p-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all flex items-center gap-2 group/layout active:scale-95" title="Auto-Organizar">
-                            <GitBranch className="w-4 h-4 rotate-180" />
-                            <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/layout:max-w-[100px] transition-all duration-300">Organizar</span>
-                        </button>
+                        {!isReadOnly && (
+                            <>
+                                <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                                <button onClick={handleAutoLayout} className="p-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all flex items-center gap-2 group/layout active:scale-95" title="Auto-Organizar">
+                                    <GitBranch className="w-4 h-4 rotate-180" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/layout:max-w-[100px] transition-all duration-300">Organizar</span>
+                                </button>
 
-                        <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                        <button
-                            onClick={() => setShowDetailsManager(true)}
-                            className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex items-center gap-2 group/details active:scale-95 shadow-sm"
-                            title="Gestor de Carpetas (Maestro-Detalle)"
-                        >
-                            <FolderOpen className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/details:max-w-[150px] transition-all duration-300 whitespace-nowrap">Gestor de Carpetas</span>
-                        </button>
+                                <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                                <button
+                                    onClick={() => setShowDetailsManager(true)}
+                                    className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex items-center gap-2 group/details active:scale-95 shadow-sm"
+                                    title="Gestor de Carpetas (Maestro-Detalle)"
+                                >
+                                    <FolderOpen className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/details:max-w-[150px] transition-all duration-300 whitespace-nowrap">Gestor de Carpetas</span>
+                                </button>
 
-                        <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                        <button
-                            onClick={() => setShowWorkflowConfig(true)}
-                            className="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-indigo-600 rounded-xl transition-all flex items-center gap-2 group/wfconfig active:scale-95 shadow-sm"
-                            title="Configuración General del Flujo"
-                        >
-                            <Edit2 className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/wfconfig:max-w-[100px] transition-all duration-300 whitespace-nowrap">Ajustes Globlales</span>
-                        </button>
+                                <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                                <button
+                                    onClick={() => setShowWorkflowConfig(true)}
+                                    className="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-indigo-600 rounded-xl transition-all flex items-center gap-2 group/wfconfig active:scale-95 shadow-sm"
+                                    title="Configuración General del Flujo"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/wfconfig:max-w-[100px] transition-all duration-300 whitespace-nowrap">Ajustes Globlales</span>
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     {/* Details Manager Modal */}

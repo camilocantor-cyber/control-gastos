@@ -207,6 +207,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                             onDelete={() => handleDelete(workflow.id)}
                             onDuplicate={() => handleDuplicate(workflow.id)}
                             onSelect={() => onSelectWorkflow(workflow)}
+                            isReadOnly={workflow.organization_id !== user?.organization_id}
                         />
                     ))}
                     {filteredWorkflows.length === 0 && (
@@ -289,30 +290,34 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                                         <Globe className="w-3.5 h-3.5" />
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingWorkflow(workflow);
-                                                        setIsFormOpen(true);
-                                                    }}
-                                                    className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
-                                                    title="Editar Configuración"
-                                                >
-                                                    <MoreVertical className="w-3.5 h-3.5" />
-                                                </button>
+                                                {workflow.organization_id === user?.organization_id && (
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingWorkflow(workflow);
+                                                                setIsFormOpen(true);
+                                                            }}
+                                                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
+                                                            title="Editar Configuración"
+                                                        >
+                                                            <MoreVertical className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDelete(workflow.id); }}
+                                                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
+                                                            title="Eliminar"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </>
+                                                )}
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleDuplicate(workflow.id); }}
                                                     className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
-                                                    title="Versionar (Duplicar)"
+                                                    title="Clonar (Copiar a mi empresa)"
                                                 >
                                                     <GitBranch className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDelete(workflow.id); }}
-                                                    className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
-                                                    title="Eliminar"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); onSelectWorkflow(workflow); }}
@@ -506,7 +511,8 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
     onEdit: () => void,
     onDelete: () => void,
     onDuplicate: () => void,
-    onSelect: () => void
+    onSelect: () => void,
+    isReadOnly: boolean
 }) {
     const statusColors = {
         active: "bg-emerald-50 text-emerald-600 border-emerald-100",
@@ -536,16 +542,18 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
                         </div>
                     )}
                 </div>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit();
-                    }}
-                    className="text-slate-400 hover:text-slate-600 p-1"
-                    title="Editar Configuración"
-                >
-                    <MoreVertical className="w-5 h-5" />
-                </button>
+                {isReadOnly ? null : (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit();
+                        }}
+                        className="text-slate-400 hover:text-slate-600 p-1"
+                        title="Editar Configuración"
+                    >
+                        <MoreVertical className="w-5 h-5" />
+                    </button>
+                )}
             </div>
 
             <div className="flex-1">
@@ -592,20 +600,22 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
                             onDuplicate();
                         }}
                         className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                        title="Versionar (Duplicar)"
+                        title="Clonar (Copiar a mi empresa)"
                     >
                         <GitBranch className="w-4 h-4" />
                     </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete();
-                        }}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                        title="Eliminar"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isReadOnly ? null : (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete();
+                            }}
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                            title="Eliminar"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
