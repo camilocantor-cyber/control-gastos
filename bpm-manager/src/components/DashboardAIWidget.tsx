@@ -153,7 +153,7 @@ export function DashboardAIWidget() {
             </div>
 
             {isOpen && (
-                <div className="flex flex-col h-[450px]">
+                <div className="flex flex-col h-[250px]">
                     {showConfig && (
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
