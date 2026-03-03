@@ -58,19 +58,6 @@ export function SystemAccounts() {
                 orgId = profile?.organization_id;
             }
 
-            // Fetch profiles with organization names
-            const { data: profiles, error: pError } = await supabase
-                .from('profiles')
-                .select(`
-                    *,
-                    organization:organizations(name)
-                `);
-
-            if (pError) {
-                alert('Error al cargar perfiles: ' + pError.message);
-                throw pError;
-            }
-
             let collaborators: string[] = [];
             if (orgId) {
                 const { data: members } = await supabase
@@ -78,6 +65,29 @@ export function SystemAccounts() {
                     .select('user_id')
                     .eq('organization_id', orgId);
                 collaborators = members?.map(m => m.user_id) || [];
+            }
+
+            // Fetch profiles with organization names
+            let profilesQuery = supabase
+                .from('profiles')
+                .select(`
+                    *,
+                    organization:organizations(name)
+                `);
+
+            if (orgId) {
+                if (collaborators.length > 0) {
+                    profilesQuery = profilesQuery.or(`organization_id.eq.${orgId},id.in.(${collaborators.join(',')})`);
+                } else {
+                    profilesQuery = profilesQuery.eq('organization_id', orgId);
+                }
+            }
+
+            const { data: profiles, error: pError } = await profilesQuery;
+
+            if (pError) {
+                alert('Error al cargar perfiles: ' + pError.message);
+                throw pError;
             }
 
             const mappedAccounts = (profiles || []).map(p => {

@@ -13,14 +13,23 @@ export function StartProcessModal({ onClose, onStarted }: { onClose: () => void,
     const { startProcess, loading, error } = useExecution();
 
     async function loadWorkflows() {
-        // TODO: Filter by organization_id once RLS is active or here manually
-        const { data } = await supabase.from('workflows').select('*').eq('status', 'active');
+        if (!user) return;
+
+        let query = supabase.from('workflows').select('*').eq('status', 'active');
+
+        if (user.organization_id) {
+            query = query.or(`organization_id.eq.${user.organization_id},is_public.eq.true`);
+        } else {
+            query = query.eq('is_public', true);
+        }
+
+        const { data } = await query;
         setWorkflows(data || []);
     }
 
     useEffect(() => {
         loadWorkflows();
-    }, []);
+    }, [user]);
 
     async function handleStart() {
         if (!selectedWorkflowId || !processName || !user?.organization_id) {

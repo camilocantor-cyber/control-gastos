@@ -3,6 +3,7 @@ import { Search, Filter, Calendar, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ProcessViewerModal } from './ProcessViewerModal';
 import { ProcessTable } from './ProcessTable';
+import { useAuth } from '../hooks/useAuth';
 
 export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string) => void }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -15,11 +16,14 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [viewingProcessId, setViewingProcessId] = useState<string | null>(null);
+    const { user } = useAuth();
 
     useEffect(() => {
-        loadWorkflows();
-        loadProcesses();
-    }, []);
+        if (user) {
+            loadWorkflows();
+            loadProcesses();
+        }
+    }, [user]);
 
     useEffect(() => {
         setCurrentPage(1); // Reset to page 1 when filters change
@@ -27,10 +31,13 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
     }, [searchQuery, selectedWorkflow, selectedStatus]);
 
     async function loadWorkflows() {
-        const { data } = await supabase
-            .from('workflows')
-            .select('id, name')
-            .order('name');
+        let query = supabase.from('workflows').select('id, name').order('name');
+        if (user?.organization_id) {
+            query = query.or(`organization_id.eq.${user.organization_id},is_public.eq.true`);
+        } else {
+            query = query.eq('is_public', true);
+        }
+        const { data } = await query;
         setWorkflows(data || []);
     }
 
@@ -43,6 +50,10 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
                 .from('process_instances')
                 .select('*, workflows(name), activities(name, type)')
                 .order('created_at', { ascending: false });
+
+            if (user?.organization_id) {
+                query = query.eq('organization_id', user?.organization_id);
+            }
 
             // Filter by workflow
             if (selectedWorkflow) {

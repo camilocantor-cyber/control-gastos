@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Workflow } from '../types';
+import { useAuth } from './useAuth';
 
 export function useWorkflows() {
+    const { user } = useAuth();
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!user) return; // Wait for user to be loaded
+
         fetchWorkflows();
 
         // Set up real-time subscription
@@ -21,15 +25,24 @@ export function useWorkflows() {
         return () => {
             supabase.removeChannel(subscription);
         };
-    }, []);
+    }, [user?.organization_id]);
 
     async function fetchWorkflows() {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+
+            let query = supabase
                 .from('workflows')
                 .select('*, category:workflow_categories(*)')
                 .order('created_at', { ascending: false });
+
+            if (user?.organization_id) {
+                query = query.or(`organization_id.eq.${user.organization_id},is_public.eq.true`);
+            } else {
+                query = query.eq('is_public', true);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             setWorkflows(data || []);

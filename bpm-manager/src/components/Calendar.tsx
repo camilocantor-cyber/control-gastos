@@ -62,7 +62,13 @@ export function Calendar() {
     }, [selectedWorkflowId]);
 
     async function loadWorkflows() {
-        const { data } = await supabase.from('workflows').select('id, name');
+        let query = supabase.from('workflows').select('id, name');
+        if (user?.organization_id) {
+            query = query.or(`organization_id.eq.${user.organization_id},is_public.eq.true`);
+        } else {
+            query = query.eq('is_public', true);
+        }
+        const { data } = await query;
         if (data) setWorkflows(data);
     }
 
@@ -81,6 +87,10 @@ export function Calendar() {
                     activities (name, due_date_hours)
                 `)
                 .eq('status', 'active');
+
+            if (user?.organization_id) {
+                query = query.eq('organization_id', user.organization_id);
+            }
 
             if (selectedWorkflowId) {
                 query = query.eq('workflow_id', selectedWorkflowId);

@@ -5,6 +5,7 @@ import {
     BarChart, Bar, Legend
 } from 'recharts';
 import { BrainCircuit, TrendingUp, Clock, AlertTriangle, Activity } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 export function PredictionReport() {
     const [loading, setLoading] = useState(true);
@@ -12,20 +13,45 @@ export function PredictionReport() {
     const [projectedTotalHours, setProjectedTotalHours] = useState(0);
     const [departmentProjections, setDepartmentProjections] = useState<any[]>([]);
     const [bottleneckPredictions, setBottleneckPredictions] = useState<any[]>([]);
+    const { user } = useAuth();
 
     useEffect(() => {
-        generatePredictions();
-    }, []);
+        if (user?.organization_id) {
+            generatePredictions();
+        } else {
+            setLoading(false);
+        }
+    }, [user?.organization_id]);
 
     const generatePredictions = async () => {
         try {
             setLoading(true);
 
+            if (!user?.organization_id) return;
+
+            // Fetch organization instances first to filter history
+            const { data: instances } = await supabase
+                .from('process_instances')
+                .select('id')
+                .eq('organization_id', user.organization_id);
+
+            const instanceIdsArray = instances?.map((i: any) => i.id) || [];
+
+            if (instanceIdsArray.length === 0) {
+                setProjectedTotalCost(0);
+                setProjectedTotalHours(0);
+                setDepartmentProjections([]);
+                setBottleneckPredictions([]);
+                setLoading(false);
+                return;
+            }
+
             // 1. Fetch historical data to calculate averages
             const { data: history } = await supabase
                 .from('process_history')
                 .select('activity_id, step_cost, time_spent_hours')
-                .gt('step_cost', 0); // Only entries with cost
+                .gt('step_cost', 0)
+                .in('process_id', instanceIdsArray); // Only entries with cost
 
             const avgMap: Record<string, { totalCost: number, totalHours: number, count: number }> = {};
             (history || []).forEach(h => {
@@ -54,7 +80,8 @@ export function PredictionReport() {
                     current_activity_id,
                     activities (id, name, assigned_department_id, departments(id, name), workflows(name))
                 `)
-                .eq('status', 'active');
+                .eq('status', 'active')
+                .eq('organization_id', user.organization_id);
 
             let totalPjCost = 0;
             let totalPjHours = 0;

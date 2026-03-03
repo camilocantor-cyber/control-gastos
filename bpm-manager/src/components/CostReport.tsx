@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { DollarSign, Layers, Users, Briefcase, ChevronDown, ChevronRight, Activity, GitBranch } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 export function CostReport() {
     const [loading, setLoading] = useState(true);
@@ -8,18 +9,40 @@ export function CostReport() {
     const [areaCosts, setAreaCosts] = useState<any[]>([]);
     const [totalCost, setTotalCost] = useState(0);
 
+    const { user } = useAuth();
     // Expanded states
     const [expandedWf, setExpandedWf] = useState<string | null>(null);
     const [expandedDept, setExpandedDept] = useState<string | null>(null);
     const [expandedPos, setExpandedPos] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchCostData();
-    }, []);
+        if (user?.organization_id) {
+            fetchCostData();
+        } else {
+            setLoading(false);
+        }
+    }, [user?.organization_id]);
 
     const fetchCostData = async () => {
         try {
             setLoading(true);
+
+            if (!user?.organization_id) return;
+
+            const { data: instances } = await supabase
+                .from('process_instances')
+                .select('id')
+                .eq('organization_id', user.organization_id);
+
+            const instanceIds = instances?.map((i: any) => i.id) || [];
+
+            if (instanceIds.length === 0) {
+                setWorkflowCosts([]);
+                setAreaCosts([]);
+                setTotalCost(0);
+                setLoading(false);
+                return;
+            }
 
             // Fetch History with costs > 0
             const { data: history, error: historyError } = await supabase
@@ -32,7 +55,8 @@ export function CostReport() {
                     activity_id,
                     activities (name, workflows(id, name))
                 `)
-                .gt('step_cost', 0);
+                .gt('step_cost', 0)
+                .in('process_id', instanceIds);
 
             if (historyError) throw historyError;
 

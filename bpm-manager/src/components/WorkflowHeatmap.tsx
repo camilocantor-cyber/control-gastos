@@ -5,6 +5,7 @@ import { ZoomIn, ZoomOut, Maximize, Play, Square, AlertCircle, GitBranch, MouseP
 import type { Activity, Transition } from '../types';
 import { ProcessTable } from './ProcessTable';
 import { ProcessViewerModal } from './ProcessViewerModal';
+import { useAuth } from '../hooks/useAuth';
 
 interface WorkflowHeatmapProps {
     workflowId?: string;
@@ -23,6 +24,7 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
     const [activities, setActivities] = useState<Activity[]>([]);
     const [transitions, setTransitions] = useState<Transition[]>([]);
     const [stats, setStats] = useState<Record<string, ActivityStats>>({});
+    const { user } = useAuth();
 
     // Zoom and Pan State
     const [zoom, setZoom] = useState(1);
@@ -63,7 +65,13 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
     }, [selectedWorkflowId]);
 
     async function loadWorkflows() {
-        const { data } = await supabase.from('workflows').select('id, name');
+        let query = supabase.from('workflows').select('id, name');
+        if (user?.organization_id) {
+            query = query.or(`organization_id.eq.${user?.organization_id},is_public.eq.true`);
+        } else {
+            query = query.eq('is_public', true);
+        }
+        const { data } = await query;
         if (data) setWorkflows(data);
     }
 
@@ -86,11 +94,17 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
 
             // 2. Fetch Stats
             // A. Active Instances (Where are they NOW?)
-            const { data: activeInstances, error: activeError } = await supabase
+            let activeQuery = supabase
                 .from('process_instances')
                 .select('current_activity_id')
                 .eq('workflow_id', wfId)
                 .eq('status', 'active');
+
+            if (user?.organization_id) {
+                activeQuery = activeQuery.eq('organization_id', user.organization_id);
+            }
+
+            const { data: activeInstances, error: activeError } = await activeQuery;
 
             if (activeError) throw activeError;
 
@@ -106,13 +120,25 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
             // Fetch history where activity_id IN (list of activity ids for this workflow).
             const activityIds = activitiesData.map(a => a.id);
 
-            // Batching might be needed for huge datasets, but for now:
-            const { data: historyData, error: historyError } = await supabase
-                .from('process_history')
-                .select('activity_id')
-                .in('activity_id', activityIds); // This effectively filters by workflow
+            // For history, to isolate by org on public workflows, we should first get instance IDs
+            let instanceIdQuery = supabase.from('process_instances').select('id').eq('workflow_id', wfId);
+            if (user?.organization_id) {
+                instanceIdQuery = instanceIdQuery.eq('organization_id', user.organization_id);
+            }
+            const { data: instanceData } = await instanceIdQuery;
+            const instanceIds = instanceData?.map(i => i.id) || [];
 
-            if (historyError) throw historyError;
+            let historyData: any[] = [];
+            if (instanceIds.length > 0) {
+                const { data, error: historyError } = await supabase
+                    .from('process_history')
+                    .select('activity_id')
+                    .in('activity_id', activityIds)
+                    .in('process_id', instanceIds);
+
+                if (historyError) throw historyError;
+                historyData = data || [];
+            }
 
             // Aggregate
             const newStats: Record<string, ActivityStats> = {};
@@ -154,6 +180,10 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
                 .from('process_instances')
                 .select('*, workflows(name), activities(name, type)')
                 .order('created_at', { ascending: false });
+
+            if (user?.organization_id) {
+                query = query.eq('organization_id', user.organization_id);
+            }
 
             if (type === 'active') {
                 // Active instances currently AT this node

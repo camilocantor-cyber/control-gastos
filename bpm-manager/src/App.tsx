@@ -22,6 +22,7 @@ import { SystemAccounts } from './components/SystemAccounts';
 import { IntegrationMonitor } from './components/IntegrationMonitor';
 import { SelfServicePortal } from './components/SelfServicePortal';
 import { PublicForm } from './components/PublicForm';
+import { SuperAdminPanel } from './components/SuperAdminPanel';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -35,6 +36,11 @@ function AppContent() {
   const [publicWorkflowId] = useState(() => new URLSearchParams(window.location.search).get('public_process'));
   const [publicActivityId] = useState(() => new URLSearchParams(window.location.search).get('public_activity'));
   const [processId] = useState(() => new URLSearchParams(window.location.search).get('process_id'));
+  const [isSuperadminPage] = useState(() => window.location.hash.includes('superadmin'));
+
+  if (isSuperadminPage) {
+    return <SuperAdminPanel />;
+  }
 
   if (publicWorkflowId) {
     return <PublicForm workflowId={publicWorkflowId} />;

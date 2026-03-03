@@ -11,6 +11,7 @@ import { WorkflowHeatmap } from './WorkflowHeatmap';
 import { BimReport } from './BimReport';
 import { CostReport } from './CostReport';
 import { PredictionReport } from './PredictionReport';
+import { useAuth } from '../hooks/useAuth';
 
 interface ProcessHistoryStats {
     workflow_name: string;
@@ -281,6 +282,7 @@ function ManagementRanking({ limit = 5 }: { limit?: number }) {
 
 
 export function Reports() {
+    const { user } = useAuth();
     // Shared State
     const [statsData, setStatsData] = useState<ProcessHistoryStats[]>([]);
     const [treemapData, setTreemapData] = useState<TreemapData[]>([]);
@@ -310,7 +312,13 @@ export function Reports() {
     }, [dateRange, selectedWorkflowId, activeTab, heatmapMetric]);
 
     async function loadWorkflows() {
-        const { data } = await supabase.from('workflows').select('id, name');
+        let query = supabase.from('workflows').select('id, name');
+        if (user?.organization_id) {
+            query = query.or(`organization_id.eq.${user.organization_id},is_public.eq.true`);
+        } else {
+            query = query.eq('is_public', true);
+        }
+        const { data } = await query;
         if (data) setWorkflows(data);
     }
 
@@ -333,6 +341,10 @@ export function Reports() {
             let query = supabase
                 .from('process_instances')
                 .select(`id, status, created_at, workflow_id, workflows (name)`);
+
+            if (user?.organization_id) {
+                query = query.eq('organization_id', user.organization_id);
+            }
 
             if (dateFilter) query = query.gte('created_at', dateFilter);
             if (selectedWorkflowId) query = query.eq('workflow_id', selectedWorkflowId);
@@ -362,23 +374,35 @@ export function Reports() {
             });
             setStatsData(Object.values(statsMap));
 
-            // 2. Fetch History & Active Tasks for Treemap
-            let historyQuery = supabase
-                .from('process_history')
-                .select(`activity_id, created_at, action, process_id, activities (name, workflow_id, due_date_hours, workflows(name))`);
-
-            if (dateFilter) historyQuery = historyQuery.gte('created_at', dateFilter);
-            // We need 'completed' actions to calculate time
-
-            const { data: history, error: historyError } = await historyQuery;
-            if (historyError) throw historyError;
-
             // Helper to get Active tasks count and expiration status
             const instanceIds = new Set(instances?.map((i: any) => i.id));
-            const { data: activeTasks, error: activeError } = await supabase
+            const instanceIdsArray = Array.from(instanceIds);
+
+            // 2. Fetch History & Active Tasks for Treemap
+            let history: any[] = [];
+
+            if (instanceIdsArray.length > 0) {
+                let historyQuery = supabase
+                    .from('process_history')
+                    .select(`activity_id, created_at, action, process_id, activities (name, workflow_id, due_date_hours, workflows(name))`);
+
+                if (dateFilter) historyQuery = historyQuery.gte('created_at', dateFilter);
+                historyQuery = historyQuery.in('process_id', instanceIdsArray);
+
+                const { data, error: historyError } = await historyQuery;
+                if (historyError) throw historyError;
+                history = data || [];
+            }
+            let activeQuery = supabase
                 .from('process_instances')
                 .select(`id, current_activity_id, created_at`)
                 .eq('status', 'active');
+
+            if (user?.organization_id) {
+                activeQuery = activeQuery.eq('organization_id', user.organization_id);
+            }
+
+            const { data: activeTasks, error: activeError } = await activeQuery;
 
             if (activeError) throw activeError;
 
@@ -542,8 +566,14 @@ export function Reports() {
                     efficiencyMap[d.id] = { id: d.id, name: d.name, active: 0, overdue: 0, completed: 0 };
                 });
 
-                // Completed tasks grouped by activity and then mapped to dept
-                const { data: historyRes } = await supabase.from('process_history').select('activity_id').eq('action', 'completed');
+                let historyRes: any[] = [];
+                if (instanceIdsArray.length > 0) {
+                    let deptQuery = supabase.from('process_history').select('activity_id').eq('action', 'completed');
+                    deptQuery = deptQuery.in('process_id', instanceIdsArray);
+
+                    const { data } = await deptQuery;
+                    historyRes = data || [];
+                }
 
                 historyRes?.forEach(h => {
                     const act = allActivities.find(a => a.id === h.activity_id);
@@ -606,6 +636,10 @@ export function Reports() {
                     activities (name)
                 `)
                 .order('created_at', { ascending: false });
+
+            if (user?.organization_id) {
+                query = query.eq('organization_id', user.organization_id);
+            }
 
             if (selectedWorkflowId) query = query.eq('workflow_id', selectedWorkflowId);
 
