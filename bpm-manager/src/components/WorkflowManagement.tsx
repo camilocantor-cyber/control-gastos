@@ -506,7 +506,7 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
     );
 }
 
-function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
+function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect, isReadOnly }: {
     workflow: Workflow,
     onEdit: () => void,
     onDelete: () => void,
