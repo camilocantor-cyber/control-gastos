@@ -1,0 +1,479 @@
+﻿
+> bpm-manager@0.0.0 lint
+> eslint .
+
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\App.tsx
+  52:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\AICopilot.tsx
+  13:21  error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  14:15  error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  15:17  error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  16:32  error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  54:8   warning  React Hook useEffect has missing dependencies: 'bimStates' and 'isOpen'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  83:25  error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\AIWorkflowGeneratorModal.tsx
+  52:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\Auth.tsx
+   54:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  377:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\BimReport.tsx
+   31:58   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   52:50   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   92:33   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:114  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\Calendar.tsx
+   35:28  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+   50:76  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+   62:8   warning  React Hook useEffect has a missing dependency: 'loadEvents'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   92:83  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  183:13  error    'icsContent' is never reassigned. Use 'const' instead                                                          prefer-const
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\Dashboard.tsx
+   11:94   error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+   25:8    warning  React Hook useEffect has a missing dependency: 'refreshAll'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   31:8    warning  React Hook useEffect has a missing dependency: 'refreshAll'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  126:157  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\DetailsManagerModal.tsx
+  185:83   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  314:138  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  397:86   error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\FileAttachments.tsx
+  26:8  warning  React Hook useEffect has a missing dependency: 'loadAttachments'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\GeoSelector.tsx
+  19:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\GeoSelector.tsx:19:13
+  17 |         if (value && value.includes(',')) {
+  18 |             const [vLat, vLng] = value.split(',');
+> 19 |             setLat(vLat.trim());
+     |             ^^^^^^ Avoid calling setState() directly within an effect
+  20 |             setLng(vLng.trim());
+  21 |         }
+  22 |     }, [value]);  react-hooks/set-state-in-effect
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\HistoryDetailModal.tsx
+   3:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  23:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\IfcViewer.tsx
+    4:1   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free                                                                                                                                                   @typescript-eslint/ban-ts-comment
+   10:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   21:29  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   28:60  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   67:71  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   73:58  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   87:64  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  111:70  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  129:68  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  133:55  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  134:56  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  135:53  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  136:53  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  165:77  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  191:27  error    Unexpected any. Specify a different type                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  207:8   warning  React Hook useEffect has missing dependencies: 'objectStates' and 'onObjectSelected'. Either include them or remove the dependency array. If 'onObjectSelected' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\InteractiveLookup.tsx
+    9:12  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+   10:23  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+   11:5   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unused-vars')
+   12:30  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+   13:69  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+   19:44  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+   22:58  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+   71:52  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+  123:27  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+  147:32  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+  162:49  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\Layout.tsx
+  351:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\OrganizationSettings.tsx
+  49:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\OrganizationalChart.tsx
+  129:51   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:133  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  179:141  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  226:62   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  227:130  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:58   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  235:66   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  278:54   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  279:57   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  279:82   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  473:48   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  479:55   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\ProcessExecution.tsx
+    27:46   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    29:42   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    36:68   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    44:60   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    45:65   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    47:73   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    49:44   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    52:44   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    54:64   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    58:8    warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+    78:68   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+    96:62   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   108:43   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   117:74   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   174:51   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   208:65   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   209:53   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   246:30   error    'e' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+   299:59   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   301:96   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   330:43   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   340:25   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   364:25   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   383:36   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   391:24   error    '_' is assigned a value but never used                                                                       @typescript-eslint/no-unused-vars
+   404:18   error    'e' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+   476:23   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   760:85   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   839:139  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   856:133  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   882:65   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   967:93   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   978:97   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  1166:78   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  1218:85   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  1218:118  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  1220:103  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\ProcessSearch.tsx
+   9:48  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+  10:48  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+  22:8   warning  React Hook useEffect has a missing dependency: 'loadProcesses'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  27:8   warning  React Hook useEffect has a missing dependency: 'loadProcesses'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  65:48  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+  75:23  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\ProcessTable.tsx
+  4:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\ProcessViewerModal.tsx
+   31:50  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+   32:68  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+   47:8   warning  React Hook useEffect has a missing dependency: 'loadProcessData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   63:55  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+   93:58  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  165:49  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\Providers.tsx
+  29:8   warning  React Hook useEffect has a missing dependency: 'fetchProviders'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  76:25  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  94:25  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\Reports.tsx
+   27:15  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   28:20  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   31:35  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  154:53  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  298:66  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  308:8   warning  React Hook useEffect has a missing dependency: 'fetchReportsData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  342:43  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  375:60  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  386:41  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  394:61  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  395:39  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  419:53  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  420:34  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  428:35  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  428:43  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  456:39  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  538:53  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  554:45  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  573:62  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  576:51  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  649:32  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  756:83  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\ResetPassword.tsx
+  52:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\ScheduleProcessModal.tsx
+   12:19   error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   46:34   error  Expected a `const` instead of a literal type assertion  @typescript-eslint/prefer-as-const
+  164:103  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\StartProcessModal.tsx
+  22:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\StartProcessModal.tsx:22:9
+  20 |
+  21 |     useEffect(() => {
+> 22 |         loadWorkflows();
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |     }, []);
+  24 |
+  25 |     async function handleStart() {  react-hooks/set-state-in-effect
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\SystemAccounts.tsx
+   39:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  224:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  248:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\TaskInbox.tsx
+    8:40  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   10:56  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   18:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\TaskInbox.tsx:18:9
+  16 |
+  17 |     useEffect(() => {
+> 18 |         loadTasks();
+     |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  19 |     }, [refreshTrigger]);
+  20 |
+  21 |     if (loading && tasks.length === 0) {  react-hooks/set-state-in-effect
+   19:8   warning  React Hook useEffect has a missing dependency: 'loadTasks'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+   78:63  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   83:74  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   90:59  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  235:59  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\UserManagement.tsx
+   30:48  error    Unexpected any. Specify a different type                                                                                                 @typescript-eslint/no-explicit-any
+   42:8   warning  React Hook useEffect has missing dependencies: 'fetchPositions' and 'fetchProfiles'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   77:60  error    Unexpected any. Specify a different type                                                                                                 @typescript-eslint/no-explicit-any
+  143:17  error    'userId' is never reassigned. Use 'const' instead                                                                                        prefer-const
+  169:23  error    Unexpected any. Specify a different type                                                                                                 @typescript-eslint/no-explicit-any
+  216:25  error    Unexpected any. Specify a different type                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\WorkflowBuilder.tsx
+     1:27   error    'useCallback' is defined but never used                                                                                                                    @typescript-eslint/no-unused-vars
+    47:29   error    'setShowSaveSuccess' is assigned a value but never used                                                                                                    @typescript-eslint/no-unused-vars
+    98:22   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+    99:20   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+   100:16   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+   119:63   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+   132:8    warning  React Hook useEffect has a missing dependency: 'fetchColumnsForTable'. Either include it or remove the dependency array                                    react-hooks/exhaustive-deps
+   140:82   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+   176:8    warning  React Hook useEffect has missing dependencies: 'deleteActivity', 'deleteTransition', and 'handleSave'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   509:25   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+   934:95   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  1140:128  error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  1350:131  error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  1776:130  error    'err' is defined but never used                                                                                                                            @typescript-eslint/no-unused-vars
+  1998:126  error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  2118:265  error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  2265:222  error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  2506:94   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  2555:45   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  2596:44   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  2647:36   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+  2708:73   error    Unexpected any. Specify a different type                                                                                                                   @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\WorkflowHeatmap.tsx
+   38:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\components\WorkflowManagement.tsx
+   73:23   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  366:104  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  493:64   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\contexts\ThemeContext.tsx
+  49:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useAuth.tsx
+   73:52  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  146:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useDashboardAnalytics.ts
+   87:50  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   89:45  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  110:31  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  110:39  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  134:31  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  134:39  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  241:8   warning  React Hook useCallback has a missing dependency: 'user.id'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useDashboardStats.ts
+  75:18  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useDashboardStats.ts:75:18
+  73 |     useEffect(() => {
+  74 |         if (user?.organization_id) {
+> 75 |             void fetchStats();
+     |                  ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  76 |
+  77 |             // Set up real-time subscriptions
+  78 |             const channels = [  react-hooks/set-state-in-effect
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useExecution.ts
+   27:69  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+   55:23  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  108:23  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  143:33  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  174:55  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  184:51  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  199:53  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  199:87  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  219:35  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  222:50  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  229:75  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  267:37  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  280:23  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  379:23  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  424:23  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  432:50  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  497:21  error  'historyQuery' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useFileUpload.ts
+   64:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   92:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  116:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useOrgChart.ts
+    9:74  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   23:26  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   34:8   warning  React Hook useEffect has a missing dependency: 'loadChart'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   98:35  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   99:42  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  100:38  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  119:43  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  120:44  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  135:25  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  156:51  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  157:52  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  160:28  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  240:25  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useOrgChartAnalytics.ts
+  116:8  warning  React Hook useEffect has a missing dependency: 'fetchAnalytics'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useOrganizationMembers.ts
+  27:8   warning  React Hook useEffect has a missing dependency: 'fetchMembers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  48:51  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useProfile.ts
+  13:8   warning  React Hook useEffect has a missing dependency: 'fetchProfile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  25:32  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  26:25  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useScheduledProcesses.ts
+  21:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useWorkflowModeler.ts
+   16:8   warning  React Hook useEffect has a missing dependency: 'loadModel'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   38:25  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   64:25  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   77:65  error    'fields' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+   86:40  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  124:77  error    'order_index' is defined but never used                                                                       @typescript-eslint/no-unused-vars
+  215:25  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\hooks\useWorkflows.ts
+   36:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   91:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:29  error  '_' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  178:44  error  '__' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  178:61  error  '___' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  195:37  error  '_' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  195:53  error  '__' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  211:33  error  '_' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  211:49  error  '__' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  227:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\services\aiService.ts
+   98:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:97  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:14  error  'e' is defined but never used             @typescript-eslint/no-unused-vars
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\types\index.ts
+    8:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\utils\actionRunner.ts
+    8:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    9:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   12:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   21:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:87  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:81  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   26:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   27:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   29:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\src\utils\conditions.ts
+  77:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\supabase\functions\ingest-transaction\index.ts
+  67:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Proyecto\OneDrive\Documentos\bpm-manager\supabase\functions\send-email\index.ts
+  83:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  88:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 311 problems (288 errors, 23 warnings)
+  4 errors and 1 warning potentially fixable with the `--fix` option.
+

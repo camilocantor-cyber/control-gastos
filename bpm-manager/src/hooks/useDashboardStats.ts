@@ -68,11 +68,11 @@ export function useDashboardStats() {
             console.error('Error fetching dashboard stats:', error);
             setStats(prev => ({ ...prev, loading: false }));
         }
-    }, [user?.organization_id, user?.id]);
+    }, [user]);
 
     useEffect(() => {
         if (user?.organization_id) {
-            fetchStats();
+            void fetchStats();
 
             // Set up real-time subscriptions
             const channels = [

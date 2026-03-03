@@ -1,0 +1,25 @@
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 3657 modules transformed.
+[31m✗[39m Build failed in 25.50s
+[31merror during build:
+[31msrc/components/IfcViewer.tsx (5:42): "Highlighter" is not exported by "node_modules/@thatopen/components/dist/index.mjs", imported by "src/components/IfcViewer.tsx".[31m
+file: [36mC:/Proyecto/OneDrive/Documentos/bpm-manager/src/components/IfcViewer.tsx:5:42[31m
+[33m
+3: import * as THREE from 'three';
+4: // @ts-ignore
+5: import { FragmentsManager, BoundingBoxer, Highlighter, IfcPropertiesManager, IfcLoader, Worlds, SimpleScene, SimpleCa...
+                                             ^
+6: 
+7: interface IfcViewerProps {
+[31m
+    at getRollupError (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at Module.error (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/node-entry.js:17040:16)
+    at Module.traceVariable (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/node-entry.js:17452:29)
+    at ModuleScope.findVariable (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/node-entry.js:15070:39)
+    at FunctionScope.findVariable (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at ReturnValueScope.findVariable (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at Identifier.bind (file:///C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/rollup/dist/es/shared/node-entry.js:5447:40)[39m

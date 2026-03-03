@@ -27,19 +27,13 @@ export function useFileUpload() {
             }
 
             // Validate file type
-            const allowedTypes = [
-                'application/pdf',
-                'image/png',
-                'image/jpeg',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            ];
-            if (!allowedTypes.includes(file.type)) {
-                throw new Error('Tipo de archivo no permitido. Solo PDF, imágenes, DOCX y XLSX');
+            const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+            const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'docx', 'xlsx', 'ifc'];
+            if (!allowedExtensions.includes(fileExt)) {
+                throw new Error('Tipo de archivo no permitido. Solo PDF, imágenes, DOCX, XLSX e IFC');
             }
 
             // Generate unique file path
-            const fileExt = file.name.split('.').pop();
             const fileName = `${processInstanceId}/${Date.now()}.${fileExt}`;
 
             // Upload to Supabase Storage

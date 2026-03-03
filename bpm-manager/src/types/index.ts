@@ -21,6 +21,14 @@ export interface User {
 
 export type WorkflowStatus = 'draft' | 'active' | 'archived';
 
+export interface WorkflowCategory {
+    id: string;
+    organization_id: string;
+    name: string;
+    color: string;
+    created_at?: string;
+}
+
 export interface Workflow {
     id: string;
     organization_id: string;
@@ -32,6 +40,9 @@ export interface Workflow {
     version?: string;
     parent_id?: string;
     name_template?: string;
+    is_public?: boolean;
+    category_id?: string;
+    category?: WorkflowCategory;
     details?: WorkflowDetail[]; // List of available master-detail folders for this workflow
 }
 
@@ -85,7 +96,7 @@ export interface ProcessHistory {
     user_id: string;
 }
 
-export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup';
+export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup' | 'location' | 'consecutivo';
 
 export interface GridColumn {
     id: string;
@@ -137,6 +148,7 @@ export interface FieldDefinition {
         value_field?: string;
         mapping?: Record<string, string>; // Maps response/row column names to current target form field names
     };
+    consecutive_mask?: string; // e.g. "CON-EH1-YYYY-MM-####" for consecutivo type
 }
 
 export interface ActivityField {
@@ -155,10 +167,10 @@ export interface ProcessDetailRow {
     data: Record<string, any>;
 }
 
-export type AssignmentType = 'manual' | 'position' | 'department' | 'specific_user' | 'creator';
-export type AssignmentStrategy = 'manual' | 'workload' | 'efficiency' | 'random';
+export type AssignmentType = 'manual' | 'position' | 'department' | 'department_and_position' | 'specific_user' | 'creator';
+export type AssignmentStrategy = 'manual' | 'workload' | 'efficiency' | 'random' | 'claim' | 'cost' | 'skills' | 'shift' | 'weighted';
 
-export type AutomatedActionType = 'none' | 'webhook' | 'soap' | 'finance' | 'email';
+export type AutomatedActionType = 'none' | 'webhook' | 'soap' | 'finance' | 'email' | 'whatsapp';
 export type ActionExecutionTiming = 'on_save_row' | 'on_submit_activity' | 'manual';
 
 export interface AutomatedAction {
@@ -192,6 +204,7 @@ export interface AutomatedAction {
         category?: string;
         provider?: string;
         concept_id?: string;
+        email_from?: string;
         email_to?: string;
         email_cc?: string;
         email_subject?: string;
@@ -201,6 +214,11 @@ export interface AutomatedAction {
         email_smtp_user?: string;
         email_smtp_pass?: string;
         email_smtp_secure?: boolean;
+        whatsapp_number?: string;
+        whatsapp_message?: string;
+        whatsapp_provider?: 'evolution' | 'ultramsg' | 'meta' | 'generic';
+        whatsapp_api_url?: string;
+        whatsapp_token?: string;
     };
 }
 
@@ -219,6 +237,7 @@ export interface Activity {
     y?: number;
     fields?: FieldDefinition[];
     associated_details?: string[]; // IDs of WorkflowDetails linked to this activity
+    detail_cardinalities?: Record<string, { mode: 'none' | '1_to_many' | 'min_x', min_items?: number, read_only?: boolean }>;
     due_date_hours?: number;
     sla_alert_hours?: number;
     enable_supervisor_alerts?: boolean;
@@ -229,6 +248,7 @@ export interface Activity {
     assigned_department_id?: string;
     assigned_user_id?: string;
     actions?: AutomatedAction[];
+    is_public?: boolean;
     // Legacy single action support
     action_type?: AutomatedActionType;
     action_config?: AutomatedAction['config'];
@@ -266,6 +286,7 @@ export interface Position {
     description?: string;
     level: number;
     reports_to_position_id?: string;
+    hourly_rate?: number;
     created_at: string;
     updated_at: string;
 }

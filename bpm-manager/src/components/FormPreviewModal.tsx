@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, Eye, Info, ChevronRight, Plus, Settings2, Trash2, Layout, CheckCircle2, Save } from 'lucide-react';
 import type { FieldDefinition, FieldType } from '../types';
 import { evaluateCondition } from '../utils/conditions';
-import clsx from 'clsx';
-
+import { GeoSelector } from './GeoSelector';
+import { clsx } from 'clsx';
 interface FormPreviewModalProps {
     fields: FieldDefinition[];
     formColumns?: number;
@@ -28,6 +28,8 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
     { value: 'email', label: 'Correo Electrónico' },
     { value: 'phone', label: 'Teléfono' },
     { value: 'lookup', label: 'Búsqueda Interactiva (Lookup)' },
+    { value: 'location', label: 'Georreferenciación (Mapa)' },
+    { value: 'consecutivo', label: 'Consecutivo (Autogenerado)' },
 ];
 
 export function FormPreviewModal({ fields, formColumns = 1, activityName, workflowName, onClose, onAddField, onUpdateField, onDeleteField, onReorderFields, onSave }: FormPreviewModalProps) {
@@ -254,6 +256,21 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                                                 placeholder="0"
                                                             />
                                                         </div>
+                                                    ) : field.type === 'location' ? (
+                                                        <div className="h-auto">
+                                                            <GeoSelector
+                                                                value={formData[field.name]}
+                                                                onChange={(val) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                            />
+                                                        </div>
+                                                    ) : field.type === 'consecutivo' ? (
+                                                        <input
+                                                            type="text"
+                                                            readOnly
+                                                            value={formData[field.name] || 'XXX-#### (Autogenerado)'}
+                                                            className="w-full h-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-[11px] text-slate-500 dark:text-slate-400 font-bold border-dashed cursor-not-allowed selection:bg-transparent"
+                                                            title="Este valor se generará automáticamente"
+                                                        />
                                                     ) : (
                                                         <input
                                                             type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}

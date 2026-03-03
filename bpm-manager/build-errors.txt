@@ -1,0 +1,18 @@
+src/components/AIWorkflowGeneratorModal.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/AIWorkflowGeneratorModal.tsx(4,1): error TS6192: All imports in import declaration are unused.
+src/components/DetailsManagerModal.tsx(18,12): error TS6133: 'editingActionId' is declared but its value is never read.
+src/components/GeoSelector.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/HistoryDetailModal.tsx(1,13): error TS6133: 'Save' is declared but its value is never read.
+src/components/IfcViewer.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/IfcViewer.tsx(3,24): error TS7016: Could not find a declaration file for module 'three'. 'C:/Proyecto/OneDrive/Documentos/bpm-manager/node_modules/three/build/three.module.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/three` if it exists or add a new declaration (.d.ts) file containing `declare module 'three';`
+src/components/IfcViewer.tsx(77,65): error TS2345: Argument of type 'HTMLDivElement | null' is not assignable to parameter of type 'HTMLElement'.
+  Type 'null' is not assignable to type 'HTMLElement'.
+src/components/IfcViewer.tsx(111,23): error TS6133: 'fragmentManager' is declared but its value is never read.
+src/components/InteractiveLookup.tsx(17,61): error TS6133: 'formData' is declared but its value is never read.
+src/components/InteractiveLookup.tsx(150,35): error TS2538: Type 'undefined' cannot be used as an index type.
+src/components/ProcessExecution.tsx(28,12): error TS6133: 'history' is declared but its value is never read.
+src/components/ProcessExecution.tsx(462,20): error TS6133: 'handleHistoryClick' is declared but its value is never read.
+src/hooks/useDashboardAnalytics.ts(77,43): error TS6133: 'histErr' is declared but its value is never read.
+src/hooks/useDashboardAnalytics.ts(85,19): error TS6133: 'userDurations' is declared but its value is never read.
+src/hooks/useDashboardAnalytics.ts(221,19): error TS6133: 'topActivities' is declared but its value is never read.

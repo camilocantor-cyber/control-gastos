@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy } from '../types';
 import { exportToBPMN, importFromBPMN } from '../utils/bpmnConverter';
@@ -92,7 +93,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false);
     const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-    const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'transitions' | 'assignment' | 'actions'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'transitions' | 'assignment' | 'actions' | 'details'>('general');
     const [lookupData, setLookupData] = useState<{
         departments: any[],
         positions: any[],
@@ -101,8 +102,9 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
     }>({ departments: [], positions: [], users: [], dbTables: [] });
     const [tableColumnsMap, setTableColumnsMap] = useState<Record<string, string[]>>({});
     const [editingActionId, setEditingActionId] = useState<string | null>(null);
+    const [testingEmail, setTestingEmail] = useState<boolean>(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchLookupData = async () => {
             const [depts, positions, users, tablesRes] = await Promise.all([
                 supabase.from('departments').select('id, name').order('name'),
@@ -130,7 +132,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
     }, [activities]); // Added activities dependency to check initial state
 
     // Load columns for a given table when selected
-    const fetchColumnsForTable = async (tableName: string) => {
+    async function fetchColumnsForTable(tableName: string) {
         if (!tableName || tableColumnsMap[tableName]) return;
         try {
             const { data } = await supabase.rpc('get_table_columns', { p_table_name: tableName });
@@ -140,9 +142,38 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
         } catch (err) {
             console.error('Error fetching columns linking to', tableName, err);
         }
-    };
+    }
 
     const [isFocusMode, setIsFocusMode] = useState(false);
+
+    // Global Hotkeys
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Save: Ctrl + S or Cmd + S
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                handleSave();
+            }
+            // Delete selected element: Delete or Backspace
+            // Let's only do it if the active element is not an input or textarea
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                const activeTag = document.activeElement?.tagName.toLowerCase();
+                const isTyping = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+                if (!isTyping) {
+                    if (selectedActivityId) {
+                        e.preventDefault();
+                        deleteActivity(selectedActivityId);
+                    } else if (selectedTransitionId) {
+                        e.preventDefault();
+                        deleteTransition(selectedTransitionId);
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedActivityId, selectedTransitionId]);
 
     const handleDragStartToolbox = (type: ActivityType) => {
         setDraggedType(type);
@@ -288,26 +319,27 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
         }
     };
 
-    const deleteActivity = (id: string) => {
+    function deleteActivity(id: string) {
         setActivities(prev => prev.filter(a => a.id !== id));
         setTransitions(prev => prev.filter(t => t.source_id !== id && t.target_id !== id));
         if (selectedActivityId === id) setSelectedActivityId(null);
         if (connectionSourceId === id) setConnectionSourceId(null);
-    };
+    }
 
-    const deleteTransition = (id: string) => {
+    function deleteTransition(id: string) {
         setTransitions(prev => prev.filter(t => t.id !== id));
-    };
+    }
 
-    const handleSave = async () => {
+    async function handleSave() {
         const { success, error } = await saveModel(activities, transitions);
         if (success) {
+            toast.success('Flujo guardado con éxito');
             setShowSaveSuccess(true);
-            setTimeout(() => setShowSaveSuccess(false), 3000);
+            setTimeout(() => setShowSaveSuccess(false), 2000);
         } else {
-            alert('Error al guardar el flujo: ' + (error || 'Desconocido'));
+            toast.error('Error al guardar el flujo: ' + (error || 'Desconocido'));
         }
-    };
+    }
 
     const handlePublish = async () => {
         const { success } = await saveModel(activities, transitions);
@@ -318,11 +350,13 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                 .eq('id', workflow.id);
 
             if (pubError) {
-                alert('Error al publicar: ' + pubError.message);
+                toast.error('Error al publicar: ' + pubError.message);
             } else {
-                alert('¡Flujo publicado con éxito! Ahora puedes iniciar trámites.');
+                toast.success('¡Flujo publicado con éxito! Ahora puedes iniciar trámites.');
                 onBack();
             }
+        } else {
+            toast.error('Error al publicar el flujo.');
         }
     };
 
@@ -434,6 +468,55 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                 : a
         ));
         if (editingActionId === actionId) setEditingActionId(null);
+    };
+
+    const handleTestEmail = async (action: AutomatedAction) => {
+        if (!action.config?.email_to) {
+            toast.error("Debes configurar al menos un destinatario (Para)");
+            return;
+        }
+
+        try {
+            setTestingEmail(true);
+            const dummyVars = (text: string | undefined, fallback: string) => {
+                if (!text) return '';
+                return text.replace(/\{\{([^}]+)\}\}/g, fallback);
+            };
+
+            const emailPayload = {
+                from: dummyVars(action.config?.email_from, "BPM@resend.dev"),
+                to: dummyVars(action.config?.email_to, "prueba@resend.dev"),
+                cc: dummyVars(action.config?.email_cc, ""),
+                subject: dummyVars(action.config?.email_subject, "Prueba") + " [PRUEBA]",
+                body: dummyVars(action.config?.email_body || "Esto es un correo de prueba.", "[VARIABLE DE PRUEBA]"),
+                smtp: {
+                    host: dummyVars(action.config?.email_smtp_host, ""),
+                    port: dummyVars(action.config?.email_smtp_port, ""),
+                    user: dummyVars(action.config?.email_smtp_user, ""),
+                    pass: dummyVars(action.config?.email_smtp_pass, ""),
+                    secure: action.config?.email_smtp_secure ?? true
+                }
+            };
+
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(emailPayload)
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Error desconocido');
+
+            toast.success("¡Correo de prueba enviado con éxito!");
+        } catch (error: any) {
+            console.error('Test Email Failed:', error);
+            toast.error(`Error al enviar prueba: ${error.message}`);
+        } finally {
+            setTestingEmail(false);
+        }
     };
 
     if (loading) {
@@ -779,15 +862,16 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                     <AIWorkflowGeneratorModal
                         isOpen={showAIGenerator}
                         onClose={() => setShowAIGenerator(false)}
-                        onGenerate={(generatedActivities, method) => {
+                        onGenerate={(generatedData, method) => {
                             if (method === 'replace') {
-                                setActivities(generatedActivities);
-                                setTransitions([]); // Clear transitions since nodes changed
+                                setActivities(generatedData.activities);
+                                setTransitions(generatedData.transitions);
                             } else {
                                 // Append
-                                setActivities(prev => [...prev, ...generatedActivities]);
+                                setActivities(prev => [...prev, ...generatedData.activities]);
+                                setTransitions(prev => [...prev, ...generatedData.transitions]);
                             }
-                            // Auto layout to organize the newly generated linear flow
+                            // Auto layout to organize the newly generated flow
                             setTimeout(() => handleAutoLayout(), 100);
                         }}
                     />
@@ -847,6 +931,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                     { id: 'fields', label: 'Campos y Formulario', icon: Plus },
                                                     { id: 'assignment', label: 'Asignación', icon: Users },
                                                     { id: 'actions', label: 'Acciones Automáticas', icon: Zap },
+                                                    { id: 'details', label: 'Carpetas (Detalles)', icon: FolderOpen },
                                                     { id: 'transitions', label: 'Salidas', icon: GitBranch },
                                                 ].map(tab => (
                                                     <button
@@ -975,53 +1060,32 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                             </select>
                                                         </div>
 
-                                                        {/* Maestro-Detalles (Carpetas) Asociadas */}
-                                                        {details.length > 0 && (
-                                                            <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50">
-                                                                <div className="flex items-center gap-2 mb-4">
-                                                                    <FolderOpen className="w-5 h-5 text-indigo-500" />
-                                                                    <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-[0.1em]">Carpetas (Detalles) Asociadas</label>
+                                                        {/* Public Toggle */}
+                                                        <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-blue-300 dark:hover:border-blue-800 transition-colors">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`p-2 rounded-lg ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                                                    <Globe className="w-5 h-5" />
                                                                 </div>
-                                                                <p className="text-xs text-slate-500 mb-4 ml-1">Seleccione qué sub-carpetas de registros iterables estarán disponibles durante este paso.</p>
-                                                                <div className="grid grid-cols-2 gap-3">
-                                                                    {details.map(detail => {
-                                                                        const activity = activities.find(a => a.id === selectedActivityId);
-                                                                        const isSelected = activity?.associated_details?.includes(detail.id) || false;
-                                                                        return (
-                                                                            <label
-                                                                                key={detail.id}
-                                                                                className={cn(
-                                                                                    "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all",
-                                                                                    isSelected ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 shadow-inner" : "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 hover:border-indigo-200"
-                                                                                )}
-                                                                            >
-                                                                                <input
-                                                                                    type="checkbox"
-                                                                                    checked={isSelected}
-                                                                                    onChange={(e) => {
-                                                                                        const checked = e.target.checked;
-                                                                                        setActivities(prev => prev.map(a => {
-                                                                                            if (a.id === selectedActivityId) {
-                                                                                                const currentDetails = a.associated_details || [];
-                                                                                                const nextDetails = checked
-                                                                                                    ? [...currentDetails, detail.id]
-                                                                                                    : currentDetails.filter(id => id !== detail.id);
-                                                                                                return { ...a, associated_details: nextDetails };
-                                                                                            }
-                                                                                            return a;
-                                                                                        }));
-                                                                                    }}
-                                                                                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
-                                                                                />
-                                                                                <span className={cn("text-xs font-bold truncate", isSelected ? "text-indigo-900 dark:text-indigo-100" : "text-slate-700 dark:text-slate-300")}>
-                                                                                    {detail.name}
-                                                                                </span>
-                                                                            </label>
-                                                                        );
-                                                                    })}
+                                                                <div>
+                                                                    <p className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none mb-0.5">Actividad Pública</p>
+                                                                    <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">Permitir completar esta actividad desde un enlace externo sin login</p>
                                                                 </div>
                                                             </div>
-                                                        )}
+                                                            <div className={`w-10 h-6 flex items-center bg-slate-200 dark:bg-slate-700 rounded-full p-1 transition-colors ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'bg-blue-600 dark:bg-blue-600' : ''}`}>
+                                                                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'translate-x-4' : ''}`}></div>
+                                                            </div>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={activities.find(a => a.id === selectedActivityId)?.is_public || false}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.checked;
+                                                                    setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, is_public: val } : a));
+                                                                }}
+                                                                className="hidden"
+                                                            />
+                                                        </label>
+
+
                                                         <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50">
                                                             <button
                                                                 onClick={() => {
@@ -1035,6 +1099,167 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                 Eliminar Actividad
                                                             </button>
                                                         </div>
+                                                    </div>
+                                                )}
+
+                                                {activeTab === 'details' && (
+                                                    <div className="space-y-6 animate-fadeIn">
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Carpetas (Detalles) Asociados</h4>
+                                                                <p className="text-sm text-slate-500 font-medium italic">Seleccione qué sub-carpetas de registros iterables estarán disponibles durante este paso.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {details.length > 0 ? (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                                {details.map(detail => {
+                                                                    const activity = activities.find(a => a.id === selectedActivityId);
+                                                                    const isSelected = activity?.associated_details?.includes(detail.id) || false;
+                                                                    return (
+                                                                        <div key={detail.id} className={cn(
+                                                                            "flex flex-col gap-3 p-5 rounded-2xl border transition-all",
+                                                                            isSelected ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 shadow-inner" : "bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 hover:border-indigo-200 shadow-sm"
+                                                                        )}>
+                                                                            <label className="flex items-start gap-4 cursor-pointer w-full">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={isSelected}
+                                                                                    onChange={(e) => {
+                                                                                        const checked = e.target.checked;
+                                                                                        setActivities(prev => prev.map(a => {
+                                                                                            if (a.id === selectedActivityId) {
+                                                                                                const currentDetails = a.associated_details || [];
+                                                                                                const nextDetails = checked
+                                                                                                    ? [...currentDetails, detail.id]
+                                                                                                    : currentDetails.filter(id => id !== detail.id);
+
+                                                                                                // Cleanup cardinality config if unselected
+                                                                                                const nextCards = { ...(a.detail_cardinalities || {}) };
+                                                                                                if (!checked) {
+                                                                                                    delete nextCards[detail.id];
+                                                                                                } else {
+                                                                                                    nextCards[detail.id] = { mode: 'none' };
+                                                                                                }
+
+                                                                                                return { ...a, associated_details: nextDetails, detail_cardinalities: nextCards };
+                                                                                            }
+                                                                                            return a;
+                                                                                        }));
+                                                                                        handleSave(); // Auto-save when linking
+                                                                                    }}
+                                                                                    className="mt-1 w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 flex-shrink-0 transition-all cursor-pointer"
+                                                                                />
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <p className={cn("font-black text-sm mb-1 truncate", isSelected ? "text-indigo-900 dark:text-indigo-100" : "text-slate-900 dark:text-white")}>
+                                                                                        {detail.name}
+                                                                                    </p>
+                                                                                    {detail.description && (
+                                                                                        <p className="text-xs text-slate-500 line-clamp-2">{detail.description}</p>
+                                                                                    )}
+                                                                                </div>
+                                                                            </label>
+
+                                                                            {isSelected && (
+                                                                                <div className="pl-9 pt-3 border-t border-indigo-100 dark:border-indigo-800/50 flex flex-col gap-2 animate-in slide-in-from-top-2 duration-300">
+                                                                                    <label className="text-[9px] font-black text-indigo-400 dark:text-indigo-500 uppercase tracking-widest">Validación de Cardinalidad</label>
+                                                                                    <div className="flex gap-2 pb-1">
+                                                                                        <select
+                                                                                            value={activity?.detail_cardinalities?.[detail.id]?.mode || 'none'}
+                                                                                            onChange={(e) => {
+                                                                                                const mode = e.target.value as any;
+                                                                                                setActivities(prev => prev.map(a => {
+                                                                                                    if (a.id === selectedActivityId) {
+                                                                                                        const newCards = { ...(a.detail_cardinalities || {}) };
+                                                                                                        newCards[detail.id] = { ...newCards[detail.id], mode, min_items: mode === 'min_x' ? (newCards[detail.id]?.min_items || 1) : undefined };
+                                                                                                        return { ...a, detail_cardinalities: newCards };
+                                                                                                    }
+                                                                                                    return a;
+                                                                                                }));
+                                                                                                handleSave();
+                                                                                            }}
+                                                                                            className="flex-1 bg-white dark:bg-slate-950 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-900 dark:text-indigo-100 font-bold rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                                                        >
+                                                                                            <option value="none">Opcional (Sin validación)</option>
+                                                                                            <option value="1_to_many">Obligatorio (Mínimo un registro)</option>
+                                                                                            <option value="min_x">Mínimo X cantidad de registros</option>
+                                                                                        </select>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                e.preventDefault();
+                                                                                                setActivities(prev => prev.map(a => {
+                                                                                                    if (a.id === selectedActivityId) {
+                                                                                                        const newCards = { ...(a.detail_cardinalities || {}) };
+                                                                                                        const currentReadOnly = newCards[detail.id]?.read_only || false;
+                                                                                                        newCards[detail.id] = { ...newCards[detail.id], read_only: !currentReadOnly, mode: newCards[detail.id]?.mode || 'none' };
+                                                                                                        return { ...a, detail_cardinalities: newCards };
+                                                                                                    }
+                                                                                                    return a;
+                                                                                                }));
+                                                                                                handleSave();
+                                                                                            }}
+                                                                                            className={cn(
+                                                                                                "px-3 rounded-lg border flex items-center justify-center transition-all",
+                                                                                                activity?.detail_cardinalities?.[detail.id]?.read_only
+                                                                                                    ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-800/50"
+                                                                                                    : "bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-800/50"
+                                                                                            )}
+                                                                                            title={activity?.detail_cardinalities?.[detail.id]?.read_only ? "Modo Lectura (No se pueden añadir filas)" : "Modo Edición (Se pueden añadir filas)"}
+                                                                                        >
+                                                                                            {activity?.detail_cardinalities?.[detail.id]?.read_only ? (
+                                                                                                <Lock className="w-4 h-4" />
+                                                                                            ) : (
+                                                                                                <Unlock className="w-4 h-4" />
+                                                                                            )}
+                                                                                        </button>
+                                                                                    </div>
+
+                                                                                    {activity?.detail_cardinalities?.[detail.id]?.mode === 'min_x' && (
+                                                                                        <div className="flex items-center gap-3 mt-1">
+                                                                                            <span className="text-[10px] font-bold text-indigo-400">Cantidad:</span>
+                                                                                            <input
+                                                                                                type="number"
+                                                                                                min={1}
+                                                                                                value={activity?.detail_cardinalities?.[detail.id]?.min_items || 1}
+                                                                                                onChange={(e) => {
+                                                                                                    const val = Math.max(1, parseInt(e.target.value) || 1);
+                                                                                                    setActivities(prev => prev.map(a => {
+                                                                                                        if (a.id === selectedActivityId) {
+                                                                                                            const newCards = { ...(a.detail_cardinalities || {}) };
+                                                                                                            newCards[detail.id] = { ...newCards[detail.id], min_items: val };
+                                                                                                            return { ...a, detail_cardinalities: newCards };
+                                                                                                        }
+                                                                                                        return a;
+                                                                                                    }));
+                                                                                                    handleSave();
+                                                                                                }}
+                                                                                                className="w-16 bg-white dark:bg-slate-950 border border-indigo-200 dark:border-indigo-800 text-xs text-center font-bold text-indigo-900 dark:text-indigo-100 rounded-lg p-1.5 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                                                            />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center text-center bg-slate-50/50 dark:bg-slate-900/20">
+                                                                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
+                                                                    <FolderOpen className="w-8 h-8 text-slate-400 opacity-50" />
+                                                                </div>
+                                                                <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-2">No hay carpetas maestras</h4>
+                                                                <p className="text-sm text-slate-500 max-w-sm mb-6">Aún no se han configurado carpetas para este flujo de trabajo. Puedes crear carpetas y asociarlas aquí para que los usuarios puedan rellenar arreglos de datos.</p>
+                                                                <button
+                                                                    onClick={() => setShowDetailsManager(true)}
+                                                                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95"
+                                                                >
+                                                                    Nuevo Gestor de Carpetas
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
 
@@ -1171,6 +1396,8 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                             <option value="boolean">Interruptor (Sí/No)</option>
                                                                                             <option value="provider">Proveedor</option>
                                                                                             <option value="lookup">Búsqueda Interactiva (Lookup)</option>
+                                                                                            <option value="location">Georreferenciación (Mapa)</option>
+                                                                                            <option value="consecutivo">Consecutivo (Autogenerado)</option>
                                                                                         </select>
                                                                                     </td>
                                                                                     <td className="px-3 py-2">
@@ -1265,6 +1492,26 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                         className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all font-mono"
                                                                                                         placeholder="Eje: ^[A-Z]{3}-\d{4}$"
                                                                                                     />
+                                                                                                </div>
+                                                                                            )}
+
+                                                                                            {field.type === 'consecutivo' && (
+                                                                                                <div className="col-span-3">
+                                                                                                    <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Máscara Secuencial</label>
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        value={field.consecutive_mask || ''}
+                                                                                                        onChange={(e) => {
+                                                                                                            const pattern = e.target.value;
+                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                                ...a,
+                                                                                                                fields: a.fields?.map(f => f.id === field.id ? { ...f, consecutive_mask: pattern } : f)
+                                                                                                            } : a));
+                                                                                                        }}
+                                                                                                        className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all font-mono"
+                                                                                                        placeholder="EJ: CON-YYYY-MM-####"
+                                                                                                    />
+                                                                                                    <p className="text-[8px] text-slate-400 mt-1 ml-1 leading-tight">Usa YYYY (Año 4-digs), YY (Año 2-digs), MM (Mes), DD (Día) y # para autocompletar dígitos. Ejemplo: <b>FAC-YYYY-MM-####</b> se convertirá en FAC-2024-03-0001.</p>
                                                                                                 </div>
                                                                                             )}
 
@@ -1625,12 +1872,13 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                     <div className="space-y-6">
                                                                         <div>
                                                                             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Método de Asignación</label>
-                                                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                                                                                 {[
                                                                                     { id: 'creator', label: 'Iniciador del Flujo', desc: 'Mismo usuario que inició' },
                                                                                     { id: 'specific_user', label: 'Usuario Específico', desc: 'Elegir una persona' },
                                                                                     { id: 'department', label: 'Por Área', desc: 'Reglas para el equipo' },
                                                                                     { id: 'position', label: 'Por Cargo', desc: 'Reglas por jerarquía' },
+                                                                                    { id: 'department_and_position', label: 'Área y Cargo', desc: 'Doble filtro (ej: Analista de TI)' },
                                                                                     { id: 'manual', label: 'Manual/Público', desc: 'Sin dueño definido' }
                                                                                 ].map((opt) => (
                                                                                     <button
@@ -1639,14 +1887,14 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                             setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, assignment_type: opt.id as AssignmentType } : a));
                                                                                         }}
                                                                                         className={cn(
-                                                                                            "p-3 rounded-xl border-2 text-left transition-all",
+                                                                                            "p-2 rounded-xl border-2 text-left transition-all",
                                                                                             selectedActivity.assignment_type === opt.id
-                                                                                                ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none"
+                                                                                                ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none"
                                                                                                 : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-200"
                                                                                         )}
                                                                                     >
-                                                                                        <p className="font-black text-[9px] uppercase tracking-wider mb-0.5">{opt.label}</p>
-                                                                                        <p className={cn("text-[7px] font-bold uppercase opacity-60", selectedActivity.assignment_type === opt.id ? "text-white" : "text-slate-400")}>
+                                                                                        <p className="font-black text-[8px] uppercase tracking-wider mb-0.5">{opt.label}</p>
+                                                                                        <p className={cn("text-[6px] font-bold uppercase opacity-60", selectedActivity.assignment_type === opt.id ? "text-white" : "text-slate-400")}>
                                                                                             {opt.desc}
                                                                                         </p>
                                                                                     </button>
@@ -1671,15 +1919,52 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                             </div>
                                                                         )}
 
-                                                                        {(selectedActivity.assignment_type === 'department' || selectedActivity.assignment_type === 'position') && (
+                                                                        {(selectedActivity.assignment_type === 'department' || selectedActivity.assignment_type === 'department_and_position') && (
+                                                                            <div className="animate-in slide-in-from-top-2 pt-4">
+                                                                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Seleccionar Área / Departamento</label>
+                                                                                <select
+                                                                                    value={selectedActivity.assigned_department_id || ''}
+                                                                                    onChange={(e) => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, assigned_department_id: e.target.value } : a))}
+                                                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                                                                                >
+                                                                                    <option value="">Selecciona un área...</option>
+                                                                                    {lookupData.departments.map(d => (
+                                                                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {(selectedActivity.assignment_type === 'position' || selectedActivity.assignment_type === 'department_and_position') && (
+                                                                            <div className="animate-in slide-in-from-top-2 pt-4">
+                                                                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Seleccionar Cargo</label>
+                                                                                <select
+                                                                                    value={selectedActivity.assigned_position_id || ''}
+                                                                                    onChange={(e) => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, assigned_position_id: e.target.value } : a))}
+                                                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                                                                                >
+                                                                                    <option value="">Selecciona un cargo...</option>
+                                                                                    {lookupData.positions.map(p => (
+                                                                                        <option key={p.id} value={p.id}>{p.title}</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {(selectedActivity.assignment_type === 'department' || selectedActivity.assignment_type === 'position' || selectedActivity.assignment_type === 'department_and_position') && (
                                                                             <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4">
                                                                                 <div>
                                                                                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Estrategia de Selección</label>
-                                                                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                                                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                                                                                         {[
-                                                                                            { id: 'manual', label: 'Público', desc: 'Bandeja Común', icon: Inbox },
-                                                                                            { id: 'workload', label: 'Carga', desc: 'Al menos ocupado', icon: BarChart2 },
-                                                                                            { id: 'efficiency', label: 'Eficiencia', desc: 'Al más veloz', icon: Zap },
+                                                                                            { id: 'manual', label: 'Bandeja / Pooling', desc: 'Cualquiera lo toma', icon: Inbox },
+                                                                                            { id: 'claim', label: 'Shark/Cacería', desc: 'Cola General Rápida', icon: Target },
+                                                                                            { id: 'workload', label: 'Carga Laboral', desc: 'Al menos ocupado', icon: BarChart2 },
+                                                                                            { id: 'efficiency', label: 'Eficiencia', desc: 'Al más rápido', icon: Zap },
+                                                                                            { id: 'cost', label: 'Costo Óptimo', desc: 'Menor costo / hora', icon: Coins },
+                                                                                            { id: 'skills', label: 'Habilidades', desc: 'Enrutamiento / Skills', icon: Award },
+                                                                                            { id: 'shift', label: 'Disponibilidad', desc: 'Horario y Turnos', icon: Clock },
+                                                                                            { id: 'weighted', label: 'Ponderado', desc: 'Carga programada', icon: Scale },
                                                                                             { id: 'random', label: 'Aleatorio', desc: 'Sorteo al azar', icon: Dices }
                                                                                         ].map((strat) => (
                                                                                             <button
@@ -1688,21 +1973,21 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                     setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, assignment_strategy: strat.id as AssignmentStrategy } : a));
                                                                                                 }}
                                                                                                 className={cn(
-                                                                                                    "p-3 rounded-xl border-2 text-left transition-all flex flex-col gap-2",
+                                                                                                    "p-2 rounded-xl border-2 text-left transition-all flex xl:flex-row flex-col items-center gap-2",
                                                                                                     (selectedActivity.assignment_strategy || 'manual') === strat.id
                                                                                                         ? "bg-slate-900 dark:bg-blue-600 border-slate-900 dark:border-blue-600 text-white shadow-md"
                                                                                                         : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-200"
                                                                                                 )}
                                                                                             >
                                                                                                 <div className={cn(
-                                                                                                    "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                                                                                                    "w-6 h-6 shrink-0 rounded-lg flex items-center justify-center transition-colors",
                                                                                                     (selectedActivity.assignment_strategy || 'manual') === strat.id ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
                                                                                                 )}>
-                                                                                                    <strat.icon className="w-4 h-4" />
+                                                                                                    <strat.icon className="w-3.5 h-3.5" />
                                                                                                 </div>
                                                                                                 <div>
-                                                                                                    <p className="font-black text-[9px] uppercase tracking-wider mb-0.5">{strat.label}</p>
-                                                                                                    <p className={cn("text-[7px] font-bold uppercase opacity-60", (selectedActivity.assignment_strategy || 'manual') === strat.id ? "text-white" : "text-slate-400")}>
+                                                                                                    <p className="font-black text-[10px] uppercase tracking-wider mb-0.5">{strat.label}</p>
+                                                                                                    <p className={cn("text-[8px] font-bold uppercase opacity-80 leading-tight", (selectedActivity.assignment_strategy || 'manual') === strat.id ? "text-white" : "text-slate-400")}>
                                                                                                         {strat.desc}
                                                                                                     </p>
                                                                                                 </div>
@@ -1743,6 +2028,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                 { id: 'finance', icon: Zap, label: 'ERP' },
                                                                                 { id: 'webhook', icon: Link, label: 'REST' },
                                                                                 { id: 'soap', icon: Code, label: 'SOAP' },
+                                                                                { id: 'whatsapp', icon: MessageSquare, label: 'WhatsApp' },
                                                                             ].map(btn => (
                                                                                 <button
                                                                                     key={btn.id}
@@ -1771,7 +2057,8 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                 {action.type === 'email' ? <Mail className="w-5 h-5" /> :
                                                                                                     action.type === 'finance' ? <Zap className="w-5 h-5" /> :
                                                                                                         action.type === 'webhook' ? <Link className="w-5 h-5" /> :
-                                                                                                            <Code className="w-5 h-5" />}
+                                                                                                            action.type === 'whatsapp' ? <MessageSquare className="w-5 h-5" /> :
+                                                                                                                <Code className="w-5 h-5" />}
                                                                                             </div>
                                                                                             <div>
                                                                                                 <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Paso {idx + 1}</h5>
@@ -1884,13 +2171,17 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                         <div className="space-y-6 p-8 bg-slate-50/50 dark:bg-slate-900/40 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 animate-in zoom-in-95">
                                                                                             <div className="grid grid-cols-2 gap-4">
                                                                                                 <div>
-                                                                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Para ( {"{{ email }}"} )</label>
-                                                                                                    <input type="text" value={editingAction.config?.email_to || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_to: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="usuario@correo.com o {{campo}}" />
+                                                                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">De ( Remitente - Ej: info@tuempresa.com )</label>
+                                                                                                    <input type="text" value={editingAction.config?.email_from || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_from: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold" placeholder="info@tuempresa.com" />
                                                                                                 </div>
                                                                                                 <div>
-                                                                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">CC</label>
-                                                                                                    <input type="text" value={editingAction.config?.email_cc || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_cc: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" />
+                                                                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Para ( Destinatario - Ej: {"{{ email }}"} )</label>
+                                                                                                    <input type="text" value={editingAction.config?.email_to || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_to: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="usuario@correo.com o {{campo}}" />
                                                                                                 </div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">CC ( Opcional )</label>
+                                                                                                <input type="text" value={editingAction.config?.email_cc || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_cc: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="Copia a..." />
                                                                                             </div>
                                                                                             <div>
                                                                                                 <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Asunto</label>
@@ -1899,6 +2190,109 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                             <div>
                                                                                                 <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Cuerpo del Mensaje</label>
                                                                                                 <textarea rows={4} value={editingAction.config?.email_body || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_body: e.target.value })} className="w-full p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono scrollbar-thin" />
+                                                                                            </div>
+
+                                                                                            <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                                                                                                <div className="flex items-center justify-between mb-4">
+                                                                                                    <h6 className="text-[10px] font-black tracking-widest uppercase text-slate-500">Configuración del Servidor (SMTP)</h6>
+                                                                                                    <button
+                                                                                                        onClick={() => handleTestEmail(editingAction)}
+                                                                                                        disabled={testingEmail}
+                                                                                                        className={cn(
+                                                                                                            "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                                                                                                            testingEmail
+                                                                                                                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                                                                                                : "bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 dark:border-blue-900 shadow-sm"
+                                                                                                        )}
+                                                                                                    >
+                                                                                                        <Mail className={cn("w-3 h-3", testingEmail && "animate-pulse")} />
+                                                                                                        {testingEmail ? 'Enviando...' : 'Probar Configuración'}
+                                                                                                    </button>
+                                                                                                </div>
+                                                                                                <div className="grid grid-cols-2 gap-4">
+                                                                                                    <div>
+                                                                                                        <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Host SMTP</label>
+                                                                                                        <input type="text" value={editingAction.config?.email_smtp_host || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_smtp_host: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="Ej: smtp.gmail.com" />
+                                                                                                    </div>
+                                                                                                    <div>
+                                                                                                        <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Puerto</label>
+                                                                                                        <input type="number" value={editingAction.config?.email_smtp_port || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_smtp_port: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="Ej: 587 o 465" />
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                                <div className="grid grid-cols-2 gap-4">
+                                                                                                    <div>
+                                                                                                        <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Usuario (Correo Emisor)</label>
+                                                                                                        <input type="text" value={editingAction.config?.email_smtp_user || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_smtp_user: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="Ej: info@empresa.com" />
+                                                                                                    </div>
+                                                                                                    <div>
+                                                                                                        <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Contraseña de Aplicación</label>
+                                                                                                        <input type="password" value={editingAction.config?.email_smtp_pass || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_smtp_pass: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs" placeholder="********" />
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                                <div className="flex items-center gap-3 mt-4 p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+                                                                                                    <input
+                                                                                                        type="checkbox"
+                                                                                                        id="smtp_secure"
+                                                                                                        checked={editingAction.config?.email_smtp_secure ?? true}
+                                                                                                        onChange={(e) => handleUpdateActionConfig(editingActionId!, { email_smtp_secure: e.target.checked })}
+                                                                                                        className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
+                                                                                                    />
+                                                                                                    <label htmlFor="smtp_secure" className="text-xs font-bold text-slate-700 dark:text-slate-300 select-none cursor-pointer">Usar conexión segura (SSL/TLS recomendado)</label>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                    {editingAction.type === 'whatsapp' && (
+                                                                                        <div className="space-y-6 p-8 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-[2.5rem] border border-emerald-100 dark:border-emerald-800/20 animate-in zoom-in-95">
+                                                                                            <div className="flex items-center gap-3 mb-6">
+                                                                                                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl text-emerald-600 dark:text-emerald-400">
+                                                                                                    <MessageSquare className="w-5 h-5" />
+                                                                                                </div>
+                                                                                                <div>
+                                                                                                    <h5 className="text-sm font-black text-emerald-900 dark:text-emerald-100">Notificación por WhatsApp</h5>
+                                                                                                    <p className="text-[10px] uppercase font-bold text-emerald-600/60 dark:text-emerald-400/60 tracking-widest mt-0.5">Envía alertas instantáneas</p>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div className="space-y-4">
+                                                                                                <div>
+                                                                                                    <label className="block text-[8px] font-black text-emerald-700/70 dark:text-emerald-400/70 uppercase mb-2 ml-1">Número Destino (Ej: +573001234567 o {"{{telefono}}"})</label>
+                                                                                                    <input type="text" value={editingAction.config?.whatsapp_number || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { whatsapp_number: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-bold" placeholder="+573001234567" />
+                                                                                                </div>
+                                                                                                <div>
+                                                                                                    <label className="block text-[8px] font-black text-emerald-700/70 dark:text-emerald-400/70 uppercase mb-2 ml-1">Mensaje (Usa {"{{variables}}"})</label>
+                                                                                                    <textarea rows={5} value={editingAction.config?.whatsapp_message || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { whatsapp_message: e.target.value })} className="w-full p-4 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-medium resize-none shadow-sm" placeholder="Hola, tu trámite {{id_tramite}} ha sido aprobado..." />
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div className="pt-6 mt-6 border-t border-emerald-200 dark:border-emerald-800/30 space-y-4">
+                                                                                                <div className="flex items-center justify-between mb-4">
+                                                                                                    <h6 className="text-[10px] font-black tracking-widest uppercase text-emerald-700/70 dark:text-emerald-400/70">Conexión API (Proveedor)</h6>
+                                                                                                </div>
+                                                                                                <div className="grid grid-cols-2 gap-4">
+                                                                                                    <div className="col-span-2">
+                                                                                                        <label className="block text-[8px] font-black text-emerald-700/70 dark:text-emerald-400/70 uppercase mb-2 ml-1">Tipo de Integración</label>
+                                                                                                        <select
+                                                                                                            value={editingAction.config?.whatsapp_provider || 'evolution'}
+                                                                                                            onChange={(e) => handleUpdateActionConfig(editingActionId!, { whatsapp_provider: e.target.value as any })}
+                                                                                                            className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300"
+                                                                                                        >
+                                                                                                            <option value="evolution">Evolution API / API Wha (Recomendado)</option>
+                                                                                                            <option value="ultramsg">UltraMsg</option>
+                                                                                                            <option value="meta">Oficial: WhatsApp Cloud API (Meta)</option>
+                                                                                                            <option value="generic">Webhook Genérico JSON</option>
+                                                                                                        </select>
+                                                                                                    </div>
+                                                                                                    <div className="col-span-2">
+                                                                                                        <label className="block text-[8px] font-black text-emerald-700/70 dark:text-emerald-400/70 uppercase mb-2 ml-1">Endpoint (URL de la API)</label>
+                                                                                                        <input type="text" value={editingAction.config?.whatsapp_api_url || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { whatsapp_api_url: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-mono" placeholder="Ej: https://api.tu-proveedor.com/message/sendText/..." />
+                                                                                                    </div>
+                                                                                                    <div className="col-span-2">
+                                                                                                        <label className="block text-[8px] font-black text-emerald-700/70 dark:text-emerald-400/70 uppercase mb-2 ml-1">Api Key o Token de Acceso</label>
+                                                                                                        <input type="password" value={editingAction.config?.whatsapp_token || ''} onChange={(e) => handleUpdateActionConfig(editingActionId!, { whatsapp_token: e.target.value })} className="w-full h-10 px-4 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-mono" placeholder="Ingresa tu clave secreta de acceso" />
+                                                                                                    </div>
+                                                                                                </div>
                                                                                             </div>
                                                                                         </div>
                                                                                     )}
@@ -2001,13 +2395,14 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                         </div>
                                                                                     )}
                                                                                 </>
-                                                                            )}
-                                                                        </div>
+                                                                            )
+                                                                            }
+                                                                        </div >
                                                                     )}
                                                                 </>
                                                             );
                                                         })()}
-                                                    </div>
+                                                    </div >
                                                 )}
 
                                                 {activeTab === 'transitions' && (
@@ -2121,9 +2516,10 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                 </div>
                             </div>
                         </>
-                    )}
-                </section>
-            </div>
+                    )
+                    }
+                </section >
+            </div >
 
             {
                 showSOPGenerator && (
@@ -2239,7 +2635,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                     </div>
                 )
             }
-        </div>
+        </div >
     );
 }
 

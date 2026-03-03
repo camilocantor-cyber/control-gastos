@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useExecution } from '../hooks/useExecution';
-import { X, Clock, CheckCircle2, ChevronRight, Info, Save, GitBranch, History, Eye, AlertCircle, Maximize2, Minimize2, Plus, Edit2, FolderOpen, Trash2 } from 'lucide-react';
+import { X, Save, MessageSquare, Plus, Trash2, Clock, GitBranch, Download, FileUp, List, Link as LinkIcon, AlertCircle, Maximize2, Minimize2, Users, Send, CheckCircle2, DollarSign, Wand2, Calculator, Settings, Code, FileText, Bot, Layers, CheckSquare, BrainCircuit, Dices, ChevronRight, Hash, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2 } from 'lucide-react';
 import type { Transition, Provider } from '../types';
 import { evaluateCondition, translateCondition } from '../utils/conditions';
 import { FileAttachments } from './FileAttachments';
 import clsx from 'clsx';
 import { ProcessViewerModal } from './ProcessViewerModal';
 import { InteractiveLookup } from './InteractiveLookup';
+import { IfcViewer } from './IfcViewer';
+import { HistoryDetailModal } from './HistoryDetailModal';
+import { GeoSelector } from './GeoSelector';
+import * as XLSX from 'xlsx';
 
 export function ProcessExecution({ processId, onClose, onComplete }: { processId: string, onClose: () => void, onComplete: () => void }) {
     const {
@@ -16,12 +20,13 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         getProcessData,
         saveProcessData,
         completeProcess,
+        getBimStates,
+        saveBimState,
         loading: hookLoading
     } = useExecution();
 
     const [instance, setInstance] = useState<any>(null);
     const [transitions, setTransitions] = useState<Transition[]>([]);
-    const [history, setHistory] = useState<any[]>([]);
     const [fields, setFields] = useState<any[]>([]);
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const [savingDraft, setSavingDraft] = useState(false);
@@ -42,6 +47,12 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     const [activeDetailForm, setActiveDetailForm] = useState<string | null>(null);
     const [detailFormData, setDetailFormData] = useState<Record<string, any>>({});
     const [editingRowId, setEditingRowId] = useState<string | null>(null);
+    const [history, setHistory] = useState<any[]>([]);
+
+    // BIM State
+    const [ifcFile, setIfcFile] = useState<any>(null);
+    const [bimStates, setBimStates] = useState<Record<number, 'completed' | 'processing' | 'delayed' | 'pending'>>({});
+    const [selectedBimObject, setSelectedBimObject] = useState<any>(null);
 
     useEffect(() => {
         loadData();
@@ -71,14 +82,14 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                 }));
                 setTransitions(formattedTransitions);
 
-                const { data: history, error: historyError } = await supabase
+                const { data: histData, error: historyError } = await supabase
                     .from('process_history')
                     .select('*, activities(name), profiles(full_name, email)')
                     .eq('process_id', processId)
                     .order('created_at', { ascending: false });
 
                 if (historyError) throw historyError;
-                setHistory(history || []);
+                setHistory(histData || []);
 
                 const fieldDefs = await getFieldDefinitions(ins.current_activity_id);
                 setFields(fieldDefs || []);
@@ -109,13 +120,37 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                     initialData[field.name] = sourceValue;
                                 }
                             } catch (err) {
-                                console.warn(`Failed to auto-populate field ${field.name} from source:`, err);
+                                console.warn(`Failed to auto - populate field ${field.name} from source: `, err);
                             }
                         }
 
                         // Use default_value if still empty
-                        if (!initialData[field.name] && field.default_value) {
-                            initialData[field.name] = field.default_value;
+                        if (!initialData[field.name]) {
+                            if (field.default_value) {
+                                initialData[field.name] = field.default_value;
+                            } else if (field.type === 'date') {
+                                // Default to today's date if empty
+                                initialData[field.name] = new Date().toISOString().split('T')[0];
+                            } else if (field.type === 'consecutivo') {
+                                // Generar consecutivo
+                                const mask = field.consecutive_mask || 'CON-####';
+                                const today = new Date();
+                                const YYYY = today.getFullYear().toString();
+                                const YY = YYYY.slice(2);
+                                const MM = (today.getMonth() + 1).toString().padStart(2, '0');
+                                const DD = today.getDate().toString().padStart(2, '0');
+
+                                let formatted = mask.replace(/YYYY/g, YYYY).replace(/YY/g, YY).replace(/MM/g, MM).replace(/DD/g, DD);
+
+                                // Process the '#' symbols, using workflow_sequence as the sequence for identity per workflow type
+                                // Defaulting to process_number or random if there's an issue with sequence, to prevent crashes.
+                                formatted = formatted.replace(/#+/g, (match: string) => {
+                                    const seq = ins.workflow_sequence || ins.process_number || Math.floor(Math.random() * 1000);
+                                    return seq.toString().padStart(match.length, '0');
+                                });
+
+                                initialData[field.name] = formatted;
+                            }
                         }
                     }
                 }
@@ -144,6 +179,43 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                         rowsMap[r.detail_id].push(r);
                     });
                     setDetailRows(rowsMap);
+                }
+
+                // Load BIM Info (check for IFC)
+                try {
+                    const { data: ifcAttach, error: ifcError } = await supabase
+                        .from('process_attachments')
+                        .select('*')
+                        .eq('process_instance_id', processId)
+                        .ilike('file_name', '%.ifc')
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (ifcError && ifcError.code !== 'PGRST116') {
+                        console.error("IFC maybeSingle error:", ifcError);
+                    }
+
+                    if (ifcAttach) {
+                        const { data: urlData, error: urlError } = await supabase.storage
+                            .from('process-files')
+                            .createSignedUrl(ifcAttach.file_path, 3600);
+
+                        if (urlError) {
+                            console.error("Signed URL error:", urlError);
+                        } else if (urlData) {
+                            setIfcFile({ ...ifcAttach, signedUrl: urlData.signedUrl });
+                            try {
+                                const states = await getBimStates(processId);
+                                const statesMap: Record<number, any> = {};
+                                states?.forEach((s: any) => statesMap[s.express_id] = s.status);
+                                setBimStates(statesMap);
+                            } catch (bimErr) {
+                                console.error("Error loading BIM states:", bimErr);
+                            }
+                        }
+                    }
+                } catch (ifcWrapperError) {
+                    console.error("Error global en BIM / IFC:", ifcWrapperError);
                 }
             }
         } catch (error) {
@@ -199,6 +271,24 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                 }
             }
         });
+
+        // Check Master-Detail cardinalities
+        if (instance?.activities?.detail_cardinalities) {
+            const cardinalities = instance.activities.detail_cardinalities;
+            workflowDetails.forEach(detail => {
+                const config = cardinalities[detail.id];
+                if (!config || config.mode === 'none') return;
+
+                const rowsCount = detailRows[detail.id]?.length || 0;
+
+                if (config.mode === '1_to_many' && rowsCount < 1) {
+                    errors.push(`La carpeta "${detail.name}" es obligatoria(requiere al menos 1 registro).`);
+                } else if (config.mode === 'min_x' && config.min_items && rowsCount < config.min_items) {
+                    errors.push(`La carpeta "${detail.name}" requiere un mínimo de ${config.min_items} registros(tiene ${rowsCount}).`);
+                }
+            });
+        }
+
         return errors;
     };
 
@@ -278,6 +368,103 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
             setLoading(false);
         }
     }
+
+    const handleExportTemplate = (detail: any) => {
+        const fields = detail.fields || [];
+        const headers = fields.map((f: any) => f.label || f.name);
+
+        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
+
+        XLSX.writeFile(wb, `Plantilla_${detail.name || 'Detalle'}.xlsx`);
+    };
+
+    const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>, detail: any) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                setLoading(true);
+                const data = new Uint8Array(event.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+
+                const jsonData = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+
+                if (jsonData.length <= 1) {
+                    alert('El archivo no contiene datos válidos.');
+                    return;
+                }
+
+                const fields = detail.fields || [];
+                if (!fields.length) return;
+
+                const headersRow = jsonData[0];
+                const dataRows = jsonData.slice(1);
+
+                const headerIndexMap: Record<string, number> = {};
+                fields.forEach((f: any) => {
+                    const searchName = String(f.label || f.name).toLowerCase().trim();
+                    const idx = headersRow.findIndex((h: any) => typeof h === 'string' && h.toLowerCase().trim() === searchName);
+                    if (idx !== -1) {
+                        headerIndexMap[f.name] = idx;
+                    }
+                });
+
+                const rowsToInsert = dataRows.map((row: any[]) => {
+                    const rowData: Record<string, any> = {};
+                    fields.forEach((f: any) => {
+                        const idx = headerIndexMap[f.name];
+                        if (idx !== undefined && row[idx] !== undefined) {
+                            rowData[f.name] = String(row[idx]);
+                        }
+                    });
+                    return {
+                        process_id: processId,
+                        detail_id: detail.id,
+                        data: rowData
+                    };
+                }).filter((row: any) => Object.keys(row.data).length > 0);
+
+                if (rowsToInsert.length === 0) {
+                    alert('No se encontraron filas con datos, o las columnas no coinciden con la plantilla.');
+                    return;
+                }
+
+                const { error } = await supabase.from('process_detail_rows').insert(rowsToInsert);
+                if (error) throw error;
+
+                const { data: rowsData } = await supabase
+                    .from('process_detail_rows')
+                    .select('*')
+                    .eq('process_id', processId)
+                    .in('detail_id', workflowDetails.map(d => d.id));
+
+                const rowsMap: Record<string, any[]> = {};
+                workflowDetails.forEach(d => rowsMap[d.id] = []);
+                (rowsData || []).forEach(r => {
+                    if (!rowsMap[r.detail_id]) rowsMap[r.detail_id] = [];
+                    rowsMap[r.detail_id].push(r);
+                });
+                setDetailRows(rowsMap);
+
+                alert(`${rowsToInsert.length} registros importados exitosamente.`);
+
+            } catch (error: any) {
+                console.error('Error importando:', error);
+                alert('Ocurrió un error al importar el archivo: ' + error.message);
+            } finally {
+                setLoading(false);
+                if (e.target) e.target.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
 
     async function handleSave() {
         setSavingDraft(true);
@@ -368,7 +555,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
             return;
         }
 
-        if (!window.confirm(`¿Estás seguro de atender los ${activeTransitions.length} caminos activos simultáneamente?`)) return;
+        if (!window.confirm(`¿Estás seguro de atender los ${activeTransitions.length} caminos activos simultáneamente ? `)) return;
 
         const dataSave = await saveProcessData(processId, instance.current_activity_id, formData);
         if (!dataSave.success) {
@@ -377,7 +564,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         }
 
         try {
-            const result = await advanceProcess(processId, activeTransitions[0].id, `[Atención Masiva] ${comment}`);
+            const result = await advanceProcess(processId, activeTransitions[0].id, `[Atención Masiva] ${comment} `);
             if (result.success) {
                 onComplete();
                 onClose();
@@ -395,24 +582,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         setTimeout(() => setShowCopyTooltip(false), 2000);
     };
 
-    async function handleHistoryClick(historyItem: any) {
-        const { data: dataFields } = await supabase
-            .from('process_data')
-            .select('*')
-            .eq('process_id', processId)
-            .eq('activity_id', historyItem.activity_id);
 
-        const { data: activityFields } = await supabase
-            .from('activity_field_definitions')
-            .select('*')
-            .eq('activity_id', historyItem.activity_id);
-
-        setSelectedHistoryItem({
-            ...historyItem,
-            fields: activityFields || [],
-            data: dataFields || []
-        });
-    }
 
     if (loading) {
         return (
@@ -462,13 +632,94 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                     <span className="text-[10px] font-black uppercase tracking-widest">{instance.activities?.name}</span>
                                 </div>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actividad en Curso</span>
+
+                                {instance.activities?.is_public && (
+                                    <>
+                                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800" />
+                                        <button
+                                            onClick={() => {
+                                                const url = `${window.location.origin}?public_activity = ${instance.current_activity_id}& process_id=${processId} `;
+                                                navigator.clipboard.writeText(url);
+                                                setShowCopyTooltip(true);
+                                            }}
+                                            className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800/30 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                                            title="Copiar Enlace Público para esta Actividad"
+                                        >
+                                            <Globe className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Enlace Público</span>
+                                        </button>
+                                    </>
+                                )}
+
+                                {instance.total_cost > 0 && (
+                                    <>
+                                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800" />
+                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-100 dark:border-emerald-800/30" title="Costo Operativo Acumulado">
+                                            <DollarSign className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">
+                                                Inversión: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(instance.total_cost || 0)}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
 
 
                     <div className="flex-1 px-8 min-w-0">
-                        <div className="max-w-3xl mx-auto">
+                        <div className="max-w-4xl mx-auto flex items-center gap-3">
+                            <button
+                                onClick={() => setShowProcessViewer(true)}
+                                className="p-2.5 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all border border-slate-100 dark:border-white/5 flex-shrink-0"
+                                title="Ver Mapa de Navegación"
+                            >
+                                <Eye className="w-5 h-5" />
+                            </button>
+
+                            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
+
+                            <button
+                                onClick={() => setActiveTab('main')}
+                                className={clsx(
+                                    "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
+                                    activeTab === 'main'
+                                        ? "bg-blue-600 text-white shadow-lg dark:bg-blue-500 border-transparent scale-110"
+                                        : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-slate-100 dark:border-white/5"
+                                )}
+                                title="Formulario Principal"
+                            >
+                                <FileText className="w-5 h-5" />
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab('history')}
+                                className={clsx(
+                                    "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
+                                    activeTab === 'history'
+                                        ? "bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900 border-transparent scale-110"
+                                        : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-slate-100 dark:border-white/5"
+                                )}
+                                title="Historial"
+                            >
+                                <History className="w-5 h-5" />
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab('bim')}
+                                className={clsx(
+                                    "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
+                                    activeTab === 'bim'
+                                        ? "bg-indigo-600 text-white shadow-lg dark:shadow-none border-transparent scale-110"
+                                        : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border-slate-100 dark:border-white/5"
+                                )}
+                                title="Modelo BIM"
+                            >
+                                <Box className="w-5 h-5" />
+                            </button>
+
+                            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
+
                             <FileAttachments processInstanceId={processId} />
                         </div>
                     </div>
@@ -500,37 +751,35 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                             isFocusMode ? "max-w-3xl" : "max-w-5xl"
                         )}>
 
-                            {workflowDetails.length > 0 && (
-                                <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-4">
+                            <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-4">
+                                <button
+                                    onClick={() => setActiveTab('main')}
+                                    className={clsx(
+                                        "px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all",
+                                        activeTab === 'main'
+                                            ? "bg-slate-900 text-white shadow-xl dark:bg-white dark:text-slate-900"
+                                            : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:border-slate-300 shadow-sm"
+                                    )}
+                                >
+                                    Formulario Principal
+                                </button>
+                                {workflowDetails.map(detail => (
                                     <button
-                                        onClick={() => setActiveTab('main')}
+                                        key={detail.id}
+                                        onClick={() => setActiveTab(detail.id)}
                                         className={clsx(
-                                            "px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all",
-                                            activeTab === 'main'
-                                                ? "bg-slate-900 text-white shadow-xl dark:bg-white dark:text-slate-900"
-                                                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:border-slate-300 shadow-sm"
+                                            "px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all gap-2 flex items-center shadow-sm border",
+                                            activeTab === detail.id
+                                                ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-200 dark:shadow-none"
+                                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800"
                                         )}
                                     >
-                                        Formulario Principal
+                                        <FolderOpen className="w-4 h-4" />
+                                        {detail.name}
+                                        <span className="ml-1.5 px-2 py-0.5 bg-current/20 text-current rounded-md">{detailRows[detail.id]?.length || 0}</span>
                                     </button>
-                                    {workflowDetails.map(detail => (
-                                        <button
-                                            key={detail.id}
-                                            onClick={() => setActiveTab(detail.id)}
-                                            className={clsx(
-                                                "px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all gap-2 flex items-center shadow-sm border",
-                                                activeTab === detail.id
-                                                    ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-200 dark:shadow-none"
-                                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800"
-                                            )}
-                                        >
-                                            <FolderOpen className="w-4 h-4" />
-                                            {detail.name}
-                                            <span className="ml-1.5 px-2 py-0.5 bg-current/20 text-current rounded-md">{detailRows[detail.id]?.length || 0}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                ))}
+                            </div>
 
                             {activeTab === 'main' ? (
                                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none animate-in fade-in duration-300">
@@ -657,6 +906,21 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                     setFormData={setFormData}
                                                                 />
                                                             </div>
+                                                        ) : field.type === 'location' ? (
+                                                            <div className="h-auto w-full">
+                                                                <GeoSelector
+                                                                    value={formData[field.name]}
+                                                                    onChange={(val: string) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                />
+                                                            </div>
+                                                        ) : field.type === 'consecutivo' ? (
+                                                            <input
+                                                                type="text"
+                                                                readOnly
+                                                                value={formData[field.name] || 'XXX-####'}
+                                                                className="w-full h-full bg-slate-100 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-800 rounded-2xl px-4 text-sm text-slate-500 dark:text-slate-400 font-bold border-dashed cursor-not-allowed selection:bg-transparent"
+                                                                title="Este valor fue generado automáticamente"
+                                                            />
                                                         ) : (
                                                             <input
                                                                 type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
@@ -675,6 +939,124 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                         )}
                                     </div>
                                 </div>
+                            ) : activeTab === 'bim' && ifcFile ? (
+                                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[700px] animate-in slide-in-from-bottom-5 duration-500">
+                                    <div className="lg:col-span-3 bg-white dark:bg-[#080a14] rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden relative">
+                                        <IfcViewer
+                                            fileUrl={ifcFile.signedUrl}
+                                            objectStates={bimStates}
+                                            onObjectSelected={(props) => setSelectedBimObject(props)}
+                                        />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="bg-white dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col h-full">
+                                            <div className="flex items-center gap-2 mb-6">
+                                                <Info className="w-4 h-4 text-indigo-600" />
+                                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Atributos 4D</h3>
+                                            </div>
+
+                                            {selectedBimObject ? (
+                                                <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tipo de Objeto</p>
+                                                        <h4 className="text-sm font-black text-slate-800 dark:text-white capitalize">{selectedBimObject.type || 'Elemento BIM'}</h4>
+                                                    </div>
+
+                                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">ID Express</p>
+                                                        <p className="text-xl font-black text-indigo-600">#{selectedBimObject.id}</p>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Actualizar Estado 4D</p>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {[
+                                                                { id: 'completed', label: 'Hecho', color: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+                                                                { id: 'processing', label: 'Proceso', color: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700 border-blue-100' },
+                                                                { id: 'delayed', label: 'Atraso', color: 'bg-rose-500', bg: 'bg-rose-50 text-rose-700 border-rose-100' },
+                                                                { id: 'pending', label: 'Plan', color: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700 border-amber-100' }
+                                                            ].map((st) => (
+                                                                <button
+                                                                    key={st.id}
+                                                                    onClick={async () => {
+                                                                        await saveBimState(processId, selectedBimObject.id, st.id);
+                                                                        setBimStates(prev => ({ ...prev, [selectedBimObject.id]: st.id as any }));
+                                                                    }}
+                                                                    className={clsx(
+                                                                        "flex items-center gap-2 p-2.5 rounded-xl border text-[10px] font-black uppercase transition-all active:scale-95",
+                                                                        bimStates[selectedBimObject.id] === st.id ? st.bg + " ring-2 ring-current ring-offset-2 ring-offset-white dark:ring-offset-slate-950" : "bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800 hover:bg-slate-50"
+                                                                    )}
+                                                                >
+                                                                    <div className={clsx("w-2 h-2 rounded-full", st.color)} />
+                                                                    {st.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex-1 overflow-y-auto custom-scrollbar">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Datos Técnicos</p>
+                                                        <div className="space-y-2">
+                                                            {Object.entries(selectedBimObject.rawProps || {}).map(([k, v]: [string, any]) => (
+                                                                <div key={k} className="flex justify-between items-start gap-4 pb-2 border-b border-slate-50 dark:border-slate-800/50 last:border-0">
+                                                                    <span className="text-[9px] font-bold text-slate-400 uppercase">{k}</span>
+                                                                    <span className="text-[9px] font-black text-slate-700 dark:text-slate-200 text-right">{typeof v === 'object' ? v?.value || '-' : String(v)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                                                    <Layers className="w-10 h-10 text-slate-300 mb-3" />
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Seleccione un elemento<br />para inspeccionar</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : activeTab === 'history' ? (
+                                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl animate-in fade-in duration-300 overflow-hidden flex flex-col max-h-[700px]">
+                                    <div className="flex items-center gap-3 mb-8">
+                                        <History className="w-5 h-5 text-slate-400" />
+                                        <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Registro de Actividad</h3>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar px-1">
+                                        <div className="relative border-l-2 border-slate-100 dark:border-slate-800 ml-4 pl-8 space-y-10 py-4">
+                                            {history.map((item: any) => (
+                                                <div key={item.id} className="relative group">
+                                                    <div className={clsx(
+                                                        "absolute -left-[41px] top-1.5 w-5 h-5 rounded-full border-4 border-white dark:border-slate-900 transition-all group-hover:scale-125 z-10 shadow-sm",
+                                                        item.action === 'started' ? "bg-emerald-500" :
+                                                            item.action === 'completed' ? "bg-blue-500" :
+                                                                item.action === 'commented' ? (item.comment?.includes('❌') ? "bg-rose-500" : "bg-indigo-500") : "bg-slate-400"
+                                                    )} />
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(item.created_at).toLocaleString()}</span>
+                                                            <div className={clsx(
+                                                                "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter",
+                                                                item.action === 'started' ? "bg-emerald-50 text-emerald-600" :
+                                                                    item.action === 'completed' ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-500"
+                                                            )}>{item.action}</div>
+                                                        </div>
+                                                        <p className="text-sm font-black text-slate-800 dark:text-white group-hover:text-blue-600 transition-colors leading-none mb-1">{item.activities?.name || 'Sistema'}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{item.comment}</p>
+                                                        <div className="flex items-center gap-2 mt-2">
+                                                            <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[8px] font-black text-slate-500 uppercase">{item.profiles?.full_name?.[0] || 'S'}</div>
+                                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.profiles?.full_name || 'Sistema'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {history.length === 0 && (
+                                                <div className="text-center py-20">
+                                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No hay registros de historial</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none animate-in slide-in-from-bottom-2 duration-300">
                                     {(() => {
@@ -689,17 +1071,47 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             <FolderOpen className="w-6 h-6" />
                                                         </div>
                                                         <div>
-                                                            <h3 className="text-lg font-black text-slate-800 dark:text-white leading-none mb-1">{detail.name}</h3>
+                                                            <h3 className="text-lg font-black text-slate-800 dark:text-white leading-none mb-1">
+                                                                {detail.name}
+                                                                {instance?.activities?.detail_cardinalities?.[activeTab]?.read_only && (
+                                                                    <span className="ml-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+                                                                        <Lock className="w-3 h-3" /> Solo Lectura
+                                                                    </span>
+                                                                )}
+                                                            </h3>
                                                             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{detail.description || 'Registros del detalle'}</p>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => { setActiveDetailForm(activeTab); setDetailFormData({}); setEditingRowId(null); }}
-                                                        className="px-6 py-3.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-3xl transition-all shadow-sm flex items-center gap-2 active:scale-95"
-                                                    >
-                                                        <Plus className="w-4 h-4" />
-                                                        Añadir Registro
-                                                    </button>
+                                                    {!instance?.activities?.detail_cardinalities?.[activeTab]?.read_only && (
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                title="Descargar Plantilla Excel"
+                                                                onClick={() => handleExportTemplate(detail)}
+                                                                className="px-4 py-3.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-3xl transition-all shadow-sm flex items-center gap-2 active:scale-95"
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                            </button>
+                                                            <label
+                                                                title="Importar Excel con Datos"
+                                                                className="px-4 py-3.5 bg-sky-50 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400 hover:bg-sky-600 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-3xl transition-all shadow-sm flex items-center gap-2 active:scale-95 cursor-pointer"
+                                                            >
+                                                                <Upload className="w-4 h-4" />
+                                                                <input
+                                                                    type="file"
+                                                                    accept=".xlsx, .xls, .csv"
+                                                                    className="hidden"
+                                                                    onChange={(e) => handleImportExcel(e, detail)}
+                                                                />
+                                                            </label>
+                                                            <button
+                                                                onClick={() => { setActiveDetailForm(activeTab); setDetailFormData({}); setEditingRowId(null); }}
+                                                                className="px-6 py-3.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-3xl transition-all shadow-sm flex items-center gap-2 active:scale-95"
+                                                            >
+                                                                <Plus className="w-4 h-4" />
+                                                                Añadir Registro
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {rows.length === 0 ? (
@@ -708,7 +1120,9 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             <FolderOpen className="w-8 h-8 text-slate-300 dark:text-slate-600" />
                                                         </div>
                                                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No hay registros</p>
-                                                        <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Haz clic en Añadir Registro para comenzar</p>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-1">
+                                                            {instance?.activities?.detail_cardinalities?.[activeTab]?.read_only ? 'No hay información en esta carpeta.' : 'Haz clic en Añadir Registro para comenzar'}
+                                                        </p>
                                                     </div>
                                                 ) : (
                                                     <div className="border border-slate-100 dark:border-slate-800 rounded-[2rem] overflow-hidden shadow-sm">
@@ -718,7 +1132,9 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                     {detail.fields?.map((f: any) => (
                                                                         <th key={f.id} className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">{f.label || f.name}</th>
                                                                     ))}
-                                                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right w-32">Opciones</th>
+                                                                    {!instance?.activities?.detail_cardinalities?.[activeTab]?.read_only && (
+                                                                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right w-32">Opciones</th>
+                                                                    )}
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
@@ -735,12 +1151,14 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                                 <td key={f.id} className="px-6 py-5 text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{displayVal || '-'}</td>
                                                                             );
                                                                         })}
-                                                                        <td className="px-6 py-3 text-right">
-                                                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                                <button onClick={() => { setActiveDetailForm(activeTab); setDetailFormData(row.data || {}); setEditingRowId(row.id); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all shadow-sm" title="Editar"><Edit2 className="w-4 h-4" /></button>
-                                                                                <button onClick={() => handleDeleteDetailRow(row.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all shadow-sm" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
-                                                                            </div>
-                                                                        </td>
+                                                                        {!instance?.activities?.detail_cardinalities?.[activeTab]?.read_only && (
+                                                                            <td className="px-6 py-3 text-right">
+                                                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                                    <button onClick={() => { setActiveDetailForm(activeTab); setDetailFormData(row.data || {}); setEditingRowId(row.id); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all shadow-sm" title="Editar"><Edit2 className="w-4 h-4" /></button>
+                                                                                    <button onClick={() => handleDeleteDetailRow(row.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all shadow-sm" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
+                                                                                </div>
+                                                                            </td>
+                                                                        )}
                                                                     </tr>
                                                                 ))}
                                                             </tbody>
@@ -752,8 +1170,6 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                     })()}
                                 </div>
                             )}
-
-
 
                             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none mb-10">
                                 <div className="space-y-6">
@@ -804,7 +1220,6 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             )} />
                                                         </button>
 
-                                                        {/* Tooltip for inactive condition */}
                                                         {!isActive && t.condition && (
                                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl shadow-2xl opacity-0 group-hover/action:opacity-100 pointer-events-none transition-all duration-300 z-50 translate-y-2 group-hover/action:translate-y-0 border border-slate-700 dark:border-slate-600">
                                                                 <div className="flex items-start gap-2">
@@ -814,12 +1229,8 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                         <p className="text-[11px] font-bold text-amber-200">
                                                                             {translateCondition(t.condition, fields)}
                                                                         </p>
-                                                                        <p className="mt-2 text-[9px] text-slate-400 italic">
-                                                                            Esta acción se activará automáticamente cuando los datos del formulario cumplan con esta regla.
-                                                                        </p>
                                                                     </div>
                                                                 </div>
-                                                                {/* Arrow */}
                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900 dark:border-t-slate-800" />
                                                             </div>
                                                         )}
@@ -869,40 +1280,6 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                             </div>
                         </div>
                     </div>
-
-                    {/* History Sidebar */}
-                    {!isFocusMode && (
-                        <div className="w-64 border-l border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col animate-in slide-in-from-right duration-300">
-                            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <History className="w-3.5 h-3.5 text-slate-400" />
-                                    <h3 className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Línea de Tiempo</h3>
-                                </div>
-                                <button
-                                    onClick={() => setShowProcessViewer(true)}
-                                    className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg text-slate-400 hover:text-blue-600 transition-all border border-transparent hover:border-blue-100 dark:hover:border-blue-800/50"
-                                    title="Ver Mapa de Navegación"
-                                >
-                                    <Eye className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                {history.length > 0 ? history.map((h, i) => (
-                                    <div key={h.id} onClick={() => handleHistoryClick(h)} className="relative pl-6 group cursor-pointer">
-                                        <div className="absolute left-0 top-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-700 flex items-center justify-center transition-colors group-hover:bg-blue-500">
-                                            {i === 0 && <div className="w-1.5 h-1.5 rounded-full bg-blue-600 group-hover:bg-white animate-pulse" />}
-                                        </div>
-                                        <div className="bg-white dark:bg-slate-800/40 p-3 rounded-xl border border-transparent group-hover:border-blue-100 transition-all shadow-sm group-hover:shadow-blue-50/50">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{new Date(h.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                            <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{h.activities?.name}</p>
-                                        </div>
-                                    </div>
-                                )) : (
-                                    <p className="text-center py-10 text-slate-400 text-[10px] font-bold uppercase tracking-widest">Sin actividad</p>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
@@ -1008,6 +1385,13 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                     setFormData={setDetailFormData as any}
                                                                 />
                                                             </div>
+                                                        ) : field.type === 'location' ? (
+                                                            <div className="h-auto w-full pt-1">
+                                                                <GeoSelector
+                                                                    value={detailFormData[field.name]}
+                                                                    onChange={(val: string) => setDetailFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                />
+                                                            </div>
                                                         ) : (
                                                             <input
                                                                 type={field.type === 'number' || field.type === 'currency' ? 'number' : field.type === 'date' ? 'date' : 'text'}
@@ -1036,78 +1420,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                     </div>
                 )
             }
-        </div >
-    );
-}
-
-export function HistoryDetailModal({ item, onClose }: { item: any, onClose: () => void }) {
-    return (
-        <div className="fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-white/10 dark:border-slate-800">
-                <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white">Detalle de Gestión</h3>
-                    <button onClick={onClose} className="p-3 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-all">
-                        <X className="w-6 h-6 text-slate-400" />
-                    </button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-10 space-y-10">
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="bg-slate-50/50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
-                            <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Responsable</label>
-                            <div className="space-y-0.5">
-                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                    {(item.profiles as any)?.full_name || item.user_name || 'Desconocido'}
-                                </p>
-                                {((item.profiles as any)?.email || item.user_email) && (
-                                    <p className="text-[10px] text-slate-400 font-medium italic">
-                                        {(item.profiles as any)?.email || item.user_email}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                        <div className="bg-slate-50/50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
-                            <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Fecha</label>
-                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{new Date(item.created_at).toLocaleString()}</p>
-                        </div>
-                    </div>
-
-                    {item.comment && (
-                        <div className="bg-blue-50/30 dark:bg-blue-900/10 p-6 rounded-[2rem] border border-blue-100/50 dark:border-blue-900/30 shadow-sm shadow-blue-50/50">
-                            <label className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase mb-3 block tracking-[0.2em]">Observaciones de Gestión</label>
-                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                                "{item.comment}"
-                            </p>
-                        </div>
-                    )}
-                    <div className="space-y-6">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">Datos Capturados</h4>
-                        <div className="border border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                                    <tr>
-                                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Campo</th>
-                                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Valor</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                    {(item.fields || []).map((field: any) => {
-                                        const dataVal = item.data?.find((d: any) => d.field_name === field.name);
-                                        return (
-                                            <tr key={field.id} className="text-[11px] font-bold">
-                                                <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{field.label || field.name}</td>
-                                                <td className="px-6 py-4 text-slate-700 dark:text-slate-200">{dataVal?.value || '-'}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div className="p-8 border-t border-slate-100 dark:border-slate-800">
-                    <button onClick={onClose} className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100">Cerrar</button>
-                </div>
-            </div>
         </div>
     );
 }
+

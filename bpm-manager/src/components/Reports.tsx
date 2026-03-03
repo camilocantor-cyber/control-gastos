@@ -4,9 +4,13 @@ import {
     PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Treemap,
     BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line
 } from 'recharts';
-import { BarChart3, PieChart as PieChartIcon, Grid, Activity, Download, Calendar, CheckSquare, Clock, User } from 'lucide-react';
+import { BarChart3, PieChart as PieChartIcon, Grid, Activity, Download, Calendar, CheckSquare, Clock, User, Box, DollarSign, BrainCircuit } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
+import { WorkflowHeatmap } from './WorkflowHeatmap';
+import { BimReport } from './BimReport';
+import { CostReport } from './CostReport';
+import { PredictionReport } from './PredictionReport';
 
 interface ProcessHistoryStats {
     workflow_name: string;
@@ -275,8 +279,6 @@ function ManagementRanking({ limit = 5 }: { limit?: number }) {
     );
 }
 
-// Import the new component
-import { WorkflowHeatmap } from './WorkflowHeatmap';
 
 export function Reports() {
     // Shared State
@@ -294,7 +296,7 @@ export function Reports() {
     const { avgResolutionTimeByWorkflow, processStatus } = useDashboardAnalytics();
 
     // Tab State
-    const [activeTab, setActiveTab] = useState<'operation' | 'flow' | 'efficiency'>('operation');
+    const [activeTab, setActiveTab] = useState<'operation' | 'flow' | 'efficiency' | 'bim' | 'costs' | 'predictions'>('operation');
     const [deptEfficiencyData, setDeptEfficiencyData] = useState<any[]>([]);
 
     useEffect(() => {
@@ -715,6 +717,27 @@ export function Reports() {
                     >
                         <Grid className="w-3 h-3 inline-block mr-1.5" />
                         Áreas
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('predictions')}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'predictions' ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                    >
+                        <BrainCircuit className="w-3 h-3 inline-block mr-1.5" />
+                        Predicciones
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('costs')}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'costs' ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                    >
+                        <DollarSign className="w-3 h-3 inline-block mr-1.5" />
+                        Financiero
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('bim')}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'bim' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                    >
+                        <Box className="w-3 h-3 inline-block mr-1.5" />
+                        4D BIM
                     </button>
                 </div>
 
@@ -1189,6 +1212,25 @@ export function Reports() {
                             </ResponsiveContainer>
                         </div>
                     </div>
+                </div>
+            )}
+
+
+            {activeTab === 'bim' && (
+                <div className="animate-in slide-in-from-bottom-5 duration-500">
+                    <BimReport />
+                </div>
+            )}
+
+            {activeTab === 'costs' && (
+                <div className="animate-in slide-in-from-bottom-5 duration-500">
+                    <CostReport />
+                </div>
+            )}
+
+            {activeTab === 'predictions' && (
+                <div className="animate-in slide-in-from-bottom-5 duration-500">
+                    <PredictionReport />
                 </div>
             )}
         </div>

@@ -15,7 +15,6 @@ interface DetailsManagerModalProps {
 export function DetailsManagerModal({ workflowId, details, setDetails, onClose, onSave }: DetailsManagerModalProps) {
     const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'actions'>('general');
-    const [editingActionId, setEditingActionId] = useState<string | null>(null);
     const [showFormPreview, setShowFormPreview] = useState(false);
 
     const handleAddDetail = () => {
@@ -88,7 +87,6 @@ export function DetailsManagerModal({ workflowId, details, setDetails, onClose, 
                 ? { ...d, actions: [...(d.actions || []), newAction] }
                 : d
         ));
-        setEditingActionId(newAction.id);
     };
 
     const handleUpdateAction = (actionId: string, updates: Partial<AutomatedAction>) => {

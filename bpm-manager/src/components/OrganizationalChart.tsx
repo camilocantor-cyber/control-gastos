@@ -26,6 +26,7 @@ import {
 import { cn } from '../utils/cn';
 import { GraphicalTreeView } from './OrgChartTree';
 import type { DepartmentWithChildren } from '../types';
+import { toast } from 'sonner';
 
 interface OrganizationalChartProps {
     organizationId: string;
@@ -250,6 +251,35 @@ export function OrganizationalChart({ organizationId }: OrganizationalChartProps
                                             </div>
                                         </div>
 
+                                        <div className="bg-white dark:bg-slate-900 px-3 py-2 rounded-xl flex items-center gap-3 border border-slate-100 dark:border-slate-800/60 shadow-inner">
+                                            <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+                                            <div className="flex-1">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Costo por Hora</span>
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    defaultValue={pos.hourly_rate ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(pos.hourly_rate) : ''}
+                                                    onFocus={(e) => {
+                                                        e.target.value = pos.hourly_rate ? pos.hourly_rate.toString() : '';
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const rawVal = e.target.value.replace(/[^0-9.]/g, '');
+                                                        const val = parseFloat(rawVal) || 0;
+                                                        if (val !== pos.hourly_rate) {
+                                                            toast.promise(savePosition({ ...pos, hourly_rate: val }), {
+                                                                loading: 'Guardando tarifa...',
+                                                                success: 'Tarifa por hora guardada',
+                                                                error: 'Error de la base de datos al guardar.'
+                                                            });
+                                                        }
+                                                        e.target.value = val ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val) : '';
+                                                    }}
+                                                    className="w-full bg-transparent border-none text-xs font-bold text-slate-800 dark:text-slate-200 outline-none p-0 focus:ring-0"
+                                                    placeholder="$ 0"
+                                                />
+                                            </div>
+                                        </div>
+
                                         {assigningToPosition === pos.id && (
                                             <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-blue-100 dark:border-blue-800 animate-in zoom-in-95">
                                                 <div className="flex items-center justify-between mb-2">
@@ -317,25 +347,22 @@ export function OrganizationalChart({ organizationId }: OrganizationalChartProps
                                     <div className="relative">
                                         <input
                                             type="number"
-                                            value={selectedDept.allocation_percentage || 0}
-                                            onChange={(e) => saveDepartment({ ...selectedDept, allocation_percentage: parseFloat(e.target.value) })}
+                                            defaultValue={selectedDept.allocation_percentage || 0}
+                                            onBlur={(e) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                if (val !== selectedDept.allocation_percentage) {
+                                                    toast.promise(saveDepartment({ ...selectedDept, allocation_percentage: val }), {
+                                                        loading: 'Guardando porcentaje...',
+                                                        success: 'Porcentaje guardado',
+                                                        error: 'Error al guardar. Verifica la base de datos.'
+                                                    });
+                                                }
+                                            }}
                                             className="w-full pl-3 pr-8 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-sm"
                                         />
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">%</span>
                                     </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between">
-                                        JSON Personalizado
-                                        <span className="text-[7px] text-blue-500 lowercase font-medium text-slate-900 dark:text-white">Opcional</span>
-                                    </label>
-                                    <textarea
-                                        value={selectedDept.allocation_rules || ''}
-                                        onChange={(e) => saveDepartment({ ...selectedDept, allocation_rules: e.target.value })}
-                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-[10px] h-20 resize-none"
-                                        placeholder='{ "meta": 500 }'
-                                    />
+                                    <p className="text-[10px] text-slate-400 mt-2 italic">⚠️ Los cambios se guardan automáticamente al dar clic afuera.</p>
                                 </div>
                             </div>
                         </div>

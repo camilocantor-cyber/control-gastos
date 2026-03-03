@@ -12,15 +12,15 @@ export function StartProcessModal({ onClose, onStarted }: { onClose: () => void,
     const { user } = useAuth();
     const { startProcess, loading, error } = useExecution();
 
-    useEffect(() => {
-        loadWorkflows();
-    }, []);
-
     async function loadWorkflows() {
         // TODO: Filter by organization_id once RLS is active or here manually
         const { data } = await supabase.from('workflows').select('*').eq('status', 'active');
         setWorkflows(data || []);
     }
+
+    useEffect(() => {
+        loadWorkflows();
+    }, []);
 
     async function handleStart() {
         if (!selectedWorkflowId || !processName || !user?.organization_id) {

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainLayout } from './components/Layout';
+import { Toaster } from 'sonner';
 import { WorkflowList } from './components/WorkflowManagement';
 import { WorkflowBuilder } from './components/WorkflowBuilder';
 import { Auth } from './components/Auth';
@@ -19,6 +20,8 @@ import { Calendar } from './components/Calendar';
 import { OrganizationalChart } from './components/OrganizationalChart';
 import { SystemAccounts } from './components/SystemAccounts';
 import { IntegrationMonitor } from './components/IntegrationMonitor';
+import { SelfServicePortal } from './components/SelfServicePortal';
+import { PublicForm } from './components/PublicForm';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -28,15 +31,18 @@ function AppContent() {
   const [showStartProcess, setShowStartProcess] = useState(false);
   const [executingProcessId, setExecutingProcessId] = useState<string | null>(null);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
-  const [isResetPasswordPage, setIsResetPasswordPage] = useState(false);
+  const [isResetPasswordPage] = useState(() => window.location.hash.includes('type=recovery'));
+  const [publicWorkflowId] = useState(() => new URLSearchParams(window.location.search).get('public_process'));
+  const [publicActivityId] = useState(() => new URLSearchParams(window.location.search).get('public_activity'));
+  const [processId] = useState(() => new URLSearchParams(window.location.search).get('process_id'));
 
-  // Check if we're on the reset password page
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes('type=recovery')) {
-      setIsResetPasswordPage(true);
-    }
-  }, []);
+  if (publicWorkflowId) {
+    return <PublicForm workflowId={publicWorkflowId} />;
+  }
+
+  if (publicActivityId && processId) {
+    return <PublicForm activityId={publicActivityId} processId={processId} />;
+  }
 
   if (loading) {
     return (
@@ -53,6 +59,10 @@ function AppContent() {
 
   if (!user) {
     return <Auth />;
+  }
+
+  if (user.role !== 'admin') {
+    return <SelfServicePortal />;
   }
 
   // Handle section change from Dashboard
@@ -158,6 +168,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" richColors />
       <AppContent />
     </AuthProvider>
   );

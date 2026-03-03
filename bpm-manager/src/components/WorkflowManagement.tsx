@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Workflow } from '../types';
 import { useWorkflows } from '../hooks/useWorkflows';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardStats } from '../hooks/useDashboardStats';
-import { GitBranch, Plus, Search, Trash2, Play, GitMerge, Users, Activity, X, MoreVertical, LayoutGrid, List } from 'lucide-react';
+import { GitBranch, Plus, Search, Trash2, Play, GitMerge, Users, Activity, X, MoreVertical, LayoutGrid, List, Globe, Tag, Filter } from 'lucide-react';
+import { WorkflowCategoryManager } from './WorkflowCategoryManager';
+import { useWorkflowCategories } from '../hooks/useWorkflowCategories';
 
 export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
     onSelectWorkflow: (workflow: Workflow) => void,
@@ -17,11 +21,16 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
     const [editingWorkflow, setEditingWorkflow] = useState<Workflow | undefined>();
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [prevOpenForm, setPrevOpenForm] = useState(openForm);
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+    const { categories } = useWorkflowCategories();
 
-    // Update internal state when prop changes
-    useEffect(() => {
+    // Update internal state when prop changes without effects to avoid cascading renders
+    if (openForm !== prevOpenForm) {
+        setPrevOpenForm(openForm);
         if (openForm) setIsFormOpen(true);
-    }, [openForm]);
+    }
 
     const handleClose = () => {
         setIsFormOpen(false);
@@ -29,10 +38,12 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
         onFormClose?.();
     };
 
-    const filteredWorkflows = workflows.filter(w =>
-        w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (w.description || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredWorkflows = workflows.filter(w => {
+        const matchesSearch = w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (w.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === 'all' || w.category_id === selectedCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     const handleSave = async (data: Partial<Workflow>) => {
         try {
@@ -40,12 +51,14 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                 const { error } = await updateWorkflow(editingWorkflow.id, data);
                 if (error) {
                     console.error('Error in handleSave (update):', error);
-                    alert('Error al actualizar: ' + error);
+                    toast.error('Error al actualizar: ' + error);
+                } else {
+                    toast.success('Flujo actualizado correctamente');
                 }
             } else {
                 if (!user || !user.organization_id) {
                     console.error('No authenticated user or organization found!');
-                    alert('Error: Sesión incompleta. Refresca la página.');
+                    toast.error('Error: Sesión incompleta. Refresca la página.');
                     return;
                 }
 
@@ -58,26 +71,41 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
 
                 if (error) {
                     console.error('Error in handleSave (create):', error);
-                    alert('Error al crear: ' + error);
+                    toast.error('Error al crear: ' + error);
+                } else {
+                    toast.success('Flujo creado correctamente');
                 }
             }
             handleClose();
         } catch (err: any) {
             console.error('Unexpected error in handleSave:', err);
-            alert('Error inesperado: ' + (err.message || err));
+            toast.error('Error inesperado: ' + (err.message || err));
         }
     };
 
     const handleDelete = async (id: string) => {
         if (confirm('¿Estás seguro de que deseas eliminar este flujo?')) {
-            await deleteWorkflow(id);
+            const { error } = await deleteWorkflow(id);
+            if (error) {
+                if (error.includes('foreign key constraint') || error.includes('violates foreign key') || error.includes('violates foreign key constraint') || error.includes('reference') || error.includes('update or delete on table')) {
+                    toast.error('No se puede eliminar este flujo porque ya tiene procesos (trámites) en ejecución o ya finalizados asociados al mismo.');
+                } else {
+                    toast.error('Error al eliminar: ' + error);
+                }
+            } else {
+                toast.success('Flujo eliminado correctamente');
+            }
         }
     };
 
     const handleDuplicate = async (id: string) => {
         if (confirm('¿Deseas crear una nueva versión de este flujo? Se copiarán todas las actividades y configuraciones.')) {
             const { error } = await duplicateWorkflow(id);
-            if (error) alert('Error al versionar: ' + error);
+            if (error) {
+                toast.error('Error al versionar: ' + error);
+            } else {
+                toast.success('Flujo versionado correctamente');
+            }
         }
     };
 
@@ -110,6 +138,23 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                         className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all bg-white dark:bg-slate-900 shadow-sm text-xs font-medium"
                     />
                 </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="relative flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 shadow-sm">
+                        <Filter className="w-3.5 h-3.5 text-slate-400 mr-2" />
+                        <select
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none appearance-none pr-4"
+                        >
+                            <option value="all">Todas las Categorías</option>
+                            {categories.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                     <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                         <button
@@ -127,6 +172,14 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                             <List className="w-4 h-4" />
                         </button>
                     </div>
+
+                    <button
+                        onClick={() => setIsCategoryManagerOpen(true)}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-[11px] font-black rounded-xl transition-colors uppercase tracking-wider border border-transparent hover:border-blue-200 dark:hover:border-blue-900"
+                    >
+                        <Tag className="w-3.5 h-3.5" />
+                        Categorías
+                    </button>
 
                     <button
                         onClick={() => {
@@ -183,6 +236,15 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                             <div>
                                                 <p className="text-[13px] font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors leading-tight mb-0.5">{workflow.name}</p>
                                                 <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-xs">{workflow.description || 'Sin descripción'}</p>
+                                                {workflow.category && (
+                                                    <span
+                                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white shadow-sm mt-1"
+                                                        style={{ backgroundColor: workflow.category.color }}
+                                                    >
+                                                        <Tag className="w-2 h-2" />
+                                                        {workflow.category.name}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -213,7 +275,31 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                         </td>
                                         <td className="px-5 py-2 text-right">
                                             <div className="flex justify-end gap-1.5 Items-center">
-
+                                                {workflow.is_public && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const url = `${window.location.origin}?public_process=${workflow.id}`;
+                                                            navigator.clipboard.writeText(url);
+                                                            toast.success('Enlace público copiado al portapapeles');
+                                                        }}
+                                                        className="w-7 h-7 flex items-center justify-center text-blue-500 hover:text-blue-600 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-all border border-blue-100 dark:border-blue-800"
+                                                        title="Copiar Enlace Público"
+                                                    >
+                                                        <Globe className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingWorkflow(workflow);
+                                                        setIsFormOpen(true);
+                                                    }}
+                                                    className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
+                                                    title="Editar Configuración"
+                                                >
+                                                    <MoreVertical className="w-3.5 h-3.5" />
+                                                </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleDuplicate(workflow.id); }}
                                                     className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
@@ -245,12 +331,18 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                 </div>
             )}
 
-            {isFormOpen && (
-                <WorkflowForm
-                    workflow={editingWorkflow}
-                    onSave={handleSave}
-                    onClose={handleClose}
-                />
+            <AnimatePresence>
+                {isFormOpen && (
+                    <WorkflowForm
+                        workflow={editingWorkflow}
+                        onSave={handleSave}
+                        onClose={handleClose}
+                    />
+                )}
+            </AnimatePresence>
+
+            {isCategoryManagerOpen && (
+                <WorkflowCategoryManager onClose={() => setIsCategoryManagerOpen(false)} />
             )}
         </div>
     );
@@ -267,8 +359,12 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
         name: workflow?.name || '',
         description: workflow?.description || '',
         status: workflow?.status || 'draft',
-        name_template: workflow?.name_template || ''
+        name_template: workflow?.name_template || '',
+        is_public: workflow?.is_public || false,
+        category_id: workflow?.category_id || ''
     });
+
+    const { categories } = useWorkflowCategories();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -276,8 +372,19 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border border-slate-100 dark:border-slate-800">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+        >
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800"
+            >
                 <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
                     <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
                         {workflow ? 'Configurar Flujo' : 'Crear Nuevo Flujo'}
@@ -287,56 +394,91 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Nombre del Proceso</label>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Nombre del Proceso</label>
+                            <input
+                                type="text"
+                                required
+                                value={formData.name}
+                                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
+                                placeholder="Ej: Aprobación de Vacaciones"
+                            />
+                        </div>
+
+                        <div className="col-span-2">
+                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Descripción del Proceso</label>
+                            <textarea
+                                rows={2}
+                                value={formData.description}
+                                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all resize-none font-medium text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
+                                placeholder="Propósito de este flujo..."
+                            />
+                        </div>
+
+                        <div className="col-span-2">
+                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Categoría</label>
+                            <select
+                                value={formData.category_id}
+                                onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm appearance-none"
+                            >
+                                <option value="">Sin Categoría</option>
+                                {categories.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-widest">Plantilla de Nombre</label>
+                            <input
+                                type="text"
+                                value={formData.name_template}
+                                onChange={(e) => setFormData(prev => ({ ...prev, name_template: e.target.value }))}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
+                                placeholder="Sol. {{empleado}}"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Estado Inicial</label>
+                            <select
+                                value={formData.status}
+                                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all bg-white dark:bg-slate-900 font-bold text-slate-700 dark:text-slate-300 text-xs shadow-sm appearance-none cursor-pointer"
+                            >
+                                <option value="draft">Borrador</option>
+                                <option value="active">Activo</option>
+                                <option value="archived">Archivado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-blue-300 dark:hover:border-blue-800 transition-colors">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${formData.is_public ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                <Globe className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none mb-0.5">Visibilidad Pública</p>
+                                <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">Iniciar mediante enlace externo</p>
+                            </div>
+                        </div>
+                        <div className={`w-10 h-6 flex items-center bg-slate-200 dark:bg-slate-700 rounded-full p-1 transition-colors ${formData.is_public ? 'bg-blue-600 dark:bg-blue-600' : ''}`}>
+                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${formData.is_public ? 'translate-x-4' : ''}`}></div>
+                        </div>
+                        {/* Hidden input to handle the state */}
                         <input
-                            type="text"
-                            required
-                            value={formData.name}
-                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
-                            placeholder="Ej: Aprobación de Vacaciones"
+                            type="checkbox"
+                            checked={formData.is_public}
+                            onChange={(e) => setFormData(prev => ({ ...prev, is_public: e.target.checked }))}
+                            className="hidden"
                         />
-                    </div>
-
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Descripción del Proceso</label>
-                        <textarea
-                            rows={2}
-                            value={formData.description}
-                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all resize-none font-medium text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
-                            placeholder="Propósito de este flujo..."
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-widest">Plantilla de Nombre del Trámite</label>
-                        <input
-                            type="text"
-                            value={formData.name_template}
-                            onChange={(e) => setFormData(prev => ({ ...prev, name_template: e.target.value }))}
-                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
-                            placeholder="Ej: Solicitud de {{empleado}}"
-                        />
-                        <p className="mt-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-relaxed">
-                            Usa <span className="text-blue-500">{'{{nombre_campo}}'}</span> de la primera actividad para generar nombres dinámicos.
-                        </p>
-                    </div>
-
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Estado Inicial</label>
-                        <select
-                            value={formData.status}
-                            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
-                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all bg-white dark:bg-slate-900 font-bold text-slate-700 dark:text-slate-300 text-xs shadow-sm appearance-none cursor-pointer"
-                        >
-                            <option value="draft">Borrador (Draft)</option>
-                            <option value="active">Activo (Active)</option>
-                            <option value="archived">Archivado (Archived)</option>
-                        </select>
-                    </div>
+                    </label>
 
                     <div className="pt-4 flex gap-3">
                         <button
@@ -354,13 +496,14 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
 
-function WorkflowCard({ workflow, onDelete, onDuplicate, onSelect }: {
+function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect }: {
     workflow: Workflow,
+    onEdit: () => void,
     onDelete: () => void,
     onDuplicate: () => void,
     onSelect: () => void
@@ -379,12 +522,28 @@ function WorkflowCard({ workflow, onDelete, onDuplicate, onSelect }: {
                         {workflow.status.toUpperCase()}
                     </div>
                     {workflow.version && (
-                        <div className="bg-slate-50 text-slate-500 px-2 py-1 rounded-full text-[10px] font-bold border border-slate-100">
+                        <div className="bg-slate-50 text-slate-500 px-2 py-1 rounded-full text-[10px] font-bold border border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
                             {workflow.version}
                         </div>
                     )}
+                    {workflow.category && (
+                        <div
+                            className="px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-sm flex items-center gap-1"
+                            style={{ backgroundColor: workflow.category.color }}
+                        >
+                            <Tag className="w-2.5 h-2.5" />
+                            {workflow.category.name}
+                        </div>
+                    )}
                 </div>
-                <button className="text-slate-400 hover:text-slate-600 p-1">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit();
+                    }}
+                    className="text-slate-400 hover:text-slate-600 p-1"
+                    title="Editar Configuración"
+                >
                     <MoreVertical className="w-5 h-5" />
                 </button>
             </div>
@@ -411,6 +570,21 @@ function WorkflowCard({ workflow, onDelete, onDuplicate, onSelect }: {
                     <span className="text-xs font-medium">8 Actividades</span>
                 </div>
                 <div className="flex items-center gap-2">
+                    {workflow.is_public ? (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const url = `${window.location.origin}?public_process=${workflow.id}`;
+                                navigator.clipboard.writeText(url);
+                                toast.success('Enlace público copiado al portapapeles');
+                            }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors mr-2"
+                            title="Copiar Enlace Público"
+                        >
+                            <Globe className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Público</span>
+                        </button>
+                    ) : null}
 
                     <button
                         onClick={(e) => {

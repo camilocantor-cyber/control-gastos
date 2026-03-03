@@ -49,6 +49,8 @@ export function FileAttachments({ processInstanceId }: FileAttachmentsProps) {
         const result = await uploadFile(file, processInstanceId);
         if (result) {
             await loadAttachments();
+        } else {
+            alert('Error al adjuntar archivo. Asegúrate que no pese más de 10MB y sea un formato permitido (PDF, DOCX, XLSX, imágenes, o IFC).');
         }
         e.target.value = '';
     }

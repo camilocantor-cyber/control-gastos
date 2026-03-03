@@ -162,9 +162,10 @@ export function useOrgChart(organizationId: string) {
     };
 
     const saveDepartment = async (dept: Partial<Department>) => {
+        const { children, positions, workload_count, ...validData } = dept as any;
         const { data, error } = await supabase
             .from('departments')
-            .upsert({ ...dept, organization_id: organizationId })
+            .upsert({ ...validData, organization_id: organizationId })
             .select()
             .single();
 
@@ -184,9 +185,10 @@ export function useOrgChart(organizationId: string) {
     };
 
     const savePosition = async (pos: Partial<Position>) => {
+        const { employees, workload_count, department, ...validData } = pos as any;
         const { data, error } = await supabase
             .from('positions')
-            .upsert({ ...pos, organization_id: organizationId })
+            .upsert({ ...validData, organization_id: organizationId })
             .select()
             .single();
 

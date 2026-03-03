@@ -9,14 +9,14 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
     const [viewingProcessId, setViewingProcessId] = useState<string | null>(null);
     const [escalatedTask, setEscalatedTask] = useState<any | null>(null);
 
-    useEffect(() => {
-        loadTasks();
-    }, [refreshTrigger]);
-
     async function loadTasks() {
         const data = await getActiveTasks();
         setTasks(data || []);
     }
+
+    useEffect(() => {
+        loadTasks();
+    }, [refreshTrigger]);
 
     if (loading && tasks.length === 0) {
         return (

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, ZoomIn, ZoomOut, Maximize, Play, Square, AlertCircle, CheckCircle2, Clock, Network, GitBranch } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Activity, Transition } from '../types';
-import { HistoryDetailModal } from './ProcessExecution';
+import { HistoryDetailModal } from './HistoryDetailModal';
 
 interface ProcessViewerModalProps {
     processId: string;
@@ -373,12 +373,14 @@ export function ProcessViewerModal({ processId, onClose }: ProcessViewerModalPro
                             const isExecuted = executionState.executedActivityIds.has(activity.id);
                             const isCurrent = executionState.currentActivityId === activity.id;
                             const status = isCurrent ? 'current' : (isExecuted ? 'executed' : 'pending');
+                            const historyItem = historyLog.find(h => h.activity_id === activity.id);
 
                             return (
                                 <ActivityNodeReadOnly
                                     key={activity.id}
                                     activity={activity}
                                     status={status}
+                                    executionTime={historyItem?.created_at}
                                     position={nodePositions[activity.id]}
                                     onDragStart={handleNodeDragStart}
                                     onClick={() => handleNodeClick(activity.id)}
@@ -434,12 +436,13 @@ export function ProcessViewerModal({ processId, onClose }: ProcessViewerModalPro
 
 // Subcomponents for Read-Only View
 
-function ActivityNodeReadOnly({ activity, status, onClick, position, onDragStart }: {
+function ActivityNodeReadOnly({ activity, status, onClick, position, onDragStart, executionTime }: {
     activity: Activity,
     status: 'executed' | 'current' | 'pending',
     onClick?: () => void,
     position?: { x: number, y: number },
-    onDragStart?: (e: React.MouseEvent, activityId: string) => void
+    onDragStart?: (e: React.MouseEvent, activityId: string) => void,
+    executionTime?: string
 }) {
     const icons = {
         start: Play,
@@ -514,6 +517,12 @@ function ActivityNodeReadOnly({ activity, status, onClick, position, onDragStart
                 <div className={`px-2 py-1 rounded-lg border shadow-sm text-[9px] font-black uppercase tracking-widest whitespace-nowrap max-w-[120px] truncate transition-all duration-300 ${styles.labelBg}`}>
                     {activity.name}
                 </div>
+                {executionTime && (
+                    <div className="absolute -bottom-6 px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded-md text-[8px] font-black text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-1 whitespace-nowrap">
+                        <Clock className="w-2.5 h-2.5" />
+                        {new Date(executionTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                )}
             </div>
         </div>
     );

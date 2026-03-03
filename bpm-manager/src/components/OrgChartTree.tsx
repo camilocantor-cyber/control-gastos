@@ -5,6 +5,7 @@ import type { DepartmentWithChildren } from '../types';
 import { useOrgChartAnalytics } from '../hooks/useOrgChartAnalytics';
 import type { DepartmentHealth } from '../hooks/useOrgChartAnalytics';
 import { StartProcessModal } from './StartProcessModal';
+import { DepartmentReportModal } from './DepartmentReportModal';
 
 interface TreeNodeProps {
     dept: DepartmentWithChildren;
@@ -13,9 +14,10 @@ interface TreeNodeProps {
     healthMap: Record<string, DepartmentHealth>;
     onStartProcess: (deptId: string) => void;
     onAddChild: (parentId: string) => void;
+    onReport: (deptId: string, deptName: string) => void;
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ dept, onSelect, selectedId, healthMap, onStartProcess, onAddChild }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ dept, onSelect, selectedId, healthMap, onStartProcess, onAddChild, onReport }) => {
     const isSelected = selectedId === dept.id;
     const hasChildren = dept.children && dept.children.length > 0;
     const [showActions, setShowActions] = useState(false);
@@ -30,7 +32,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({ dept, onSelect, selectedId, healthM
                     "relative z-10 p-2.5 rounded-xl border-2 transition-all cursor-pointer min-w-[130px] max-w-[170px] shadow-sm select-none group",
                     isSelected
                         ? "bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-200 dark:shadow-none scale-105"
-                        : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-blue-400 dark:hover:border-blue-900"
+                        : health?.overdueTasks > 0
+                            ? "bg-rose-50 dark:bg-rose-900/10 border-rose-400 dark:border-rose-800 text-rose-900 dark:text-rose-100 hover:border-rose-500 shadow-rose-100 dark:shadow-none"
+                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-blue-400 dark:hover:border-blue-900"
                 )}
             >
                 {/* Health Indicators - floating */}
@@ -116,7 +120,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ dept, onSelect, selectedId, healthM
                             AÑADIR SUB-ÁREA
                         </button>
                         <button
-                            onClick={(e) => { e.stopPropagation(); setShowActions(false); }}
+                            onClick={(e) => { e.stopPropagation(); onReport(dept.id, dept.name); setShowActions(false); }}
                             className="w-full px-3 py-2.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
                         >
                             <BarChart2 className="w-3.5 h-3.5 text-blue-500" />
@@ -158,6 +162,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ dept, onSelect, selectedId, healthM
                                             onAddChild={onAddChild}
                                             selectedId={selectedId}
                                             healthMap={healthMap}
+                                            onReport={onReport}
                                         />
                                     </div>
                                 </div>
@@ -184,6 +189,7 @@ export const GraphicalTreeView: React.FC<{
     const [lastMousePos, setLastMousePos] = React.useState({ x: 0, y: 0 });
     const { healthMap } = useOrgChartAnalytics();
     const [startingProcessDept, setStartingProcessDept] = React.useState<string | null>(null);
+    const [reportingDept, setReportingDept] = React.useState<{ id: string, name: string } | null>(null);
 
     const handleWheel = (e: React.WheelEvent) => {
         if (e.ctrlKey || e.metaKey) {
@@ -256,6 +262,7 @@ export const GraphicalTreeView: React.FC<{
                             healthMap={healthMap}
                             onStartProcess={(id) => setStartingProcessDept(id)}
                             onAddChild={onAddChild}
+                            onReport={(id, name) => setReportingDept({ id, name })}
                         />
                     ))}
                     {tree.length === 0 && (
@@ -276,6 +283,15 @@ export const GraphicalTreeView: React.FC<{
                     onStarted={() => {
                         setStartingProcessDept(null);
                     }}
+                />
+            )}
+
+            {/* Department Report Modal */}
+            {reportingDept && (
+                <DepartmentReportModal
+                    deptId={reportingDept.id}
+                    deptName={reportingDept.name}
+                    onClose={() => setReportingDept(null)}
                 />
             )}
         </div>

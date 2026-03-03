@@ -1,30 +1,36 @@
-import React, { useState } from 'react';
-import { X, Wand2, Loader2, Key, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { X, Wand2, Loader2, Key, AlertCircle, Bot } from 'lucide-react';
 import { cn } from '../utils/cn';
-import type { Activity } from '../types';
+import type { AIGeneratedWorkflow } from '../services/aiService';
+
+export type AIProviderName = 'openai' | 'gemini';
 
 interface AIWorkflowGeneratorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onGenerate: (activities: Activity[], method: 'replace' | 'append') => void;
+    onGenerate: (data: AIGeneratedWorkflow, method: 'replace' | 'append') => void;
 }
 
 export function AIWorkflowGeneratorModal({ isOpen, onClose, onGenerate }: AIWorkflowGeneratorModalProps) {
     const [prompt, setPrompt] = useState('');
+    const [provider, setProvider] = useState<AIProviderName>('openai');
     const [apiKey, setApiKey] = useState(localStorage.getItem('bpm_openai_key') || '');
+    const [geminiKey, setGeminiKey] = useState(localStorage.getItem('bpm_gemini_key') || '');
     const [method, setMethod] = useState<'replace' | 'append'>('replace');
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     if (!isOpen) return null;
 
+    const currentKey = provider === 'openai' ? apiKey : geminiKey;
+
     const handleGenerate = async () => {
         if (!prompt.trim()) {
             setError("Por favor, ingresa una descripción del proceso.");
             return;
         }
-        if (!apiKey.trim()) {
-            setError("Se requiere una API Key de OpenAI válida.");
+        if (!currentKey.trim()) {
+            setError(`Se requiere una API Key de ${provider === 'openai' ? 'OpenAI' : 'Google Gemini'} válida.`);
             return;
         }
 
@@ -32,14 +38,15 @@ export function AIWorkflowGeneratorModal({ isOpen, onClose, onGenerate }: AIWork
         setIsGenerating(true);
 
         try {
-            // Guardar API key en localStorage para conveniencia
-            localStorage.setItem('bpm_openai_key', apiKey);
+            // Guardar API keys
+            if (provider === 'openai') localStorage.setItem('bpm_openai_key', apiKey);
+            if (provider === 'gemini') localStorage.setItem('bpm_gemini_key', geminiKey);
 
-            // Importar dinámicamente el servicio para evitar cargar todo de una vez
+            // Importar dinámicamente el servicio
             const { generateWorkflowWithAI } = await import('../services/aiService');
 
-            const activities = await generateWorkflowWithAI(prompt, apiKey);
-            onGenerate(activities, method);
+            const generatedData = await generateWorkflowWithAI(prompt, currentKey, provider);
+            onGenerate(generatedData, method);
             onClose();
             setPrompt('');
         } catch (err: any) {
@@ -88,21 +95,56 @@ export function AIWorkflowGeneratorModal({ isOpen, onClose, onGenerate }: AIWork
                         </div>
                     )}
 
+                    {/* Provider Selection */}
+                    <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Motor de Inteligencia Artificial
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setProvider('openai')}
+                                className={cn(
+                                    "px-4 py-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2",
+                                    provider === 'openai'
+                                        ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                                        : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                )}
+                            >
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" className="w-4 h-4 dark:invert" alt="OpenAI" />
+                                OpenAI (GPT-4)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setProvider('gemini')}
+                                className={cn(
+                                    "px-4 py-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2",
+                                    provider === 'gemini'
+                                        ? "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 shadow-sm"
+                                        : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                )}
+                            >
+                                <Bot className="w-5 h-5 text-blue-500" />
+                                Google Gemini
+                            </button>
+                        </div>
+                    </div>
+
                     {/* API Key */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                             <Key className="w-4 h-4 text-gray-400" />
-                            OpenAI API Key
+                            {provider === 'openai' ? 'OpenAI API Key' : 'Google Gemini API Key'}
                         </label>
                         <input
                             type="password"
-                            value={apiKey}
-                            onChange={(e) => setApiKey(e.target.value)}
-                            placeholder="sk-..."
+                            value={provider === 'openai' ? apiKey : geminiKey}
+                            onChange={(e) => provider === 'openai' ? setApiKey(e.target.value) : setGeminiKey(e.target.value)}
+                            placeholder={provider === 'openai' ? "sk-..." : "AIzaSy..."}
                             className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all dark:text-white dark:placeholder-gray-500 text-sm"
                         />
                         <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                            Tu API key se guarda localmente en tu navegador.
+                            Tu API key se guarda localmente en tu navegador de forma segura.
                         </p>
                     </div>
 

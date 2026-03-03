@@ -6,6 +6,7 @@ import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
 import { TaskInbox } from './TaskInbox';
 import { WorkloadMap } from './WorkloadMap';
+import { DashboardAIWidget } from './DashboardAIWidget';
 import { cn } from '../utils/cn';
 
 export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: string, data?: any) => void, refreshTrigger?: number }) {
@@ -119,6 +120,9 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                 {/* Workload Map Widget */}
                 <WorkloadMap data={topActivities} />
             </div>
+
+            {/* AI Assistant Widget */}
+            <DashboardAIWidget />
         </div>
     );
 }

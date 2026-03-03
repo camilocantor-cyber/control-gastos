@@ -60,6 +60,71 @@ export function useExecution() {
         }
     }
 
+    async function calculateStepCost(processId: string) {
+        if (!user?.id) return { hoursSpent: 0, stepCost: 0 };
+
+        try {
+            // Find when the process or the current activity started
+            const { data: lastHistory } = await supabase
+                .from('process_history')
+                .select('created_at')
+                .eq('process_id', processId)
+                .in('action', ['started', 'completed'])
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            let hoursSpent = 0;
+            if (lastHistory) {
+                const startedAt = new Date(lastHistory.created_at);
+                const now = new Date();
+
+                let msSpent = 0;
+                let current = new Date(startedAt);
+
+                while (current < now) {
+                    const day = current.getDay();
+                    const isWeekend = day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+
+                    const endOfDay = new Date(current);
+                    endOfDay.setHours(23, 59, 59, 999);
+
+                    const nextTime = endOfDay < now ? endOfDay : now;
+
+                    if (!isWeekend) {
+                        msSpent += nextTime.getTime() - current.getTime();
+                    }
+
+                    current = new Date(nextTime.getTime() + 1);
+                }
+
+                hoursSpent = parseFloat((msSpent / (1000 * 60 * 60)).toFixed(2));
+            }
+
+            // Get user's hourly rate from their primary position
+            const { data: userPos } = await supabase
+                .from('employee_positions')
+                .select('positions(hourly_rate, title)')
+                .eq('user_id', user.id)
+                .eq('is_primary', true)
+                .limit(1)
+                .maybeSingle();
+
+            const rawRate = (userPos?.positions as any)?.hourly_rate;
+            // If primary position is an array, take first
+            let rate = 0;
+            if (Array.isArray(rawRate)) rate = rawRate[0] || 0;
+            else if (typeof rawRate === 'number') rate = rawRate;
+
+            const stepCost = parseFloat((hoursSpent * rate).toFixed(2));
+
+            return { hoursSpent, stepCost };
+        } catch (e) {
+            console.error('Error calculating step cost:', e);
+            return { hoursSpent: 0, stepCost: 0 };
+        }
+    }
+
     // Start a new process instance
     async function startProcess(workflowId: string, name: string, organizationId: string) {
         try {
@@ -133,11 +198,21 @@ export function useExecution() {
                 .eq('id', transition.target_id)
                 .single();
 
-            // Get original initiator for 'creator' rule
+            // Get original initiator for 'creator' rule AND the current activity to get its actions
             const { data: instance } = await supabase
                 .from('process_instances')
-                .select('created_by, organization_id')
+                .select('*, workflows(name_template, name, id)')
                 .eq('id', processId)
+                .single();
+
+            // Calculate cost for the activity we are leaving
+            const { hoursSpent, stepCost } = await calculateStepCost(processId);
+            const totalCost = (instance?.total_cost || 0) + stepCost;
+
+            const { data: sourceActivity } = await supabase
+                .from('activities')
+                .select('*')
+                .eq('id', instance?.current_activity_id)
                 .single();
 
             let nextAssignment: any = { assigned_user_id: null, assigned_department_id: null, assigned_position_id: null };
@@ -151,6 +226,7 @@ export function useExecution() {
                 .update({
                     current_activity_id: transition.target_id,
                     status: 'active',
+                    total_cost: totalCost,
                     ...nextAssignment
                 })
                 .eq('id', processId);
@@ -162,62 +238,126 @@ export function useExecution() {
                 .from('process_history')
                 .insert({
                     process_id: processId,
-                    activity_id: transition.target_id,
+                    activity_id: transition.target_id, // record history on the target
                     action: 'completed',
                     comment: comment || 'Actividad completada.',
-                    user_id: user?.id
+                    user_id: user?.id,
+                    time_spent_hours: hoursSpent,
+                    step_cost: stepCost
                 });
 
             if (histError) throw histError;
 
-            // 4. Trigger Automatic Actions if configured
-            if (targetActivity && targetActivity.action_type && targetActivity.action_type !== 'none') {
+            // 4. Trigger Automatic Actions for the SOURCE activity (On-Exit)
+            const actionsToTrace = (sourceActivity as any)?.actions || [];
+            const legacyAction = (sourceActivity?.action_type && sourceActivity?.action_type !== 'none')
+                ? { type: sourceActivity.action_type, config: sourceActivity.action_config || {} }
+                : null;
+
+            if (actionsToTrace.length > 0 || legacyAction) {
                 try {
                     const { data: allData } = await supabase.from('process_data').select('field_name, value').eq('process_id', processId);
-                    const context: Record<string, any> = { process_id: processId, user_id: user?.id };
+
+                    // Context with metadata
+                    const context: Record<string, any> = {
+                        ...instance,
+                        process_id: processId,
+                        user_id: user?.id,
+                        id_tramite: instance?.process_number || instance?.id,
+                        nro_tramite: instance?.process_number,
+                        secuencia: instance?.workflow_sequence,
+                        nombre_tramite: instance?.name,
+                        fecha_inicio: instance?.created_at,
+                        iniciador: instance?.created_by,
+                        enlace_publico: targetActivity?.is_public ? `${window.location.origin}?public_activity=${targetActivity.id}&process_id=${processId}` : ''
+                    };
+
                     allData?.forEach(d => context[d.field_name] = d.value);
 
-                    const steps = (targetActivity.action_config as any)?.steps || [{ id: '1', ...targetActivity.action_config }];
+                    // Fetch all labels for the workflow to support using labels in variables
+                    const workflowId = (instance as any)?.workflow_id || (instance as any)?.workflows?.id;
+                    if (workflowId) {
+                        // Fetch ALL labels for the workflow to support using labels in variables from any activity
+                        const { data: fDefs } = await supabase
+                            .from('activity_field_definitions')
+                            .select('name, label, activity_id, activities!inner(workflow_id)')
+                            .eq('activities.workflow_id', workflowId);
 
-                    // Fetch organization settings for parameter substitution
+                        fDefs?.forEach(fd => {
+                            if (fd.label && context[fd.name] !== undefined) {
+                                // Only set label if not already set, or if it is from current activity (priority)
+                                if (!context[fd.label] || fd.activity_id === instance.current_activity_id) {
+                                    context[fd.label] = context[fd.name];
+                                }
+                            }
+                        });
+                    }
+
+                    // Fetch organization settings
                     const { data: orgData } = await supabase
                         .from('organizations')
                         .select('settings')
                         .eq('id', instance?.organization_id)
                         .single();
 
-                    const actionResult = await executeServiceTask(steps as any, context, orgData?.settings || {});
+                    // Collect all steps to execute
+                    let allSteps: any[] = [];
 
-                    if (!actionResult.success) {
-                        await supabase.from('process_history').insert({
-                            process_id: processId,
-                            activity_id: transition.target_id,
-                            action: 'commented',
-                            comment: `❌ Error en Acción Automática: ${actionResult.error}`,
-                            user_id: user?.id
-                        });
-                    } else {
-                        const outputsToSave = Object.entries(actionResult.outputs)
-                            .filter(([key]) => key !== 'process_id' && key !== 'user_id' && !context[key])
-                            .map(([name, value]) => ({
+                    // 1. Add steps from Multi-Actions array
+                    actionsToTrace.forEach((act: any) => {
+                        const actSteps = act.config?.steps || [{ id: act.id, type: act.type, ...act.config }];
+                        allSteps = [...allSteps, ...actSteps];
+                    });
+
+                    // 2. Add steps from Legacy config (backwards compatibility)
+                    if (legacyAction) {
+                        const actConfig = sourceActivity.action_config as any;
+                        const legacySteps = actConfig?.steps || [{ id: 'legacy-1', type: sourceActivity.action_type, ...actConfig }];
+                        allSteps = [...allSteps, ...legacySteps];
+                    }
+
+                    if (allSteps.length > 0) {
+                        const actionResult = await executeServiceTask(allSteps, context, orgData?.settings || {});
+
+                        if (!actionResult.success) {
+                            await supabase.from('process_history').insert({
                                 process_id: processId,
                                 activity_id: transition.target_id,
-                                field_name: name,
-                                value: typeof value === 'object' ? JSON.stringify(value) : String(value)
-                            }));
+                                action: 'commented',
+                                comment: `❌ Error en Acciones: ${actionResult.error}`,
+                                user_id: user?.id
+                            });
+                        } else {
+                            // Update context with any outputs from the actions
+                            const outputsToSave = Object.entries(actionResult.outputs)
+                                .filter(([key]) => key !== 'process_id' && key !== 'user_id' && !context[key])
+                                .map(([name, value]) => ({
+                                    process_id: processId,
+                                    activity_id: transition.target_id,
+                                    field_name: name,
+                                    value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+                                }));
 
-                        if (outputsToSave.length > 0) await supabase.from('process_data').insert(outputsToSave);
+                            if (outputsToSave.length > 0) await supabase.from('process_data').insert(outputsToSave);
 
-                        await supabase.from('process_history').insert({
-                            process_id: processId,
-                            activity_id: transition.target_id,
-                            action: 'commented',
-                            comment: `✅ Acciones Automáticas ejecutadas con éxito. (${steps.length} pasos)`,
-                            user_id: user?.id
-                        });
+                            await supabase.from('process_history').insert({
+                                process_id: processId,
+                                activity_id: transition.target_id,
+                                action: 'commented',
+                                comment: `✅ Acciones completadas con éxito. (${allSteps.length} pasos ejecutados)`,
+                                user_id: user?.id
+                            });
+                        }
                     }
                 } catch (actionErr: any) {
                     console.error('Action Execution Failed:', actionErr);
+                    await supabase.from('process_history').insert({
+                        process_id: processId,
+                        activity_id: transition.target_id,
+                        action: 'commented',
+                        comment: `❌ Error de sistema en acciones: ${actionErr.message}`,
+                        user_id: user?.id
+                    });
                 }
             }
 
@@ -342,11 +482,16 @@ export function useExecution() {
 
             if (insError) throw insError;
 
+            // Calculate cost for the final activity
+            const { hoursSpent, stepCost } = await calculateStepCost(processId);
+            const totalCost = (instance?.total_cost || 0) + stepCost;
+
             // 2. Update process status
             const { error: updError } = await supabase
                 .from('process_instances')
                 .update({
-                    status: 'completed'
+                    status: 'completed',
+                    total_cost: totalCost
                 })
                 .eq('id', processId);
 
@@ -360,7 +505,9 @@ export function useExecution() {
                     activity_id: instance.current_activity_id,
                     action: 'completed',
                     comment: comment || 'Trámite finalizado manualmente.',
-                    user_id: user?.id
+                    user_id: user?.id,
+                    time_spent_hours: hoursSpent,
+                    step_cost: stepCost
                 });
 
             if (histError) throw histError;
@@ -396,19 +543,34 @@ export function useExecution() {
             return result;
         }
 
-        if (activity.assignment_type === 'department' || activity.assignment_type === 'position') {
+        if (activity.assignment_type === 'department' || activity.assignment_type === 'position' || activity.assignment_type === 'department_and_position') {
             const strategy = activity.assignment_strategy || 'manual';
 
-            // Find collaborators for the group
-            let query = supabase.from('employee_positions').select('user_id');
-            if (activity.assigned_position_id) {
+            // Obtener colaboradores con sus detalles de cargo para el costo u otros filtros
+            let query = supabase.from('employee_positions').select('user_id, position_id, positions(hourly_rate, department_id)');
+
+            if (activity.assignment_type === 'position' && activity.assigned_position_id) {
                 query = query.eq('position_id', activity.assigned_position_id);
-            } else if (activity.assigned_department_id) {
+            } else if (activity.assignment_type === 'department' && activity.assigned_department_id) {
                 const { data: positions } = await supabase.from('positions').select('id').eq('department_id', activity.assigned_department_id);
                 if (positions && positions.length > 0) {
                     query = query.in('position_id', positions.map(p => p.id));
                 } else {
                     return result; // Fallback to group
+                }
+            } else if (activity.assignment_type === 'department_and_position') {
+                if (activity.assigned_position_id) {
+                    query = query.eq('position_id', activity.assigned_position_id);
+                }
+                // En teoría, si piden un cargo, el cargo ya pertenece a un área, 
+                // pero filtramos extra para seguridad y exactitud.
+                if (activity.assigned_department_id) {
+                    const { data: positions } = await supabase.from('positions').select('id').eq('department_id', activity.assigned_department_id);
+                    if (positions && positions.length > 0) {
+                        query = query.in('position_id', positions.map(p => p.id));
+                    } else {
+                        return result;
+                    }
                 }
             }
 
@@ -419,6 +581,12 @@ export function useExecution() {
                 return result; // Fallback to group
             }
 
+            // 1. SHARK / CLAIM (Bandeja / Pooling)
+            if (strategy === 'claim' || strategy === 'manual') {
+                return result; // Dejar assigned_user_id en null significa que queda en la cola general
+            }
+
+            // 2. CARGA LABORAL
             if (strategy === 'workload') {
                 let workloadQuery = supabase.from('process_instances')
                     .select('assigned_user_id')
@@ -438,6 +606,7 @@ export function useExecution() {
                 return result;
             }
 
+            // 3. EFICIENCIA
             if (strategy === 'efficiency') {
                 let historyQuery = supabase.from('process_history')
                     .select('user_id')
@@ -453,6 +622,65 @@ export function useExecution() {
                 return result;
             }
 
+            // 4. COSTO ÓPTIMO (Buscando Ahorro)
+            if (strategy === 'cost') {
+                // Buscamos el empleado con el hourly_rate más bajo
+                let lowestCostUser = userIds[0];
+                let lowestCost = Infinity;
+
+                employees?.forEach(e => {
+                    const rate = (e.positions as any)?.hourly_rate || 0;
+                    if (rate < lowestCost) {
+                        lowestCost = rate;
+                        lowestCostUser = e.user_id!;
+                    }
+                });
+
+                result.assigned_user_id = lowestCostUser;
+                return result;
+            }
+
+            // 5. ENRUTAMIENTO POR HABILIDADES (Skills-Based)
+            if (strategy === 'skills') {
+                // TODO: A futuro cruzar con una tabla de 'employee_skills'
+                // Por ahora, simulamos eligiendo al más ocioso dentro del grupo (workload fallback)
+                const randomIndex = Math.floor(Math.random() * userIds.length);
+                result.assigned_user_id = userIds[randomIndex];
+                return result;
+            }
+
+            // 6. DISPONIBILIDAD Y HORARIOS (Shift Routing)
+            if (strategy === 'shift') {
+                const currentHour = new Date().getHours();
+                // Simulación: asumiendo turnos según el hash del userId
+                const availableUsers = userIds.filter(id => {
+                    const hash = id.charCodeAt(0) % 24; // Pseudo-turno para demo
+                    return Math.abs(currentHour - hash) <= 8; // Turnos de 8 horas
+                });
+
+                const targetUsers = availableUsers.length > 0 ? availableUsers : userIds;
+                result.assigned_user_id = targetUsers[Math.floor(Math.random() * targetUsers.length)];
+                return result;
+            }
+
+            // 7. PONDERADO (Weighted Round-Robin)
+            if (strategy === 'weighted') {
+                // Simula pesos: User 1 tiene 60%, User 2 tiene 40% (basado en la posición en el array)
+                const totalWeight = userIds.length * (userIds.length + 1) / 2; // Sucesión
+                let randomVal = Math.random() * totalWeight;
+
+                for (let i = 0; i < userIds.length; i++) {
+                    const w = userIds.length - i; // Mayor peso al primero
+                    if (randomVal <= w) {
+                        result.assigned_user_id = userIds[i];
+                        break;
+                    }
+                    randomVal -= w;
+                }
+                return result;
+            }
+
+            // 8. RANDOM (Sorteo)
             if (strategy === 'random') {
                 const randomIndex = Math.floor(Math.random() * userIds.length);
                 result.assigned_user_id = userIds[randomIndex];
@@ -472,6 +700,27 @@ export function useExecution() {
         getFieldDefinitions,
         getProcessData,
         saveProcessData,
-        completeProcess
+        completeProcess,
+        getBimStates: async (processId: string) => {
+            const { data, error } = await supabase
+                .from('process_bim_states')
+                .select('*')
+                .eq('process_id', processId);
+            if (error) throw error;
+            return data;
+        },
+        saveBimState: async (processId: string, expressId: number, status: string) => {
+            const { error } = await supabase
+                .from('process_bim_states')
+                .upsert({
+                    process_id: processId,
+                    express_id: expressId,
+                    status,
+                    updated_at: new Date().toISOString(),
+                    updated_by: user?.id
+                });
+            if (error) throw error;
+            return { success: true };
+        }
     };
 }

@@ -14,7 +14,7 @@ interface InteractiveLookupProps {
     error?: string;
 }
 
-export function InteractiveLookup({ field, value, onChange, formData, setFormData, error }: InteractiveLookupProps) {
+export function InteractiveLookup({ field, value, onChange, setFormData, error }: InteractiveLookupProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -145,7 +145,7 @@ export function InteractiveLookup({ field, value, onChange, formData, setFormDat
     }, []);
 
     const handleSelect = (row: any) => {
-        if (!config) return;
+        if (!config || !config.value_field) return;
 
         const selectedValue = row[config.value_field];
         setSelectedRecord(row);

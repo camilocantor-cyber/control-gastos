@@ -28,7 +28,7 @@ export function useWorkflows() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('workflows')
-                .select('*')
+                .select('*, category:workflow_categories(*)')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -49,6 +49,9 @@ export function useWorkflows() {
                 .select();
 
             if (error) throw error;
+            if (data && data.length > 0) {
+                setWorkflows(prev => [data[0], ...prev]);
+            }
             return { data, error: null };
         } catch (err: any) {
             console.error('Error creating workflow:', err);
@@ -65,6 +68,9 @@ export function useWorkflows() {
                 .select();
 
             if (error) throw error;
+            if (data && data.length > 0) {
+                setWorkflows(prev => prev.map(w => w.id === id ? data[0] : w));
+            }
             return { data, error: null };
         } catch (err: any) {
             console.error('Error updating workflow:', err);
@@ -80,6 +86,7 @@ export function useWorkflows() {
                 .eq('id', id);
 
             if (error) throw error;
+            setWorkflows(prev => prev.filter(w => w.id !== id));
             return { error: null };
         } catch (err: any) {
             console.error('Error deleting workflow:', err.message);

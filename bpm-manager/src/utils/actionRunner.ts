@@ -35,6 +35,7 @@ export async function executeServiceTask(
             // 2. Email Action
             if (step.type === 'email' || step.action_type === 'email') {
                 const emailPayload = {
+                    from: substitute(step.email_from || step.config?.email_from),
                     to: substitute(step.email_to || step.config?.email_to),
                     cc: substitute(step.email_cc || step.config?.email_cc),
                     subject: substitute(step.email_subject || step.config?.email_subject),
@@ -69,7 +70,65 @@ export async function executeServiceTask(
                 continue;
             }
 
-            // 2. Generic Webhook/REST Action
+            // 3. WhatsApp Action
+            if (step.type === 'whatsapp' || step.action_type === 'whatsapp') {
+                const number = substitute(step.whatsapp_number || step.config?.whatsapp_number);
+                const message = substitute(step.whatsapp_message || step.config?.whatsapp_message);
+                const provider = step.whatsapp_provider || step.config?.whatsapp_provider || 'evolution';
+                const apiUrl = substitute(step.whatsapp_api_url || step.config?.whatsapp_api_url);
+                const token = substitute(step.whatsapp_token || step.config?.whatsapp_token);
+
+                if (!number) throw new Error("Falta el número de WhatsApp destino.");
+                if (!message) throw new Error("Falta el mensaje de WhatsApp a enviar.");
+                if (!apiUrl && provider !== 'meta') throw new Error("Falta la URL de la API de WhatsApp.");
+
+                console.log(`[WHATSAPP] Enviando vía ${provider} a ${number}...`);
+
+                let fetchUrl = apiUrl;
+                let fetchOptions: RequestInit = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
+                let payload: any = {};
+
+                if (provider === 'evolution') {
+                    // Evolution API / API Wha format
+                    payload = { number, textMessage: { text: message } };
+                    fetchOptions.headers = { ...fetchOptions.headers, 'apikey': token };
+                } else if (provider === 'ultramsg') {
+                    // UltraMsg Format
+                    payload = { to: number, body: message };
+                    if (token) fetchUrl = `${apiUrl}?token=${token}`;
+                } else if (provider === 'meta') {
+                    // Meta Cloud API Setup
+                    payload = {
+                        messaging_product: "whatsapp",
+                        to: number,
+                        type: "text",
+                        text: { body: message }
+                    };
+                    fetchOptions.headers = { ...fetchOptions.headers, 'Authorization': `Bearer ${token}` };
+                } else {
+                    // Generic JSON Webhook 
+                    payload = { number, message, phone: number, body: message };
+                    if (token) fetchOptions.headers = { ...fetchOptions.headers, 'Authorization': `Bearer ${token}` };
+                }
+
+                if (payload) fetchOptions.body = JSON.stringify(payload);
+
+                try {
+                    const response = await fetch(fetchUrl, fetchOptions);
+                    if (!response.ok) {
+                        const err = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${err}`);
+                    }
+                    const result = await response.json().catch(() => ({}));
+                    outputs[step.output_variable || 'whatsapp_status'] = { sent: true, provider, number, at: new Date().toISOString(), result };
+                } catch (error: any) {
+                    throw new Error(`Error con el proveedor de WhatsApp (${provider}): ${error.message}`);
+                }
+
+                continue;
+            }
+
+            // 4. Generic Webhook/REST Action
             const url = substitute(step.url);
             const body = substitute(step.body);
             const token = substitute(step.auth_token);
@@ -125,12 +184,33 @@ function substituteVariables(
     if (!text) return '';
     return text.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
         const cleanKey = key.trim();
+
+        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // Helper to get value with fuzzy normalization
+        const getValue = (obj: Record<string, any>, k: string) => {
+            // 1. Direct match (Fast)
+            if (obj[k] !== undefined) return obj[k];
+
+            // 2. Normalize search key
+            const kNorm = normalize(k);
+            if (!kNorm) return undefined;
+
+            // 3. Check normalized direct match
+            const entries = Object.entries(obj);
+            for (const [keyName, value] of entries) {
+                if (normalize(keyName) === kNorm) return value;
+            }
+
+            return undefined;
+        };
+
         // 1. Try process data
-        const value = data[cleanKey];
+        const value = getValue(data, cleanKey);
         if (value !== undefined) return typeof value === 'object' ? JSON.stringify(value) : String(value);
 
         // 2. Try company settings
-        const companyValue = companySettings[cleanKey];
+        const companyValue = getValue(companySettings, cleanKey);
         if (companyValue !== undefined) return String(companyValue);
 
         return match;

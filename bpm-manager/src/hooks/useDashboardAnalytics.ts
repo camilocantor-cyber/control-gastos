@@ -74,7 +74,7 @@ export function useDashboardAnalytics() {
                 return;
             }
 
-            const { data: history, error: histErr } = await supabase
+            const { data: history } = await supabase
                 .from('process_history')
                 .select('created_at, process_id, action, user_id, profiles(full_name)')
                 .in('process_id', [...completedIds, ...(active?.map(a => a.id) || [])])
@@ -82,7 +82,6 @@ export function useDashboardAnalytics() {
             // We should filter for 'completed' or meaningful actions if we want "Tasks Completed"
             // Let's count any action that moves the process forward as a "Task Completed"
             const userCounts: Record<string, number> = {};
-            const userDurations: Record<string, { total: number, count: number }> = {};
 
             // Group history by process for time calc
             const processHistory: Record<string, any[]> = {};
@@ -218,7 +217,7 @@ export function useDashboardAnalytics() {
                 const name = actData?.name || 'Pendiente';
                 actCounts[name] = (actCounts[name] || 0) + 1;
             });
-            const topActivities = Object.entries(actCounts)
+            const topActivitiesData = Object.entries(actCounts)
                 .map(([activity_name, task_count]) => ({ activity_name, task_count }))
                 .sort((a, b) => b.task_count - a.task_count)
                 .slice(0, 5);
@@ -230,10 +229,7 @@ export function useDashboardAnalytics() {
                 },
                 avgResolutionTimeByWorkflow,
                 userEfficiency: userEfficiency,
-                topActivities: Object.entries(actCounts)
-                    .map(([activity_name, task_count]) => ({ activity_name, task_count }))
-                    .sort((a, b) => b.task_count - a.task_count)
-                    .slice(0, 5),
+                topActivities: topActivitiesData,
                 topUsers,
                 loading: false
             });
