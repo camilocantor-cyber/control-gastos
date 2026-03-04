@@ -96,6 +96,7 @@ export function useWorkflowModeler(workflowId: string) {
                         max_value: f.max_value ?? null,
                         regex_pattern: f.regex_pattern ?? null,
                         visibility_condition: f.visibility_condition ?? null,
+                        lookup_config: f.lookup_config ?? null,
                     };
 
                     // Solo incluir order_index si f lo tiene, para evitar errores si la columna no existe

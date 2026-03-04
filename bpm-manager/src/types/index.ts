@@ -56,6 +56,17 @@ export interface WorkflowDetail {
     actions: AutomatedAction[];
 }
 
+export interface WorkflowTemplate {
+    id: string;
+    organization_id: string;
+    workflow_id: string;
+    name: string;
+    file_path: string;
+    file_size: number;
+    created_at: string;
+    created_by: string;
+}
+
 export type ActivityType = 'start' | 'task' | 'decision' | 'end';
 
 
@@ -170,7 +181,7 @@ export interface ProcessDetailRow {
 export type AssignmentType = 'manual' | 'position' | 'department' | 'department_and_position' | 'specific_user' | 'creator';
 export type AssignmentStrategy = 'manual' | 'workload' | 'efficiency' | 'random' | 'claim' | 'cost' | 'skills' | 'shift' | 'weighted';
 
-export type AutomatedActionType = 'none' | 'webhook' | 'soap' | 'finance' | 'email' | 'whatsapp';
+export type AutomatedActionType = 'none' | 'webhook' | 'soap' | 'finance' | 'email' | 'whatsapp' | 'document_generation';
 export type ActionExecutionTiming = 'on_save_row' | 'on_submit_activity' | 'manual';
 
 export interface AutomatedAction {
@@ -219,6 +230,8 @@ export interface AutomatedAction {
         whatsapp_provider?: 'evolution' | 'ultramsg' | 'meta' | 'generic';
         whatsapp_api_url?: string;
         whatsapp_token?: string;
+        document_generation_template_id?: string;
+        document_generation_filename_pattern?: string;
     };
 }
 

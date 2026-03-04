@@ -1,4 +1,6 @@
 import { sendToFinance } from './financeBridge';
+import { generateDocument } from './documentGenerator';
+import { supabase } from '../lib/supabase';
 
 /**
  * Utility to execute sequential service tasks (REST/SOAP/Finance)
@@ -128,7 +130,58 @@ export async function executeServiceTask(
                 continue;
             }
 
-            // 4. Generic Webhook/REST Action
+            // 4. Document Generation Action
+            if (step.type === 'document_generation' || step.action_type === 'document_generation') {
+                const templateId = step.document_generation_template_id || step.config?.document_generation_template_id;
+                const filenamePattern = step.document_generation_filename_pattern || step.config?.document_generation_filename_pattern || 'Documento_{{date}}';
+
+                if (!templateId) {
+                    throw new Error("Falta el ID de la plantilla para generar el documento.");
+                }
+
+                // Append date to ensure uniqueness but clean up file names
+                const baseName = substitute(filenamePattern).replace(/[^a-zA-Z0-9_-]/g, '_');
+                const finalFilename = `${baseName}_${new Date().getTime()}.docx`;
+
+                // 1. Generate document
+                const generatedFile = await generateDocument(templateId, outputs, finalFilename);
+
+                // 2. Upload to storage
+                const filePath = `${outputs.process_id}/${finalFilename}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('process-files')
+                    .upload(filePath, generatedFile);
+
+                if (uploadError) {
+                    throw new Error(`Error subiendo documento a storage: ${uploadError.message}`);
+                }
+
+                // 3. Register in process_attachments table
+                const { error: dbError } = await supabase
+                    .from('process_attachments')
+                    .insert({
+                        process_instance_id: outputs.process_id,
+                        file_name: finalFilename,
+                        file_path: filePath,
+                        file_size: generatedFile.size,
+                        file_type: generatedFile.type,
+                        uploaded_by: outputs.user_id,
+                        organization_id: outputs.organization_id || companySettings.id || null
+                    });
+
+                if (dbError) {
+                    throw new Error(`Error registrando el adjunto en la base de datos: ${dbError.message}`);
+                }
+
+                outputs[step.output_variable || 'document_status'] = {
+                    generated: true,
+                    file: finalFilename,
+                    size: generatedFile.size
+                };
+                continue;
+            }
+
+            // 5. Generic Webhook/REST Action
             const url = substitute(step.url);
             const body = substitute(step.body);
             const token = substitute(step.auth_token);
