@@ -79,7 +79,7 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
             const processedBlob = await processImage(file, removeWhite);
             const fileName = `${org.id}/logo_${Date.now()}.png`;
 
-            const { data: uploadData, error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabase.storage
                 .from('logos')
                 .upload(fileName, processedBlob, {
                     contentType: 'image/png',
