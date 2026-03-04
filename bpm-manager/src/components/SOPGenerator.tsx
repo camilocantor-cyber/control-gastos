@@ -3,14 +3,17 @@ import { FileText, Download, Sparkles, Loader2, CheckCircle2, AlertCircle } from
 import type { Activity, Workflow } from '../types';
 
 interface SOPGeneratorProps {
+    isOpen?: boolean;
     workflow: Workflow;
     activities: Activity[];
     onClose: () => void;
 }
 
-export function SOPGenerator({ workflow, activities, onClose }: SOPGeneratorProps) {
+export function SOPGenerator({ isOpen = true, workflow, activities, onClose }: SOPGeneratorProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedSOP, setGeneratedSOP] = useState<string | null>(null);
+
+    if (!isOpen) return null;
 
     const generateSOP = async () => {
         setIsGenerating(true);

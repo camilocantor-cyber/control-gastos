@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useExecution } from '../hooks/useExecution';
-import { X, Save, MessageSquare, Plus, Trash2, Clock, GitBranch, Download, FileUp, List, Link as LinkIcon, AlertCircle, Maximize2, Minimize2, Users, Send, CheckCircle2, DollarSign, Wand2, Calculator, Settings, Code, FileText, Bot, Layers, CheckSquare, BrainCircuit, Dices, ChevronRight, Hash, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Clock, GitBranch, Download, AlertCircle, Maximize2, Minimize2, CheckCircle2, DollarSign, Layers, ChevronRight, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2 } from 'lucide-react';
 import type { Transition, Provider } from '../types';
 import { evaluateCondition, translateCondition } from '../utils/conditions';
 import { FileAttachments } from './FileAttachments';
@@ -611,27 +611,29 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                         <div>
                             <div className="flex items-center gap-3 mb-1">
                                 <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-none">{instance.workflows?.name}</h2>
-                                <div className="relative">
-                                    <button
-                                        onClick={copyToClipboard}
-                                        className="group/id px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded-md border border-slate-200 dark:border-slate-700 uppercase tracking-tighter hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all flex items-center gap-1.5"
-                                    >
-                                        #{instance?.process_number ? instance.process_number.toString().padStart(8, '0') : processId.split('-')[0].toUpperCase()}
-                                        <Save className="w-2.5 h-2.5 opacity-0 group-hover/id:opacity-100 transition-opacity" />
-                                    </button>
-                                    {showCopyTooltip && (
-                                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-black px-2 py-1 rounded shadow-xl animate-in fade-in zoom-in duration-200 z-50 whitespace-nowrap">
-                                            ¡ID COPIADO!
-                                        </div>
-                                    )}
-                                </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full border border-blue-100 dark:border-blue-800">
+                                <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full border border-blue-100 dark:border-blue-800">
                                     <Clock className="w-3.5 h-3.5" />
                                     <span className="text-[10px] font-black uppercase tracking-widest">{instance.activities?.name}</span>
+
+                                    <div className="w-[1px] h-3 bg-blue-200 dark:bg-blue-700 mx-1" />
+
+                                    <div className="relative">
+                                        <button
+                                            onClick={copyToClipboard}
+                                            className="group/id text-blue-500 dark:text-blue-400 text-[10px] font-bold uppercase tracking-tighter hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1"
+                                            title="Copiar ID de Trámite"
+                                        >
+                                            #{instance?.process_number ? instance.process_number.toString().padStart(8, '0') : processId.split('-')[0].toUpperCase()}
+                                        </button>
+                                        {showCopyTooltip && (
+                                            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-black px-2 py-1 rounded shadow-xl animate-in fade-in zoom-in duration-200 z-50 whitespace-nowrap">
+                                                ¡ID COPIADO!
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actividad en Curso</span>
 
                                 {instance.activities?.is_public && (
                                     <>
@@ -668,10 +670,10 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
 
 
                     <div className="flex-1 px-8 min-w-0">
-                        <div className="max-w-4xl mx-auto flex items-center gap-3">
+                        <div className="flex items-center justify-end gap-3 ml-auto">
                             <button
                                 onClick={() => setShowProcessViewer(true)}
-                                className="p-2.5 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all border border-slate-100 dark:border-white/5 flex-shrink-0"
+                                className="p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 border-slate-100 dark:border-white/5 hover:border-transparent"
                                 title="Ver Mapa de Navegación"
                             >
                                 <Eye className="w-5 h-5" />
@@ -680,45 +682,35 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                             <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
 
                             <button
-                                onClick={() => setActiveTab('main')}
-                                className={clsx(
-                                    "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
-                                    activeTab === 'main'
-                                        ? "bg-blue-600 text-white shadow-lg dark:bg-blue-500 border-transparent scale-110"
-                                        : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-slate-100 dark:border-white/5"
-                                )}
-                                title="Formulario Principal"
-                            >
-                                <FileText className="w-5 h-5" />
-                            </button>
-
-                            <button
                                 onClick={() => setActiveTab('history')}
                                 className={clsx(
                                     "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
                                     activeTab === 'history'
                                         ? "bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900 border-transparent scale-110"
-                                        : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-slate-100 dark:border-white/5"
+                                        : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 border-slate-100 dark:border-white/5 hover:border-transparent"
                                 )}
                                 title="Historial"
                             >
                                 <History className="w-5 h-5" />
                             </button>
 
-                            <button
-                                onClick={() => setActiveTab('bim')}
-                                className={clsx(
-                                    "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
-                                    activeTab === 'bim'
-                                        ? "bg-indigo-600 text-white shadow-lg dark:shadow-none border-transparent scale-110"
-                                        : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border-slate-100 dark:border-white/5"
-                                )}
-                                title="Modelo BIM"
-                            >
-                                <Box className="w-5 h-5" />
-                            </button>
-
-                            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
+                            {ifcFile && (
+                                <>
+                                    <button
+                                        onClick={() => setActiveTab('bim')}
+                                        className={clsx(
+                                            "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
+                                            activeTab === 'bim'
+                                                ? "bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900 border-transparent scale-110"
+                                                : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 border-slate-100 dark:border-white/5 hover:border-transparent"
+                                        )}
+                                        title="Modelo BIM"
+                                    >
+                                        <Box className="w-5 h-5" />
+                                    </button>
+                                    <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
+                                </>
+                            )}
 
                             <FileAttachments processInstanceId={processId} />
                         </div>

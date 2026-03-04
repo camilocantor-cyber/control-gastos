@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { ChevronRight, CheckCircle2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { evaluateCondition } from '../utils/conditions';

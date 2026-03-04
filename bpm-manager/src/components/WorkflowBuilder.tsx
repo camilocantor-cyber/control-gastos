@@ -15,6 +15,9 @@ import { FormPreviewModal } from './FormPreviewModal';
 import { DetailsManagerModal } from './DetailsManagerModal';
 import { AIWorkflowGeneratorModal } from './AIWorkflowGeneratorModal';
 import { useAuth } from '../hooks/useAuth';
+import { TemplateManager } from './TemplateManager';
+import { useTemplateUpload } from '../hooks/useTemplateUpload';
+import { FileSignature } from 'lucide-react';
 
 
 function FormulaValidationFeedback({ value, availableFields }: { value: string, availableFields: string[] }) {
@@ -90,8 +93,17 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
     const [workflowDesc, setWorkflowDesc] = useState(workflow.description || '');
     const [workflowTemplate, setWorkflowTemplate] = useState(workflow.name_template || '');
     const [workflowStatus, setWorkflowStatus] = useState(workflow.status);
+    const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 
+    // Document Template Generation
+    const { loadTemplates } = useTemplateUpload();
+    const [workflowTemplates, setWorkflowTemplates] = useState<any[]>([]);
 
+    useEffect(() => {
+        if (!isTemplateManagerOpen && workflow.id) {
+            loadTemplates(workflow.id).then(setWorkflowTemplates);
+        }
+    }, [isTemplateManagerOpen, workflow.id, loadTemplates]);
     const handleExportBPMN = () => {
         const xml = exportToBPMN(workflow.name, activities, transitions);
         const blob = new Blob([xml], { type: 'text/xml' });
@@ -661,6 +673,18 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                     title="Generar Manual (SOP) con IA"
                                 >
                                     <Zap className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setIsTemplateManagerOpen(true)}
+                                    className="p-2.5 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 text-violet-600 hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-xl transition-all relative"
+                                    title="Administrar Plantillas Documentales (.docx)"
+                                >
+                                    <FileSignature className="w-5 h-5" />
+                                    {workflowTemplates.length > 0 && (
+                                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-violet-600 text-white text-[9px] font-bold flex items-center justify-center rounded-full border border-white dark:border-slate-900">
+                                            {workflowTemplates.length}
+                                        </span>
+                                    )}
                                 </button>
                                 <div className="w-[1px] h-8 bg-slate-100 dark:bg-slate-800 mx-2" />
                                 <button
@@ -2093,6 +2117,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                         <div className="flex gap-2">
                                                                             {[
                                                                                 { id: 'email', icon: Mail, label: 'Email' },
+                                                                                { id: 'document_generation', icon: FileSignature, label: 'Documento' },
                                                                                 { id: 'finance', icon: Zap, label: 'ERP' },
                                                                                 { id: 'webhook', icon: Link, label: 'REST' },
                                                                                 { id: 'soap', icon: Code, label: 'SOAP' },
@@ -2126,7 +2151,8 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                                     action.type === 'finance' ? <Zap className="w-5 h-5" /> :
                                                                                                         action.type === 'webhook' ? <Link className="w-5 h-5" /> :
                                                                                                             action.type === 'whatsapp' ? <MessageSquare className="w-5 h-5" /> :
-                                                                                                                <Code className="w-5 h-5" />}
+                                                                                                                action.type === 'document_generation' ? <FileSignature className="w-5 h-5" /> :
+                                                                                                                    <Code className="w-5 h-5" />}
                                                                                             </div>
                                                                                             <div>
                                                                                                 <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Paso {idx + 1}</h5>
@@ -2471,9 +2497,65 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                                                                             </div>
                                                                                         </div>
                                                                                     )}
+
+                                                                                    {editingAction.type === 'document_generation' && (
+                                                                                        <div className="space-y-6 p-8 bg-violet-50/50 dark:bg-violet-900/10 rounded-[2.5rem] border border-violet-100 dark:border-violet-800/50 animate-in zoom-in-95">
+                                                                                            <div>
+                                                                                                <h4 className="text-sm font-black text-violet-900 dark:text-violet-100 tracking-tight flex items-center gap-2 mb-1">
+                                                                                                    <FileSignature className="w-4 h-4" /> Generación de Documento
+                                                                                                </h4>
+                                                                                                <p className="text-[10px] text-violet-600/70 dark:text-violet-400/70 font-medium">Reemplaza las variables {"{{campo}}"} con datos en un Word.</p>
+                                                                                            </div>
+
+                                                                                            <div className="grid grid-cols-1 gap-6">
+                                                                                                <div>
+                                                                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Seleccionar Plantilla Asociada</label>
+                                                                                                    {workflowTemplates.length === 0 ? (
+                                                                                                        <div className="flex flex-col gap-2">
+                                                                                                            <div className="text-xs text-rose-500 font-bold bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 p-3 rounded-xl flex items-center justify-between">
+                                                                                                                <span className="flex items-center gap-2"><AlertCircle className="w-4 h-4" /> No hay plantillas configuradas</span>
+                                                                                                                <button
+                                                                                                                    type="button"
+                                                                                                                    onClick={() => setIsTemplateManagerOpen(true)}
+                                                                                                                    className="px-3 py-1 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-[10px] uppercase font-bold tracking-wider"
+                                                                                                                >
+                                                                                                                    Subir Plantilla
+                                                                                                                </button>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    ) : (
+                                                                                                        <select
+                                                                                                            value={editingAction.config?.document_generation_template_id || ''}
+                                                                                                            onChange={(e) => handleUpdateActionConfig(editingActionId!, { document_generation_template_id: e.target.value })}
+                                                                                                            className="w-full h-10 px-4 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold"
+                                                                                                        >
+                                                                                                            <option value="">Seleccione una plantilla...</option>
+                                                                                                            {workflowTemplates.map(t => (
+                                                                                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                                                                                            ))}
+                                                                                                        </select>
+                                                                                                    )}
+                                                                                                </div>
+
+                                                                                                <div>
+                                                                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-2 ml-1">Nombre Base de Archivo Generado</label>
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        value={editingAction.config?.document_generation_filename_pattern || ''}
+                                                                                                        onChange={(e) => handleUpdateActionConfig(editingActionId!, { document_generation_filename_pattern: e.target.value })}
+                                                                                                        className="w-full h-10 px-4 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl text-xs"
+                                                                                                        placeholder="Ej: Contrato_{{nombre_cliente}}"
+                                                                                                    />
+                                                                                                    <FormulaValidationFeedback value={editingAction.config?.document_generation_filename_pattern || ''} availableFields={availableFields} />
+                                                                                                    <p className="text-[10px] text-slate-400 mt-2 font-medium italic">
+                                                                                                        * El archivo generado se adjuntará automáticamente al proceso al finalizar la actividad. Se guardará como .docx y .pdf.
+                                                                                                    </p>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
                                                                                 </>
-                                                                            )
-                                                                            }
+                                                                            )}
                                                                         </div >
                                                                     )}
                                                                 </>
@@ -2598,15 +2680,18 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                 </section >
             </div >
 
-            {
-                showSOPGenerator && (
-                    <SOPGenerator
-                        workflow={workflow}
-                        activities={activities}
-                        onClose={() => setShowSOPGenerator(false)}
-                    />
-                )
-            }
+            <SOPGenerator
+                isOpen={showSOPGenerator}
+                onClose={() => setShowSOPGenerator(false)}
+                workflow={workflow}
+                activities={activities}
+            />
+
+            <TemplateManager
+                isOpen={isTemplateManagerOpen}
+                onClose={() => setIsTemplateManagerOpen(false)}
+                workflowId={workflow.id}
+            />
 
             {
                 showFormPreview && selectedActivityId && (

@@ -3,6 +3,7 @@ import { X, Eye, Info, ChevronRight, Plus, Settings2, Trash2, Layout, CheckCircl
 import type { FieldDefinition, FieldType } from '../types';
 import { evaluateCondition } from '../utils/conditions';
 import { GeoSelector } from './GeoSelector';
+import { InteractiveLookup } from './InteractiveLookup';
 import { clsx } from 'clsx';
 interface FormPreviewModalProps {
     fields: FieldDefinition[];
@@ -268,6 +269,16 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                                             <GeoSelector
                                                                 value={formData[field.name]}
                                                                 onChange={(val) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                            />
+                                                        </div>
+                                                    ) : field.type === 'lookup' ? (
+                                                        <div className="h-auto">
+                                                            <InteractiveLookup
+                                                                field={field}
+                                                                value={formData[field.name]}
+                                                                onChange={(val: any) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                formData={formData}
+                                                                setFormData={setFormData}
                                                             />
                                                         </div>
                                                     ) : field.type === 'consecutivo' ? (
