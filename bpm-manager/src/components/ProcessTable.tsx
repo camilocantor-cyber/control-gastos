@@ -1,4 +1,5 @@
-import { Eye, ArrowRight, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, ArrowRight, Search, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 interface ProcessTableProps {
     processes: any[];
@@ -21,6 +22,9 @@ export function ProcessTable({
     onPageChange,
     onPageSizeChange
 }: ProcessTableProps) {
+    const { user } = useAuth();
+    const currentRole = user?.available_organizations?.find(o => o.id === user.organization_id)?.role || user?.role || 'viewer';
+    const isViewer = currentRole === 'viewer';
 
     if (loading && processes.length === 0) {
         return (
@@ -61,72 +65,82 @@ export function ProcessTable({
                                 </td>
                             </tr>
                         ) : (
-                            paginatedProcesses.map((process) => (
-                                <tr
-                                    key={process.id}
-                                    className="group transition-all hover:bg-slate-50 dark:hover:bg-slate-800 items-center justify-center"
-                                >
-                                    <td className="px-3 py-1.5">
-                                        <span className="inline-flex items-center px-1.5 py-0 rounded-md text-[10px] font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 whitespace-nowrap border border-blue-100 dark:border-blue-800">
-                                            #{process.process_number ? process.process_number.toString().padStart(8, '0') : process.id.split('-')[0].toUpperCase()}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-1.5">
-                                        <h4 className="text-[11px] font-bold text-slate-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                            {process.name}
-                                        </h4>
-                                    </td>
-                                    <td className="px-3 py-1.5">
-                                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                                            {process.workflows?.name}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-1.5">
-                                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
-                                            {process.activities?.name || 'N/A'}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-1.5 text-center">
-                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${process.status === 'active'
-                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                                            }`}>
-                                            {process.status === 'active' ? 'Activo' : 'Completado'}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-1.5 text-center">
-                                        <span className="text-[11px] font-bold text-slate-900 dark:text-slate-200 whitespace-nowrap">
-                                            {new Date(process.created_at).toLocaleDateString()}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-1.5 text-center">
-                                        <div className="flex justify-center items-center gap-1.5 ">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onView(process.id);
-                                                }}
-                                                title="Ver Flujo del Proceso"
-                                                className="w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 hover:bg-blue-600 hover:text-white border border-slate-100 dark:border-slate-800/50 active:scale-90"
-                                            >
-                                                <Eye className="w-3 h-3" />
-                                            </button>
+                            paginatedProcesses.map((process) => {
+                                // Determine if the viewer is authorized to open this process
+                                const isAuthorized = !isViewer ||
+                                    process.created_by === user?.id ||
+                                    process.current_assigned_user_id === user?.id ||
+                                    process.assigned_user_id === user?.id;
 
-                                            {process.status === 'active' ? (
+                                return (
+                                    <tr
+                                        key={process.id}
+                                        className={`group transition-all items-center justify-center ${!isAuthorized ? 'opacity-70 bg-slate-50/50 dark:bg-slate-900/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                                    >
+                                        <td className="px-3 py-1.5">
+                                            <span className={`inline-flex items-center px-1.5 py-0 rounded-md text-[10px] font-bold whitespace-nowrap border ${!isAuthorized ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800'}`}>
+                                                #{process.process_number ? process.process_number.toString().padStart(8, '0') : process.id.split('-')[0].toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-1.5">
+                                            <h4 className={`text-[11px] font-bold transition-colors ${!isAuthorized ? 'text-slate-400' : 'text-slate-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`}>
+                                                {process.name}
+                                            </h4>
+                                        </td>
+                                        <td className="px-3 py-1.5">
+                                            <span className={`text-[11px] font-medium whitespace-nowrap ${!isAuthorized ? 'text-slate-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                {process.workflows?.name}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-1.5">
+                                            <span className={`text-[11px] font-medium ${!isAuthorized ? 'text-slate-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                {process.activities?.name || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-1.5 text-center">
+                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${process.status === 'active'
+                                                ? !isAuthorized ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                                : !isAuthorized ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                                                }`}>
+                                                {process.status === 'active' ? 'Activo' : 'Completado'}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-1.5 text-center">
+                                            <span className={`text-[11px] font-bold whitespace-nowrap ${!isAuthorized ? 'text-slate-400' : 'text-slate-900 dark:text-slate-200'}`}>
+                                                {new Date(process.created_at).toLocaleDateString()}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-1.5 text-center">
+                                            <div className="flex justify-center items-center gap-1.5 ">
                                                 <button
-                                                    onClick={() => onAttend(process.id)}
-                                                    title="Continuar Trámite"
-                                                    className="w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 hover:bg-blue-600 hover:text-white border border-slate-100 dark:border-slate-800/50 active:scale-90"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (isAuthorized) onView(process.id);
+                                                    }}
+                                                    disabled={!isAuthorized}
+                                                    title={!isAuthorized ? "Acceso denegado" : "Ver Flujo del Proceso"}
+                                                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm border ${!isAuthorized ? 'bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 hover:bg-blue-600 hover:text-white border-slate-100 dark:border-slate-800/50 active:scale-90'}`}
                                                 >
-                                                    <ArrowRight className="w-3 h-3" />
+                                                    {!isAuthorized ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                                                 </button>
-                                            ) : (
-                                                <div className="w-7" />
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
+
+                                                {process.status === 'active' ? (
+                                                    <button
+                                                        onClick={() => isAuthorized && onAttend(process.id)}
+                                                        disabled={!isAuthorized}
+                                                        title={!isAuthorized ? "Acceso denegado" : "Continuar Trámite"}
+                                                        className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm border ${!isAuthorized ? 'bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 hover:bg-blue-600 hover:text-white border-slate-100 dark:border-slate-800/50 active:scale-90'}`}
+                                                    >
+                                                        {!isAuthorized ? <Lock className="w-3 h-3" /> : <ArrowRight className="w-3 h-3" />}
+                                                    </button>
+                                                ) : (
+                                                    <div className="w-7" />
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>

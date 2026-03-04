@@ -7,9 +7,14 @@ import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
 import { TaskInbox } from './TaskInbox';
 import { WorkloadMap } from './WorkloadMap';
 import { DashboardAIWidget } from './DashboardAIWidget';
+import { useAuth } from '../hooks/useAuth';
 import { cn } from '../utils/cn';
 
 export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: string, data?: any) => void, refreshTrigger?: number }) {
+    const { user } = useAuth();
+    const currentRole = user?.available_organizations?.find((o: any) => o.id === user.organization_id)?.role || user?.role || 'viewer';
+    const isViewer = currentRole === 'viewer';
+
     const { instancesActive, instancesCompleted, historyCount, loading, refresh: statsRefresh } = useDashboardStats();
     const { userEfficiency, topActivities, refresh: analyticsRefresh } = useDashboardAnalytics();
 
@@ -118,7 +123,7 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                 </div>
 
                 {/* Workload Map Widget */}
-                <WorkloadMap data={topActivities} />
+                {!isViewer && <WorkloadMap data={topActivities} />}
             </div>
 
             {/* AI Assistant Widget */}

@@ -58,7 +58,9 @@ interface WorkflowBuilderProps {
 
 export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
     const { user } = useAuth();
-    const isReadOnly = workflow.organization_id !== user?.organization_id;
+    const currentRole = user?.available_organizations?.find((o: any) => o.id === user.organization_id)?.role || user?.role || 'viewer';
+    const isViewer = currentRole === 'viewer';
+    const isReadOnly = workflow.organization_id !== user?.organization_id || isViewer;
     const { avgResolutionTimeByWorkflow } = useDashboardAnalytics();
 
     // Filter stats for this specific workflow

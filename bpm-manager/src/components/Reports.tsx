@@ -283,6 +283,8 @@ function ManagementRanking({ limit = 5 }: { limit?: number }) {
 
 export function Reports() {
     const { user } = useAuth();
+    const currentRole = user?.available_organizations?.find(o => o.id === user.organization_id)?.role || user?.role || 'viewer';
+    const isViewer = currentRole === 'viewer';
     // Shared State
     const [statsData, setStatsData] = useState<ProcessHistoryStats[]>([]);
     const [treemapData, setTreemapData] = useState<TreemapData[]>([]);
@@ -344,6 +346,10 @@ export function Reports() {
 
             if (user?.organization_id) {
                 query = query.eq('organization_id', user.organization_id);
+            }
+
+            if (isViewer && user?.id) {
+                query = query.or(`created_by.eq.${user.id},assigned_user_id.eq.${user.id},current_assigned_user_id.eq.${user.id}`);
             }
 
             if (dateFilter) query = query.gte('created_at', dateFilter);
@@ -738,41 +744,38 @@ export function Reports() {
                         <BarChart3 className="w-3 h-3 inline-block mr-1.5" />
                         Operación
                     </button>
-                    <button
-                        onClick={() => setActiveTab('flow')}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'flow' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                    >
-                        <Activity className="w-3 h-3 inline-block mr-1.5" />
-                        Por Flujo
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('efficiency')}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'efficiency' ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                    >
-                        <Grid className="w-3 h-3 inline-block mr-1.5" />
-                        Áreas
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('predictions')}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'predictions' ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                    >
-                        <BrainCircuit className="w-3 h-3 inline-block mr-1.5" />
-                        Predicciones
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('costs')}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'costs' ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                    >
-                        <DollarSign className="w-3 h-3 inline-block mr-1.5" />
-                        Financiero
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('bim')}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'bim' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                    >
-                        <Box className="w-3 h-3 inline-block mr-1.5" />
-                        4D BIM
-                    </button>
+                    {isViewer ? null : (
+                        <>
+                            <button
+                                onClick={() => setActiveTab('flow')}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'flow' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            >
+                                <Activity className="w-3 h-3 inline-block mr-1.5" />
+                                Por Flujo
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('predictions')}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'predictions' ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            >
+                                <BrainCircuit className="w-3 h-3 inline-block mr-1.5" />
+                                Predicciones
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('costs')}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'costs' ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            >
+                                <DollarSign className="w-3 h-3 inline-block mr-1.5" />
+                                Financiero
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('bim')}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'bim' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            >
+                                <Box className="w-3 h-3 inline-block mr-1.5" />
+                                4D BIM
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 {/* Unified Filters & Actions */}

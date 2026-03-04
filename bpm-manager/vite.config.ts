@@ -9,6 +9,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@thatopen/components', '@thatopen/fragments', 'web-ifc']
   },
+  define: {
+    global: 'window'
+  },
   server: {
     port: 5174,
   },

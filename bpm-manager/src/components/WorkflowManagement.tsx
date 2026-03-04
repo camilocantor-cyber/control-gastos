@@ -17,6 +17,9 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
     const { user } = useAuth();
     const { workflows, loading: workflowsLoading, createWorkflow, updateWorkflow, deleteWorkflow, duplicateWorkflow } = useWorkflows();
     const { workflows: countWorkflows, activities, transitions, users, loading: statsLoading } = useDashboardStats();
+
+    const currentRole = user?.available_organizations?.find(o => o.id === user.organization_id)?.role || user?.role || 'viewer';
+    const isViewer = currentRole === 'viewer';
     const [isFormOpen, setIsFormOpen] = useState(openForm || false);
     const [editingWorkflow, setEditingWorkflow] = useState<Workflow | undefined>();
     const [searchQuery, setSearchQuery] = useState('');
@@ -173,24 +176,28 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                         </button>
                     </div>
 
-                    <button
-                        onClick={() => setIsCategoryManagerOpen(true)}
-                        className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-[11px] font-black rounded-xl transition-colors uppercase tracking-wider border border-transparent hover:border-blue-200 dark:hover:border-blue-900"
-                    >
-                        <Tag className="w-3.5 h-3.5" />
-                        Categorías
-                    </button>
+                    {!isViewer && (
+                        <>
+                            <button
+                                onClick={() => setIsCategoryManagerOpen(true)}
+                                className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-[11px] font-black rounded-xl transition-colors uppercase tracking-wider border border-transparent hover:border-blue-200 dark:hover:border-blue-900"
+                            >
+                                <Tag className="w-3.5 h-3.5" />
+                                Categorías
+                            </button>
 
-                    <button
-                        onClick={() => {
-                            setEditingWorkflow(undefined);
-                            setIsFormOpen(true);
-                        }}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-xl shadow-lg shadow-blue-200 dark:shadow-none transition-all hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wider"
-                    >
-                        <Plus className="w-3.5 h-3.5" />
-                        Nuevo Flujo
-                    </button>
+                            <button
+                                onClick={() => {
+                                    setEditingWorkflow(undefined);
+                                    setIsFormOpen(true);
+                                }}
+                                className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-xl shadow-lg shadow-blue-200 dark:shadow-none transition-all hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wider"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                Nuevo Flujo
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -207,7 +214,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                             onDelete={() => handleDelete(workflow.id)}
                             onDuplicate={() => handleDuplicate(workflow.id)}
                             onSelect={() => onSelectWorkflow(workflow)}
-                            isReadOnly={workflow.organization_id !== user?.organization_id}
+                            isReadOnly={isViewer || workflow.organization_id !== user?.organization_id}
                         />
                     ))}
                     {filteredWorkflows.length === 0 && (
@@ -290,7 +297,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                                         <Globe className="w-3.5 h-3.5" />
                                                     </button>
                                                 )}
-                                                {workflow.organization_id === user?.organization_id && (
+                                                {!isViewer && workflow.organization_id === user?.organization_id && (
                                                     <>
                                                         <button
                                                             onClick={(e) => {
@@ -312,13 +319,15 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                                         </button>
                                                     </>
                                                 )}
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDuplicate(workflow.id); }}
-                                                    className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
-                                                    title="Clonar (Copiar a mi empresa)"
-                                                >
-                                                    <GitBranch className="w-3.5 h-3.5" />
-                                                </button>
+                                                {!isViewer && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDuplicate(workflow.id); }}
+                                                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all border border-slate-100 dark:border-slate-800"
+                                                        title="Clonar (Copiar a mi empresa)"
+                                                    >
+                                                        <GitBranch className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); onSelectWorkflow(workflow); }}
                                                     className="w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all ml-1 shadow-sm shadow-blue-200 active:scale-95"

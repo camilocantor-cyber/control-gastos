@@ -104,6 +104,8 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
     const { user, signOut, switchOrganization } = useAuth();
     const [openSections, setOpenSections] = useState<Set<string>>(new Set(['operaciones', 'herramientas']));
 
+    const currentRole = user?.available_organizations?.find(o => o.id === user.organization_id)?.role || user?.role || 'viewer';
+
     const toggleSection = (section: string) => {
         const newOpen = new Set(openSections);
         if (newOpen.has(section)) {
@@ -237,63 +239,65 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
                             />
                         </CollapsibleSection>
 
-                        <CollapsibleSection
-                            label="Configuración"
-                            isOpen={openSections.has('configuracion')}
-                            onToggle={() => toggleSection('configuracion')}
-                            isActive={isConfigActive}
-                            isCollapsed={isCollapsed}
-                        >
-                            <SidebarItem
-                                icon={GitBranch}
-                                label="Mis Flujos"
-                                active={activeSection === 'workflows'}
-                                onClick={() => onSectionChange('workflows')}
+                        {currentRole !== 'viewer' && (
+                            <CollapsibleSection
+                                label="Configuración"
+                                isOpen={openSections.has('configuracion')}
+                                onToggle={() => toggleSection('configuracion')}
+                                isActive={isConfigActive}
                                 isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Users}
-                                label="Usuarios"
-                                active={activeSection === 'users'}
-                                onClick={() => onSectionChange('users')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Building2}
-                                label="Mi Empresa"
-                                active={activeSection === 'organization'}
-                                onClick={() => onSectionChange('organization')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Settings}
-                                label="Parámetros"
-                                active={activeSection === 'parameters'}
-                                onClick={() => onSectionChange('parameters')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Package}
-                                label="Proveedores"
-                                active={activeSection === 'providers'}
-                                onClick={() => onSectionChange('providers')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Network}
-                                label="Organigrama"
-                                active={activeSection === 'orgchart'}
-                                onClick={() => onSectionChange('orgchart')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Fingerprint}
-                                label="Cuentas"
-                                active={activeSection === 'accounts'}
-                                onClick={() => onSectionChange('accounts')}
-                                isCollapsed={isCollapsed}
-                            />
-                        </CollapsibleSection>
+                            >
+                                <SidebarItem
+                                    icon={GitBranch}
+                                    label="Mis Flujos"
+                                    active={activeSection === 'workflows'}
+                                    onClick={() => onSectionChange('workflows')}
+                                    isCollapsed={isCollapsed}
+                                />
+                                <SidebarItem
+                                    icon={Users}
+                                    label="Usuarios"
+                                    active={activeSection === 'users'}
+                                    onClick={() => onSectionChange('users')}
+                                    isCollapsed={isCollapsed}
+                                />
+                                <SidebarItem
+                                    icon={Building2}
+                                    label="Mi Empresa"
+                                    active={activeSection === 'organization'}
+                                    onClick={() => onSectionChange('organization')}
+                                    isCollapsed={isCollapsed}
+                                />
+                                <SidebarItem
+                                    icon={Settings}
+                                    label="Parámetros"
+                                    active={activeSection === 'parameters'}
+                                    onClick={() => onSectionChange('parameters')}
+                                    isCollapsed={isCollapsed}
+                                />
+                                <SidebarItem
+                                    icon={Package}
+                                    label="Proveedores"
+                                    active={activeSection === 'providers'}
+                                    onClick={() => onSectionChange('providers')}
+                                    isCollapsed={isCollapsed}
+                                />
+                                <SidebarItem
+                                    icon={Network}
+                                    label="Organigrama"
+                                    active={activeSection === 'orgchart'}
+                                    onClick={() => onSectionChange('orgchart')}
+                                    isCollapsed={isCollapsed}
+                                />
+                                <SidebarItem
+                                    icon={Fingerprint}
+                                    label="Cuentas"
+                                    active={activeSection === 'accounts'}
+                                    onClick={() => onSectionChange('accounts')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            </CollapsibleSection>
+                        )}
                     </div>
                 </nav>
 
@@ -327,6 +331,9 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
     const { profile, loading: profileLoading } = useProfile(user?.id);
     const { theme, toggleTheme } = useTheme();
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const currentOrg = user?.available_organizations?.find((o: any) => o.id === user.organization_id);
+    const isViewer = (currentOrg?.role === 'viewer') || (profile?.role === 'viewer');
 
     return (
         <div className="flex h-screen overflow-hidden bg-slate-200/40 dark:bg-[#02040a]">
@@ -398,13 +405,28 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                             )}
                         </button>
 
-                        <div className="text-right mr-2">
+                        <div className="text-right mr-2 flex flex-col items-end">
                             {profileLoading ? (
                                 <div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-full" />
                             ) : (
                                 <>
-                                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none mb-1">{profile?.full_name || 'Usuario'}</p>
-                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{profile?.role || 'Viewer'}</p>
+                                    {isViewer && (
+                                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 mb-2">
+                                            <Building2 className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
+                                            <span className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                                                Conectado a
+                                            </span>
+                                        </div>
+                                    )}
+                                    <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
+                                        {currentOrg?.name || 'BPM FLOW'}
+                                    </p>
+                                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none mb-1">
+                                        {profile?.full_name || 'Usuario'}
+                                    </p>
+                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                        {profile?.role || 'Viewer'}
+                                    </p>
                                 </>
                             )}
                         </div>
