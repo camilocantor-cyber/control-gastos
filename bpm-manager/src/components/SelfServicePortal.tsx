@@ -4,7 +4,7 @@ import { TaskInbox } from './TaskInbox';
 import { Calendar as CalendarView } from './Calendar';
 import { ProcessSearch } from './ProcessSearch';
 import { StartProcessModal } from './StartProcessModal';
-import { LogOut, Calendar, Inbox, Moon, Sun, User as UserIcon, Building2, Search, Activity, CheckCircle2, TrendingUp, Plus, BarChart3 } from 'lucide-react';
+import { LogOut, Calendar, Inbox, Moon, Sun, User as UserIcon, Search, Activity, CheckCircle2, TrendingUp, Plus } from 'lucide-react';
 import { ProcessExecution } from './ProcessExecution';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import clsx from 'clsx';

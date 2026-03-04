@@ -585,7 +585,7 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onMove, onSelec
             <div className="flex-1">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-2 flex items-center gap-2 tracking-tight">
                     {workflow.name}
-                    {workflow.parent_id && <GitBranch className="w-4 h-4 text-blue-500" title="Versión referenciada" />}
+                    {workflow.parent_id && <GitBranch className="w-4 h-4 text-blue-500" />}
                 </h3>
                 <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3" title="Sucursal / Organización">
                     <Building2 className="w-3 h-3" />
