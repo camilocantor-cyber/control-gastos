@@ -1,4 +1,4 @@
-import { Building2, Shield, CreditCard, Users, CheckCircle2, Plus, Settings, Trash2, Package, Search, Play } from 'lucide-react';
+import { Building2, Shield, CreditCard, Users, CheckCircle2, Plus, Settings, Trash2, Package, Search, Play, Image as ImageIcon, Upload, X, Eraser } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
@@ -17,6 +17,95 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [sucursalSearch, setSucursalSearch] = useState('');
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+
+    async function processImage(file: File, removeWhite: boolean): Promise<Blob> {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                if (!ctx) return reject(new Error('No se pudo obtener el contexto del canvas'));
+
+                // Redimensionar si es muy grande (máximo 400px de ancho o alto)
+                let width = img.width;
+                let height = img.height;
+                const maxSize = 400;
+                if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                        height *= maxSize / width;
+                        width = maxSize;
+                    } else {
+                        width *= maxSize / height;
+                        height = maxSize;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+
+                if (removeWhite) {
+                    const imageData = ctx.getImageData(0, 0, width, height);
+                    const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        // Si es muy blanco (threshold ajustable), hacerlo transparente
+                        if (r > 240 && g > 240 && b > 240) {
+                            data[i + 3] = 0;
+                        }
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                }
+
+                canvas.toBlob((blob) => {
+                    if (blob) resolve(blob);
+                    else reject(new Error('Error al convertir canvas a blob'));
+                }, 'image/png');
+            };
+            img.onerror = () => reject(new Error('Error al cargar la imagen'));
+        });
+    }
+
+    async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>, removeWhite: boolean = true) {
+        const file = e.target.files?.[0];
+        if (!file || !org) return;
+
+        setUploadingLogo(true);
+        try {
+            const processedBlob = await processImage(file, removeWhite);
+            const fileName = `${org.id}/logo_${Date.now()}.png`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('logos')
+                .upload(fileName, processedBlob, {
+                    contentType: 'image/png',
+                    upsert: true
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(fileName);
+
+            const { error: updateError } = await supabase
+                .from('organizations')
+                .update({ logo_url: publicUrl })
+                .eq('id', org.id);
+
+            if (updateError) throw updateError;
+
+            setOrg({ ...org, logo_url: publicUrl });
+            toast.success('Logo actualizado correctamente');
+        } catch (err: any) {
+            console.error('Error uploading logo:', err);
+            toast.error('Error al subir el logo: ' + err.message);
+        } finally {
+            setUploadingLogo(false);
+        }
+    }
 
     useEffect(() => {
         if (authLoading) return;
@@ -396,11 +485,95 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setShowCreateModal(true)}
-                            className="bg-white text-slate-900 px-6 py-3.5 rounded-2xl text-[10px] font-black hover:bg-blue-50 transition-all shadow-xl hover:-translate-y-0.5 active:scale-95 uppercase tracking-widest flex items-center gap-3"
+                            className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 rounded-2xl text-[10px] font-black hover:bg-white/20 transition-all active:scale-95 uppercase tracking-widest flex items-center gap-3"
                         >
                             <Plus className="w-4 h-4" />
                             Nueva Sucursal
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Nueva Sección: Identidad Visual */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm p-8">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl text-blue-600">
+                            <ImageIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Identidad Visual</h3>
+                            <p className="text-sm text-slate-400 font-medium">Personaliza el logo de tu empresa.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row items-center gap-8">
+                        <div className="relative group">
+                            <div className="w-40 h-40 bg-slate-50 dark:bg-slate-950 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden transition-all group-hover:border-blue-400">
+                                {org.logo_url ? (
+                                    <img src={org.logo_url} alt="Logo" className="max-w-full max-h-full object-contain p-4" />
+                                ) : (
+                                    <div className="text-center p-4">
+                                        <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">Sin Logo</p>
+                                    </div>
+                                )}
+
+                                {uploadingLogo && (
+                                    <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
+                                        <div className="w-8 h-8 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {org.logo_url && (
+                                <button
+                                    onClick={async () => {
+                                        if (confirm('¿Eliminar logo?')) {
+                                            const { error } = await supabase.from('organizations').update({ logo_url: null }).eq('id', org.id);
+                                            if (!error) setOrg({ ...org, logo_url: undefined });
+                                        }
+                                    }}
+                                    className="absolute -top-2 -right-2 p-2 bg-rose-500 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 space-y-4 w-full">
+                            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+                                <p className="text-xs text-blue-800 dark:text-blue-300 font-medium leading-relaxed">
+                                    Sube tu logo y aplicaremos un tratamiento para que se vea estético:
+                                </p>
+                                <ul className="mt-2 space-y-1">
+                                    <li className="flex items-center gap-2 text-[10px] font-bold text-blue-600/70 dark:text-blue-400/70 uppercase tracking-widest">
+                                        <CheckCircle2 className="w-3 h-3" /> Redimensionado automático
+                                    </li>
+                                    <li className="flex items-center gap-2 text-[10px] font-bold text-blue-600/70 dark:text-blue-400/70 uppercase tracking-widest">
+                                        <Eraser className="w-3 h-3" /> Fondo blanco a transparente
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <label className="flex items-center justify-center gap-3 w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest cursor-pointer hover:scale-[1.02] active:scale-95 transition-all shadow-xl">
+                                <Upload className="w-4 h-4" />
+                                {org.logo_url ? 'Cambiar Logo' : 'Subir Logo'}
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleLogoUpload(e, true)} />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm p-8 flex flex-col justify-center">
+                    <div className="text-center space-y-4">
+                        <div className="inline-flex p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-3xl text-emerald-600 mb-2">
+                            <Shield className="w-8 h-8" />
+                        </div>
+                        <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Marca Corporativa</h4>
+                        <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto leading-relaxed">
+                            Al subir tu logo, este se verá reflejado en toda la plataforma, correos y documentos generados.
+                        </p>
                     </div>
                 </div>
             </div>

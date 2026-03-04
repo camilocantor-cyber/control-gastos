@@ -6,6 +6,7 @@ export interface Organization {
     plan: UserPlan;
     created_at: string;
     settings?: Record<string, any>;
+    logo_url?: string;
 }
 
 export type UserRole = 'admin' | 'editor' | 'viewer';
@@ -16,7 +17,7 @@ export interface User {
     role: UserRole;
     name?: string;
     organization_id?: string;
-    available_organizations?: { id: string, name: string, role: UserRole }[];
+    available_organizations?: { id: string, name: string, role: UserRole, logo_url?: string }[];
 }
 
 export type WorkflowStatus = 'draft' | 'active' | 'archived';

@@ -126,7 +126,8 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
     const { user, signOut, switchOrganization } = useAuth();
     const [openSections, setOpenSections] = useState<Set<string>>(new Set(['herramientas']));
 
-    const currentRole = user?.available_organizations?.find(o => o.id === user.organization_id)?.role || user?.role || 'viewer';
+    const currentOrg = user?.available_organizations?.find(o => o.id === user.organization_id);
+    const currentRole = currentOrg?.role || user?.role || 'viewer';
 
     const toggleSection = (section: string) => {
         const newOpen = new Set(openSections);
@@ -152,18 +153,21 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                         "w-full flex items-center gap-3 p-2 -ml-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left",
                         isCollapsed && "ml-0 justify-center p-0"
                     )}>
-                        <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-100 flex-shrink-0">
-                            <GitBranch className="text-white w-5 h-5" />
+                        <div className="w-9 h-9 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex items-center justify-center shadow-lg border border-slate-100 dark:border-slate-800 flex-shrink-0 overflow-hidden">
+                            {currentOrg?.logo_url ? (
+                                <img src={currentOrg.logo_url} alt="Logo" className="w-full h-full object-contain p-1" />
+                            ) : (
+                                <div className="w-full h-full bg-blue-600 flex items-center justify-center">
+                                    <GitBranch className="text-white w-5 h-5" />
+                                </div>
+                            )}
                         </div>
                         {!isCollapsed && (
                             <>
                                 <div className="flex-1 overflow-hidden">
                                     <h1 className="text-sm font-black text-slate-900 dark:text-slate-100 leading-tight truncate">
-                                        {user?.available_organizations?.find(o => o.id === user.organization_id)?.name || 'BPM FLOW'}
+                                        {currentOrg?.name || 'BPM FLOW'}
                                     </h1>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
-                                        {user?.available_organizations?.find(o => o.id === user.organization_id)?.role || 'Viewer'}
-                                    </p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:rotate-90 transition-transform" />
                             </>
@@ -328,13 +332,13 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children, activeSection, onSectionChange, onNewProcess }: MainLayoutProps) {
-    const { user } = useAuth();
-    const { profile, loading: profileLoading } = useProfile(user?.id);
+    const { user, signOut } = useAuth();
+    const { profile } = useProfile(user?.id);
     const { theme, toggleTheme } = useTheme();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
 
     const currentOrg = user?.available_organizations?.find((o: any) => o.id === user.organization_id);
-    const isViewer = (currentOrg?.role === 'viewer') || (profile?.role === 'viewer');
 
     return (
         <div className="flex h-screen overflow-hidden bg-slate-200/40 dark:bg-[#02040a]">
@@ -422,34 +426,59 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                             )}
                         </button>
 
-                        <div className="text-right mr-2 flex flex-col items-end">
-                            {profileLoading ? (
-                                <div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-full" />
-                            ) : (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                                className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-black shadow-lg shadow-blue-200 dark:shadow-blue-900/20 border-2 border-white dark:border-slate-800 relative group/avatar transition-transform active:scale-95"
+                            >
+                                {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-800 rounded-full" />
+                            </button>
+
+                            {showProfileMenu && (
                                 <>
-                                    {isViewer && (
-                                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 mb-2">
-                                            <Building2 className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
-                                            <span className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
-                                                Conectado a
-                                            </span>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                                    <div className="absolute top-full right-0 mt-3 w-64 bg-white dark:bg-[#0d111d] border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl p-6 z-50 animate-in fade-in zoom-in duration-200">
+                                        <div className="flex flex-col items-center text-center mb-6">
+                                            <div className="w-16 h-16 rounded-[2rem] bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-2xl mb-4 border border-blue-100 dark:border-blue-800/50">
+                                                {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                                            </div>
+                                            <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">{profile?.full_name}</h3>
+                                            <p className="text-xs text-slate-400 font-medium mb-4">{user?.email}</p>
+
+                                            <div className="w-full flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest truncate w-full text-center">{currentOrg?.name}</span>
+                                                </div>
+                                                <div className="flex items-center justify-center">
+                                                    <div className="h-px bg-slate-200 dark:bg-slate-700 w-12" />
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest w-full text-center">{profile?.role || 'Viewer'}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
-                                    <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
-                                        {currentOrg?.name || 'BPM FLOW'}
-                                    </p>
-                                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none mb-1">
-                                        {profile?.full_name || 'Usuario'}
-                                    </p>
-                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                                        {profile?.role || 'Viewer'}
-                                    </p>
+
+                                        <div className="space-y-1">
+                                            <button
+                                                onClick={() => {
+                                                    onSectionChange('accounts');
+                                                    setShowProfileMenu(false);
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                                            >
+                                                <Fingerprint className="w-4 h-4" /> Mi Perfil
+                                            </button>
+                                            <button
+                                                onClick={signOut}
+                                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+                                            >
+                                                <LogOut className="w-4 h-4" /> Cerrar Sesión
+                                            </button>
+                                        </div>
+                                    </div>
                                 </>
                             )}
-                        </div>
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-black shadow-lg shadow-blue-200 dark:shadow-blue-900/20 border-2 border-white dark:border-slate-800 relative group/avatar">
-                            {profile?.full_name?.[0]?.toUpperCase() || 'U'}
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-800 rounded-full" />
                         </div>
                     </div>
                 </header>

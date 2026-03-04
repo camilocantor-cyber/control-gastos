@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // 2. Get Organizations Member of
             const { data: members, error: membersError } = await supabase
                 .from('organization_members')
-                .select('role, organization:organizations(id, name)')
+                .select('role, organization:organizations(id, name, logo_url)')
                 .eq('user_id', userId);
 
             if (membersError) console.error('Error fetching orgs:', membersError);
@@ -73,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const availableOrgs = members?.map((m: any) => ({
                 id: m.organization.id,
                 name: m.organization.name,
-                role: m.role as UserRole
+                role: m.role as UserRole,
+                logo_url: m.organization.logo_url
             })) || [];
 
             // Determine active Org
