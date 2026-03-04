@@ -67,7 +67,9 @@ function AppContent() {
     return <Auth />;
   }
 
-  if (user.role !== 'admin') {
+  const currentRole = user?.available_organizations?.find(o => o.id === user.organization_id)?.role || user?.role || 'viewer';
+
+  if (user.role !== 'admin' && currentRole !== 'viewer') {
     return <SelfServicePortal />;
   }
 
