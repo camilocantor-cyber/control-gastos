@@ -74,7 +74,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
 
                 console.log('Creating workflow with user:', user.id, 'org:', user.organization_id);
                 const { error } = await createWorkflow({
-                    ...data,
+                    ...sanitizedData,
                     created_by: user.id,
                     organization_id: user.organization_id
                 });

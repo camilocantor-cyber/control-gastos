@@ -80,7 +80,7 @@ export function useWorkflows() {
             const { data, error } = await supabase
                 .from('workflows')
                 .insert([workflow])
-                .select();
+                .select('*, category:workflow_categories(*), organizations(id, name)');
 
             if (error) throw error;
             if (data && data.length > 0) {
@@ -99,7 +99,7 @@ export function useWorkflows() {
                 .from('workflows')
                 .update(updates)
                 .eq('id', id)
-                .select();
+                .select('*, category:workflow_categories(*), organizations(id, name)');
 
             if (error) throw error;
             if (data && data.length > 0) {
@@ -179,7 +179,7 @@ export function useWorkflows() {
                 version: nextVersion,
                 parent_id: isDifferentOrg ? null : (workflow.parent_id || workflow.id),
                 name_template: workflow.name_template,
-                category_id: workflow.category_id
+                category_id: workflow.category_id || null
             };
 
             let { data: newWf, error: newWfError } = await supabase
