@@ -303,29 +303,6 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
             <button onClick={() => setShowCreateModal(true)} className="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
                 Configurar Empresa
             </button>
-            {showCreateModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-md p-10 border border-slate-100 dark:border-slate-800">
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-8">Nueva Empresa</h3>
-                        <form onSubmit={handleCreateOrg} className="space-y-6">
-                            <input
-                                type="text"
-                                required
-                                value={newOrgName}
-                                onChange={e => setNewOrgName(e.target.value)}
-                                className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-white"
-                                placeholder="Nombre de la empresa"
-                            />
-                            <div className="flex gap-4">
-                                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black uppercase text-[10px] tracking-widest rounded-2xl">Volver</button>
-                                <button type="submit" disabled={creating} className="flex-[2] py-4 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-lg shadow-blue-500/20">
-                                    {creating ? 'Creando...' : 'Confirmar'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 
@@ -776,6 +753,31 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Creación (Sucursal/Empresa) */}
+            {showCreateModal && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-md p-10 border border-slate-100 dark:border-slate-800 shadow-2xl">
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-8">Nueva Sucursal</h3>
+                        <form onSubmit={handleCreateOrg} className="space-y-6">
+                            <input
+                                type="text"
+                                required
+                                value={newOrgName}
+                                onChange={e => setNewOrgName(e.target.value)}
+                                className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-white"
+                                placeholder="Nombre de la sucursal"
+                            />
+                            <div className="flex gap-4">
+                                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black uppercase text-[10px] tracking-widest rounded-2xl">Volver</button>
+                                <button type="submit" disabled={creating} className="flex-[2] py-4 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-lg shadow-blue-500/20">
+                                    {creating ? 'Creando...' : 'Confirmar'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
