@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { X, Wand2, Loader2, Key, AlertCircle, Bot } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { AIGeneratedWorkflow } from '../services/aiService';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
+import { useEffect } from 'react';
 
 export type AIProviderName = 'openai' | 'gemini';
 
@@ -12,13 +15,43 @@ interface AIWorkflowGeneratorModalProps {
 }
 
 export function AIWorkflowGeneratorModal({ isOpen, onClose, onGenerate }: AIWorkflowGeneratorModalProps) {
+    const { user } = useAuth();
     const [prompt, setPrompt] = useState('');
-    const [provider, setProvider] = useState<AIProviderName>('openai');
-    const [apiKey, setApiKey] = useState(localStorage.getItem('bpm_openai_key') || '');
-    const [geminiKey, setGeminiKey] = useState(localStorage.getItem('bpm_gemini_key') || '');
+    const [provider, setProvider] = useState<AIProviderName>('gemini');
+    const [apiKey, setApiKey] = useState('');
+    const [geminiKey, setGeminiKey] = useState('');
     const [method, setMethod] = useState<'replace' | 'append'>('replace');
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Initial load from localStorage
+    useEffect(() => {
+        setApiKey(localStorage.getItem('bpm_openai_key') || '');
+        setGeminiKey(localStorage.getItem('bpm_gemini_key') || '');
+    }, []);
+
+    // Load from Org Settings
+    useEffect(() => {
+        async function loadOrgSettings() {
+            if (!user?.organization_id) return;
+            try {
+                const { data, error } = await supabase
+                    .from('organizations')
+                    .select('settings')
+                    .eq('id', user.organization_id)
+                    .single();
+
+                if (!error && data?.settings) {
+                    const settings = data.settings;
+                    if (settings.AI_OPENAI_KEY) setApiKey(settings.AI_OPENAI_KEY);
+                    if (settings.AI_GEMINI_KEY) setGeminiKey(settings.AI_GEMINI_KEY);
+                }
+            } catch (err) {
+                console.error('Error loading AI settings for architect:', err);
+            }
+        }
+        if (isOpen) loadOrgSettings();
+    }, [user?.organization_id, isOpen]);
 
     if (!isOpen) return null;
 

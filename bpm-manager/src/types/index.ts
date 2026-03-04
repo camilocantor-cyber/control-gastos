@@ -44,6 +44,7 @@ export interface Workflow {
     category_id?: string;
     category?: WorkflowCategory;
     details?: WorkflowDetail[]; // List of available master-detail folders for this workflow
+    organizations?: { name: string };
 }
 
 export interface WorkflowDetail {

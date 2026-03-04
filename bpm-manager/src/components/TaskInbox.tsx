@@ -40,13 +40,13 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full relative">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between transition-colors">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between transition-colors">
                 <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-blue-500" />
-                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mis Tareas Pendientes</h3>
+                    <h3 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mis Tareas Pendientes</h3>
                 </div>
-                <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[9px] font-black rounded-full border border-blue-100 dark:border-blue-800 uppercase tracking-widest">
-                    {tasks.length} Pendientes
+                <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[8px] font-black rounded-full border border-blue-100 dark:border-blue-800 uppercase tracking-widest">
+                    {tasks.length}
                 </span>
             </div>
 
@@ -54,12 +54,12 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="bg-slate-100/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                            <th className="px-2 py-2 text-center text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest w-12">Tipo</th>
-                            <th className="px-3 py-2 text-left text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">ID</th>
-                            <th className="px-3 py-2 text-left text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Nombre del Trámite</th>
-                            <th className="px-3 py-2 text-left text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Actividad Actual</th>
-                            <th className="px-3 py-2 text-center text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Estado</th>
-                            <th className="px-3 py-2 text-center text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest w-24">Acción</th>
+                            <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest w-8">Tipo</th>
+                            <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest w-24">ID</th>
+                            <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Nombre del Trámite</th>
+                            <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Actividad</th>
+                            <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest w-24">Estado</th>
+                            <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest w-20">Acción</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -107,15 +107,15 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
                                             <tr
                                                 key={task.id}
                                                 onClick={() => onAttendTask(task.id)}
-                                                className={`group cursor-pointer transition-all border-l-4 ${isOverdue
-                                                    ? 'bg-red-50/30 dark:bg-red-950/20 hover:bg-red-50/50 border-red-600'
+                                                className={`group cursor-pointer transition-all ${isOverdue
+                                                    ? 'bg-red-50/30 dark:bg-red-950/20 hover:bg-red-50/50'
                                                     : isNearDue
-                                                        ? 'bg-amber-50/30 dark:bg-amber-950/20 hover:bg-amber-50/50 border-amber-500'
-                                                        : 'hover:bg-slate-50 dark:hover:bg-blue-900/10 border-transparent hover:border-slate-900 dark:hover:border-blue-500'
+                                                        ? 'bg-amber-50/30 dark:bg-amber-950/20 hover:bg-amber-50/50'
+                                                        : 'hover:bg-slate-50 dark:hover:bg-blue-900/10'
                                                     }`}
                                             >
-                                                <td className="px-2 py-1.5 text-center">
-                                                    <div className="flex justify-center">
+                                                <td className="px-3 py-1.5">
+                                                    <div className="flex justify-start">
                                                         <div className={`w-1.5 h-1.5 rounded-full shadow-sm ${task.activities.type === 'start' ? 'bg-emerald-500' :
                                                             (task.activities.type === 'end' || task.activities.type === 'fin') ? 'bg-rose-500' :
                                                                 'bg-blue-500'
@@ -162,8 +162,8 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-1.5 text-center">
-                                                    <div className="flex flex-col items-center gap-0.5">
+                                                <td className="px-3 py-1.5 text-left">
+                                                    <div className="flex flex-col items-start gap-0.5">
                                                         <span className={`text-[10px] font-black leading-none ${isOverdue ? 'text-red-900 dark:text-red-200' :
                                                             isNearDue ? 'text-amber-900 dark:text-amber-200' :
                                                                 'text-slate-700 dark:text-slate-300'
@@ -178,8 +178,8 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-1.5 text-center">
-                                                    <div className="flex justify-center items-center gap-1.5">
+                                                <td className="px-3 py-1.5 text-left">
+                                                    <div className="flex justify-start items-center gap-1.5">
                                                         {/* View Flow Button */}
                                                         <button
                                                             onClick={(e) => {

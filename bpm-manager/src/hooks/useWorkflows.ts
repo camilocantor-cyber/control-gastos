@@ -33,10 +33,15 @@ export function useWorkflows() {
 
             let query = supabase
                 .from('workflows')
-                .select('*, category:workflow_categories(*)')
+                .select('*, category:workflow_categories(*), organizations(id, name)')
                 .order('created_at', { ascending: false });
 
-            if (user?.organization_id) {
+            const availableOrgIds = user?.available_organizations?.map(o => o.id) || [];
+
+            if (user?.email === 'ccantor@gmail.com' && availableOrgIds.length > 0) {
+                // Para Camilo, mostrar flujos de TODAS sus sucursales
+                query = query.or(`organization_id.in.(${availableOrgIds.join(',')}),is_public.eq.true`);
+            } else if (user?.organization_id) {
                 query = query.or(`organization_id.eq.${user.organization_id},is_public.eq.true`);
             } else {
                 query = query.eq('is_public', true);
@@ -51,6 +56,22 @@ export function useWorkflows() {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function moveWorkflow(workflowId: string, targetOrgId: string) {
+        try {
+            const { error } = await supabase
+                .from('workflows')
+                .update({ organization_id: targetOrgId })
+                .eq('id', workflowId);
+
+            if (error) throw error;
+            await fetchWorkflows();
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error moving workflow:', err);
+            return { error: err.message || 'Error al mover el flujo' };
         }
     }
 
@@ -252,6 +273,7 @@ export function useWorkflows() {
         updateWorkflow,
         deleteWorkflow,
         duplicateWorkflow,
+        moveWorkflow,
         refresh: fetchWorkflows
     };
 }

@@ -5,9 +5,10 @@ import type { Workflow } from '../types';
 import { useWorkflows } from '../hooks/useWorkflows';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardStats } from '../hooks/useDashboardStats';
-import { GitBranch, Plus, Search, Trash2, Play, GitMerge, Users, Activity, X, MoreVertical, LayoutGrid, List, Globe, Tag, Filter } from 'lucide-react';
+import { GitBranch, Plus, Search, Trash2, Play, GitMerge, Users, Activity, X, MoreVertical, LayoutGrid, List, Globe, Tag, Filter, Building2, TrendingUp } from 'lucide-react';
 import { WorkflowCategoryManager } from './WorkflowCategoryManager';
 import { useWorkflowCategories } from '../hooks/useWorkflowCategories';
+import clsx from 'clsx';
 
 export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
     onSelectWorkflow: (workflow: Workflow) => void,
@@ -15,7 +16,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
     onFormClose?: () => void
 }) {
     const { user } = useAuth();
-    const { workflows, loading: workflowsLoading, createWorkflow, updateWorkflow, deleteWorkflow, duplicateWorkflow } = useWorkflows();
+    const { workflows, loading: workflowsLoading, createWorkflow, updateWorkflow, deleteWorkflow, duplicateWorkflow, moveWorkflow } = useWorkflows();
     const { workflows: countWorkflows, activities, transitions, users, loading: statsLoading } = useDashboardStats();
 
     const currentRole = user?.available_organizations?.find(o => o.id === user.organization_id)?.role || user?.role || 'viewer';
@@ -108,6 +109,18 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                 toast.error('Error al versionar: ' + error);
             } else {
                 toast.success('Flujo versionado correctamente');
+            }
+        }
+    };
+
+    const handleMove = async (id: string) => {
+        if (!user?.organization_id) return;
+        if (confirm('¿Deseas recuperar este flujo y moverlo formalmente a tu empresa actual?')) {
+            const { error } = await moveWorkflow(id, user.organization_id);
+            if (error) {
+                toast.error('Error al recuperar: ' + error);
+            } else {
+                toast.success('Flujo recuperado exitosamente');
             }
         }
     };
@@ -213,8 +226,11 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                             }}
                             onDelete={() => handleDelete(workflow.id)}
                             onDuplicate={() => handleDuplicate(workflow.id)}
+                            onMove={() => handleMove(workflow.id)}
                             onSelect={() => onSelectWorkflow(workflow)}
-                            isReadOnly={isViewer || workflow.organization_id !== user?.organization_id}
+                            isReadOnly={isViewer || (user?.email !== 'ccantor@gmail.com' && workflow.organization_id !== user?.organization_id)}
+                            currentUserOrgId={user?.organization_id}
+                            userEmail={user?.email}
                         />
                     ))}
                     {filteredWorkflows.length === 0 && (
@@ -231,7 +247,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                                     <th className="px-5 py-3 text-left text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Nombre del Proceso</th>
-                                    <th className="px-5 py-3 text-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Clave</th>
+                                    <th className="px-5 py-3 text-left text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest w-40">Categoría</th>
                                     <th className="px-5 py-3 text-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Estado</th>
                                     <th className="px-5 py-3 text-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Versión</th>
                                     <th className="px-5 py-3 text-right text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Acciones</th>
@@ -243,30 +259,24 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                         <td className="px-5 py-2">
                                             <div>
                                                 <p className="text-[13px] font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors leading-tight mb-0.5">{workflow.name}</p>
-                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-xs">{workflow.description || 'Sin descripción'}</p>
-                                                {workflow.category && (
-                                                    <span
-                                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white shadow-sm mt-1"
-                                                        style={{ backgroundColor: workflow.category.color }}
-                                                    >
-                                                        <Tag className="w-2 h-2" />
-                                                        {workflow.category.name}
-                                                    </span>
-                                                )}
+                                                <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest" title="Sucursal / Organización">
+                                                    <Building2 className="w-2.5 h-2.5" />
+                                                    {workflow.organizations?.name || 'Sistema'}
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">
-                                                    {workflow.id.split('-')[0]}
+                                        <td className="px-5 py-2 text-left">
+                                            {workflow.category ? (
+                                                <span
+                                                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white shadow-sm"
+                                                    style={{ backgroundColor: workflow.category.color }}
+                                                >
+                                                    <Tag className="w-2.5 h-2.5" />
+                                                    {workflow.category.name}
                                                 </span>
-                                                {workflow.parent_id && (
-                                                    <span className="flex items-center gap-1 text-[9px] font-bold text-blue-500">
-                                                        <GitBranch className="w-2.5 h-2.5" />
-                                                        Versión
-                                                    </span>
-                                                )}
-                                            </div>
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-slate-300 dark:text-slate-700 uppercase tracking-widest">General</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${workflow.status === 'active'
@@ -279,7 +289,15 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="text-xs font-bold text-slate-400">{workflow.version || 'v1.0'}</span>
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{workflow.version || 'v1.0'}</span>
+                                                {workflow.parent_id && (
+                                                    <span className="flex items-center gap-1 text-[8px] font-black text-blue-500 uppercase tracking-tighter" title="Versión referenciada (basada en un flujo original)">
+                                                        <GitBranch className="w-2 h-2" />
+                                                        Ref
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-5 py-2 text-right">
                                             <div className="flex justify-end gap-1.5 Items-center">
@@ -318,6 +336,15 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                                                             <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     </>
+                                                )}
+                                                {user?.email === 'ccantor@gmail.com' && workflow.organization_id !== user?.organization_id && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleMove(workflow.id); }}
+                                                        className="w-7 h-7 flex items-center justify-center text-blue-500 hover:text-white bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-600 rounded-lg transition-all border border-blue-100 dark:border-blue-800"
+                                                        title="Recuperar (Mover a mi sucursal actual)"
+                                                    >
+                                                        <TrendingUp className="w-3.5 h-3.5" />
+                                                    </button>
                                                 )}
                                                 {!isViewer && (
                                                     <button
@@ -515,13 +542,16 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
     );
 }
 
-function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect, isReadOnly }: {
+function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onMove, onSelect, isReadOnly, currentUserOrgId, userEmail }: {
     workflow: Workflow,
     onEdit: () => void,
     onDelete: () => void,
     onDuplicate: () => void,
+    onMove: () => void,
     onSelect: () => void,
-    isReadOnly: boolean
+    isReadOnly: boolean,
+    currentUserOrgId?: string,
+    userEmail?: string
 }) {
     const statusColors = {
         active: "bg-emerald-50 text-emerald-600 border-emerald-100",
@@ -530,35 +560,22 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect, isRea
     };
 
     return (
-        <div onClick={onSelect} className="group bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 flex flex-col h-full cursor-pointer">
+        <div onClick={onSelect} className="group bg-white dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-slate-200 dark:border-white/5 p-6 shadow-sm dark:shadow-xl dark:shadow-black/20 hover:shadow-xl hover:shadow-slate-200/50 dark:hover:bg-slate-800/60 transition-all duration-300 flex flex-col h-full cursor-pointer overflow-hidden relative">
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2">
-                    <div className={statusColors[workflow.status] + " px-3 py-1 rounded-full text-xs font-bold border"}>
-                        {workflow.status.toUpperCase()}
+                    <div className={clsx("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm", statusColors[workflow.status])}>
+                        {workflow.status}
                     </div>
                     {workflow.version && (
-                        <div className="bg-slate-50 text-slate-500 px-2 py-1 rounded-full text-[10px] font-bold border border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
+                        <div className="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-100 dark:border-white/5">
                             {workflow.version}
                         </div>
                     )}
-                    {workflow.category && (
-                        <div
-                            className="px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-sm flex items-center gap-1"
-                            style={{ backgroundColor: workflow.category.color }}
-                        >
-                            <Tag className="w-2.5 h-2.5" />
-                            {workflow.category.name}
-                        </div>
-                    )}
                 </div>
-                {isReadOnly ? null : (
+                {!isReadOnly && (
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit();
-                        }}
-                        className="text-slate-400 hover:text-slate-600 p-1"
-                        title="Editar Configuración"
+                        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                        className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
                     >
                         <MoreVertical className="w-5 h-5" />
                     </button>
@@ -566,74 +583,67 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect, isRea
             </div>
 
             <div className="flex-1">
-                <div className="relative group/tooltip w-fit">
-                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-2 cursor-help relative z-0 flex items-center gap-2">
-                        {workflow.name}
-                        {workflow.parent_id && <GitBranch className="w-4 h-4 text-blue-500" />}
-                    </h3>
-                    {workflow.description && (
-                        <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-xl shadow-xl opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50 w-64 text-left leading-relaxed translate-y-2 group-hover/tooltip:translate-y-0">
-                            {workflow.description}
-                            {/* Arrow */}
-                            <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-900"></div>
-                        </div>
-                    )}
+                <h3 className="text-lg font-black text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-2 flex items-center gap-2 tracking-tight">
+                    {workflow.name}
+                    {workflow.parent_id && <GitBranch className="w-4 h-4 text-blue-500" title="Versión referenciada" />}
+                </h3>
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3" title="Sucursal / Organización">
+                    <Building2 className="w-3 h-3" />
+                    {workflow.organizations?.name || 'Sistema'}
                 </div>
+
+                {workflow.category && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white shadow-sm" style={{ backgroundColor: workflow.category.color }}>
+                        <Tag className="w-2.5 h-2.5" />
+                        {workflow.category.name}
+                    </div>
+                )}
             </div>
 
-            <div className="mt-6 pt-6 border-t border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-400">
-                    <GitBranch className="w-4 h-4" />
-                    <span className="text-xs font-medium">8 Actividades</span>
-                </div>
+            <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    {workflow.is_public ? (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                const url = `${window.location.origin}?public_process=${workflow.id}`;
-                                navigator.clipboard.writeText(url);
-                                toast.success('Enlace público copiado al portapapeles');
-                            }}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors mr-2"
-                            title="Copiar Enlace Público"
-                        >
-                            <Globe className="w-3.5 h-3.5" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">Público</span>
-                        </button>
-                    ) : null}
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                        <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-slate-900 dark:text-white leading-none">8 Etapas</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Diseñadas</p>
+                    </div>
+                </div>
 
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDuplicate();
-                        }}
-                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                        title="Clonar (Copiar a mi empresa)"
-                    >
-                        <GitBranch className="w-4 h-4" />
-                    </button>
-                    {isReadOnly ? null : (
+                <div className="flex items-center gap-1.5">
+                    {!isReadOnly && (
+                        <>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-50 dark:bg-white/5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-all border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800"
+                                title="Versionar"
+                            >
+                                <GitBranch className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 bg-slate-50 dark:bg-white/5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all border border-transparent hover:border-rose-100 dark:hover:border-rose-800"
+                                title="Eliminar"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </>
+                    )}
+                    {userEmail === 'ccantor@gmail.com' && workflow.organization_id !== currentUserOrgId && (
                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete();
-                            }}
-                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                            title="Eliminar"
+                            onClick={(e) => { e.stopPropagation(); onMove(); }}
+                            className="w-8 h-8 flex items-center justify-center text-blue-500 hover:text-white bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-600 rounded-xl transition-all border border-blue-100 dark:border-blue-800"
+                            title="Recuperar (Mover a mi empresa)"
                         >
-                            <Trash2 className="w-4 h-4" />
+                            <Building2 className="w-4 h-4" />
                         </button>
                     )}
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onSelect();
-                        }}
-                        className="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all ml-2 shadow-lg shadow-blue-200"
-                        title="Abrir Editor"
+                        onClick={(e) => { e.stopPropagation(); onSelect(); }}
+                        className="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none active:scale-95"
                     >
-                        <Play className="w-4 h-4 fill-current" />
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
                     </button>
                 </div>
             </div>
@@ -642,21 +652,31 @@ function WorkflowCard({ workflow, onEdit, onDelete, onDuplicate, onSelect, isRea
 }
 
 function MiniStat({ icon: Icon, label, value, color }: { icon: any, label: string, value: number, color: 'blue' | 'emerald' | 'orange' | 'purple' }) {
-    const colors = {
-        blue: "text-blue-600 bg-blue-50 border-blue-100",
-        emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
-        orange: "text-orange-600 bg-orange-50 border-orange-100",
-        purple: "text-purple-600 bg-purple-50 border-purple-100",
+    const bars = {
+        blue: "bg-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.3)]",
+        emerald: "bg-emerald-600 shadow-[0_0_12px_rgba(5,150,105,0.3)]",
+        orange: "bg-orange-600 shadow-[0_0_12px_rgba(217,119,6,0.3)]",
+        purple: "bg-purple-600 shadow-[0_0_12px_rgba(147,51,234,0.3)]",
+    }[color];
+
+    const iconColors = {
+        blue: "text-blue-500",
+        emerald: "text-emerald-500",
+        orange: "text-orange-500",
+        purple: "text-purple-500",
     }[color];
 
     return (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-colors">
-            <div className={`p-3 rounded-xl border ${colors}`}>
-                <Icon className="w-5 h-5" />
+        <div className="bg-white dark:bg-slate-900/40 backdrop-blur-xl p-3 px-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm dark:shadow-xl dark:shadow-black/20 flex flex-col justify-center transition-all group">
+            <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    {label}
+                    <span className="text-sm text-slate-900 dark:text-white">{value.toLocaleString()}</span>
+                </p>
+                <Icon className={clsx("w-3.5 h-3.5", iconColors)} />
             </div>
-            <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{label}</p>
-                <p className="text-xl font-black text-slate-900 dark:text-white leading-none">{value.toLocaleString()}</p>
+            <div className="w-full h-1 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                <div className={clsx("h-full rounded-full transition-all duration-1000", bars)} style={{ width: '65%' }} />
             </div>
         </div>
     );

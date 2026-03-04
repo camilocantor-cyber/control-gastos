@@ -2,12 +2,34 @@
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../contexts/ThemeContext';
-import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, PlusCircle, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings } from 'lucide-react';
+import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
+}
+
+function HeaderNavButton({ active, onClick, icon: Icon, label, color }: { active?: boolean, onClick: () => void, icon: any, label: string, color: 'blue' | 'emerald' | 'indigo' }) {
+    const colors = {
+        blue: active ? "text-blue-600 bg-blue-50 dark:bg-blue-400/20 dark:text-blue-300" : "text-slate-500 hover:text-blue-600 hover:bg-blue-50/50 dark:text-slate-400 dark:hover:text-blue-300",
+        emerald: active ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-400/20 dark:text-emerald-300" : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50/50 dark:text-slate-400 dark:hover:text-emerald-300",
+        indigo: active ? "text-indigo-600 bg-indigo-50 dark:bg-indigo-400/20 dark:text-indigo-300" : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50 dark:text-slate-400 dark:hover:text-indigo-300",
+    };
+
+    return (
+        <button
+            onClick={onClick}
+            className={clsx(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-200 border border-transparent shadow-sm",
+                colors[color],
+                active && "border-slate-100 dark:border-white/10"
+            )}
+        >
+            <Icon className={clsx("w-3.5 h-3.5", active && "fill-current/10")} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+        </button>
+    );
 }
 
 interface SidebarItemProps {
@@ -100,9 +122,9 @@ interface SidebarProps {
     isCollapsed?: boolean;
 }
 
-export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollapsed }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, isCollapsed }: SidebarProps) {
     const { user, signOut, switchOrganization } = useAuth();
-    const [openSections, setOpenSections] = useState<Set<string>>(new Set(['operaciones', 'herramientas']));
+    const [openSections, setOpenSections] = useState<Set<string>>(new Set(['herramientas']));
 
     const currentRole = user?.available_organizations?.find(o => o.id === user.organization_id)?.role || user?.role || 'viewer';
 
@@ -116,7 +138,6 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
         setOpenSections(newOpen);
     };
 
-    const isOperacionesActive = ['new-process', 'search'].includes(activeSection);
     const isHerramientasActive = ['calendar', 'reports', 'monitor'].includes(activeSection);
     const isConfigActive = ['workflows', 'users', 'organization', 'accounts', 'parameters', 'providers', 'orgchart'].includes(activeSection);
 
@@ -152,7 +173,7 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
                     {/* Dropdown - only show if not collapsed or handle differently */}
                     {!isCollapsed && (
                         <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#0d111d] border border-slate-100 dark:border-slate-800 rounded-[1.5rem] shadow-xl dark:shadow-2xl dark:shadow-slate-950 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 backdrop-blur-xl">
-                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] px-3 py-3">Mis Organizaciones</p>
+                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] px-3 py-3">Mis Sucursales</p>
                             <div className="space-y-1">
                                 {user?.available_organizations?.map(org => (
                                     <button
@@ -187,28 +208,6 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
                     />
 
                     <div className="space-y-3">
-                        <CollapsibleSection
-                            label="Operaciones"
-                            isOpen={openSections.has('operaciones')}
-                            onToggle={() => toggleSection('operaciones')}
-                            isActive={isOperacionesActive}
-                            isCollapsed={isCollapsed}
-                        >
-                            <SidebarItem
-                                icon={PlusCircle}
-                                label="Nuevo Trámite"
-                                onClick={onNewProcess}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Search}
-                                label="Buscar Trámites"
-                                active={activeSection === 'search'}
-                                onClick={() => onSectionChange('search')}
-                                isCollapsed={isCollapsed}
-                            />
-                        </CollapsibleSection>
-
                         <CollapsibleSection
                             label="Herramientas"
                             isOpen={openSections.has('herramientas')}
@@ -261,13 +260,15 @@ export function Sidebar({ activeSection, onSectionChange, onNewProcess, isCollap
                                     onClick={() => onSectionChange('users')}
                                     isCollapsed={isCollapsed}
                                 />
-                                <SidebarItem
-                                    icon={Building2}
-                                    label="Mi Empresa"
-                                    active={activeSection === 'organization'}
-                                    onClick={() => onSectionChange('organization')}
-                                    isCollapsed={isCollapsed}
-                                />
+                                {user?.role === 'admin' && (
+                                    <SidebarItem
+                                        icon={Building2}
+                                        label="Mi Empresa"
+                                        active={activeSection === 'organization'}
+                                        onClick={() => onSectionChange('organization')}
+                                        isCollapsed={isCollapsed}
+                                    />
+                                )}
                                 <SidebarItem
                                     icon={Settings}
                                     label="Parámetros"
@@ -340,7 +341,6 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
             <Sidebar
                 activeSection={activeSection}
                 onSectionChange={onSectionChange}
-                onNewProcess={onNewProcess}
                 isCollapsed={isCollapsed}
             />
             <main className="flex-1 overflow-y-auto custom-scrollbar">
@@ -389,6 +389,23 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                                                                 activeSection}
                                 </h2>
                             </div>
+                        </div>
+
+                        {/* Navigation Actions for Admin */}
+                        <div className="hidden md:flex items-center gap-2 ml-4 px-4 border-l border-slate-100 dark:border-slate-800">
+                            <HeaderNavButton
+                                onClick={onNewProcess || (() => { })}
+                                icon={Plus}
+                                label="Nuevo"
+                                color="blue"
+                            />
+                            <HeaderNavButton
+                                active={activeSection === 'search'}
+                                onClick={() => onSectionChange('search')}
+                                icon={Search}
+                                label="Buscar"
+                                color="emerald"
+                            />
                         </div>
                     </div>
                     <div className="flex items-center gap-4">

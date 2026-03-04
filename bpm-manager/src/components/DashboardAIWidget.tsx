@@ -20,10 +20,43 @@ export function DashboardAIWidget() {
     const [isThinking, setIsThinking] = useState(false);
 
     // Provider Config
-    const [provider, setProvider] = useState<AIProviderName>('openai');
-    const [apiKey, setApiKey] = useState(localStorage.getItem('bpm_openai_key') || '');
-    const [geminiKey, setGeminiKey] = useState(localStorage.getItem('bpm_gemini_key') || '');
+    const [provider, setProvider] = useState<AIProviderName>('gemini');
+    const [apiKey, setApiKey] = useState('');
+    const [geminiKey, setGeminiKey] = useState('');
     const [showConfig, setShowConfig] = useState(false);
+
+    // Initial load from localStorage as fallback
+    useEffect(() => {
+        setApiKey(localStorage.getItem('bpm_openai_key') || '');
+        setGeminiKey(localStorage.getItem('bpm_gemini_key') || '');
+    }, []);
+
+    // Load from Organization Settings
+    useEffect(() => {
+        async function loadOrgSettings() {
+            if (!user?.organization_id) {
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('organizations')
+                    .select('settings')
+                    .eq('id', user.organization_id)
+                    .single();
+
+                if (!error && data?.settings) {
+                    const settings = data.settings;
+                    if (settings.AI_OPENAI_KEY) setApiKey(settings.AI_OPENAI_KEY);
+                    if (settings.AI_GEMINI_KEY) setGeminiKey(settings.AI_GEMINI_KEY);
+                    if (settings.AI_DEFAULT_PROVIDER) setProvider(settings.AI_DEFAULT_PROVIDER as AIProviderName);
+                }
+            } catch (err) {
+                console.error('Error loading AI settings from org:', err);
+            }
+        }
+        loadOrgSettings();
+    }, [user?.organization_id]);
 
     // Extra Data Snapshot
     const [extraData, setExtraData] = useState<any>(null);
@@ -124,16 +157,16 @@ export function DashboardAIWidget() {
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-300 w-full mb-8">
-            <div className="flex items-center justify-between p-5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-b border-slate-100 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-300 w-full mb-2">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none text-white overflow-hidden relative">
-                        <Sparkles className="w-5 h-5 absolute opacity-30 animate-pulse" />
-                        <Bot className="w-6 h-6 z-10" />
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none text-white overflow-hidden relative">
+                        <Sparkles className="w-4 h-4 absolute opacity-30 animate-pulse" />
+                        <Bot className="w-5 h-5 z-10" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">Copilot Director</h2>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Chat con tus datos operacionales</p>
+                        <h2 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">Copilot Director</h2>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Chat con tus datos operacionales</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -180,21 +213,21 @@ export function DashboardAIWidget() {
                         </div>
                     )}
 
-                    <div className="flex-1 p-5 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 space-y-4 custom-scrollbar">
+                    <div className="flex-1 p-4 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 space-y-4 custom-scrollbar">
                         {chatHistory.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center opacity-50 px-6 text-center">
-                                <Bot className="w-12 h-12 text-slate-400 mb-4" />
-                                <p className="text-sm font-bold text-slate-600 dark:text-slate-400">¡Hola! Soy tu asistente directivo.</p>
-                                <p className="text-xs text-slate-500 mt-2">Puedes preguntarme cosas como: <br />"¿Cuál es el proceso que genera más cuellos de botella?" <br />"¿Quién es el usuario que tiene más tareas pendientes?" <br />"Resume los costos totales por workflow."</p>
+                                <Bot className="w-10 h-10 text-slate-400 mb-3" />
+                                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">¡Hola! Soy tu asistente directivo.</p>
+                                <p className="text-[10px] text-slate-500 mt-2">Puedes preguntarme cosas como: <br />"¿Cuál es el proceso que genera más cuellos de botella?" <br />"¿Quién es el usuario que tiene más tareas pendientes?" <br />"Resume los costos totales por workflow."</p>
                             </div>
                         ) : (
                             chatHistory.map((msg, i) => (
                                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`shadow-sm max-w-[85%] rounded-2xl px-4 py-3 text-[13px] ${msg.role === 'user'
+                                    <div className={`shadow-sm max-w-[85%] rounded-2xl px-4 py-3 text-[12px] ${msg.role === 'user'
                                         ? 'bg-blue-600 text-white rounded-tr-sm'
                                         : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-700 rounded-tl-sm'
                                         }`}>
-                                        <div className="prose dark:prose-invert prose-sm max-w-none text-[13px] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatMarkdownAsHtml(msg.content) }} />
+                                        <div className="prose dark:prose-invert prose-sm max-w-none text-[12px] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatMarkdownAsHtml(msg.content) }} />
                                     </div>
                                 </div>
                             ))

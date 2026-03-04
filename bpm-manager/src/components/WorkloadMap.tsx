@@ -11,13 +11,13 @@ export function WorkloadMap({ data }: { data: { activity_name: string, task_coun
     const maxTasks = Math.max(...data.map(d => d.task_count));
 
     return (
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all h-full">
-            <div className="flex items-center gap-2 mb-6">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all h-full">
+            <div className="flex items-center gap-2 mb-4">
                 <Activity className="w-4 h-4 text-blue-500" />
-                <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mapa de Carga de Trabajo</h3>
+                <h3 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mapa de Carga</h3>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-3.5">
                 {data.map((item) => {
                     const percentage = (item.task_count / maxTasks) * 100;
                     const isHigh = percentage > 70;
@@ -29,15 +29,15 @@ export function WorkloadMap({ data }: { data: { activity_name: string, task_coun
 
                     return (
                         <div key={item.activity_name} className="group">
-                            <div className="flex justify-between items-center mb-1.5 min-h-[1.5rem]">
-                                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest truncate max-w-[70%] group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                            <div className="flex justify-between items-center mb-1 min-h-[1.2rem]">
+                                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest truncate max-w-[80%] group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                                     {item.activity_name}
                                 </span>
-                                <div className={`px-2 py-0.5 rounded-full ${bgColor} ${textColor} text-[9px] font-black border border-current opacity-80`}>
+                                <div className={`px-1.5 py-0.5 rounded-full ${bgColor} ${textColor} text-[8px] font-black border border-current opacity-80`}>
                                     {item.task_count}
                                 </div>
                             </div>
-                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden shadow-inner">
+                            <div className="h-1 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden shadow-inner">
                                 <div
                                     className={`h-full transition-all duration-700 ease-out shadow-sm ${barColor}`}
                                     style={{ width: `${percentage}%` }}
@@ -48,16 +48,16 @@ export function WorkloadMap({ data }: { data: { activity_name: string, task_coun
                 })}
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-tighter text-slate-400">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Normal
+            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between text-[7px] font-black uppercase tracking-tighter text-slate-400">
+                    <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 rounded-full bg-blue-500" /> Normal
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Medio
+                    <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 rounded-full bg-amber-500" /> Medio
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Crítico
+                    <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 rounded-full bg-rose-500" /> Crítico
                     </div>
                 </div>
             </div>
