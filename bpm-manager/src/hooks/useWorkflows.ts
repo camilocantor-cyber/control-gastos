@@ -178,7 +178,8 @@ export function useWorkflows() {
                 status: 'draft',
                 version: nextVersion,
                 parent_id: isDifferentOrg ? null : (workflow.parent_id || workflow.id),
-                name_template: workflow.name_template
+                name_template: workflow.name_template,
+                category_id: workflow.category_id
             };
 
             let { data: newWf, error: newWfError } = await supabase

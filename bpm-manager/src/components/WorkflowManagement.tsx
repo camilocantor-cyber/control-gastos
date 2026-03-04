@@ -51,8 +51,14 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
 
     const handleSave = async (data: Partial<Workflow>) => {
         try {
+            // Sanitize data: category_id should be null if empty string
+            const sanitizedData = {
+                ...data,
+                category_id: data.category_id === '' ? null : data.category_id
+            };
+
             if (editingWorkflow) {
-                const { error } = await updateWorkflow(editingWorkflow.id, data);
+                const { error } = await updateWorkflow(editingWorkflow.id, sanitizedData);
                 if (error) {
                     console.error('Error in handleSave (update):', error);
                     toast.error('Error al actualizar: ' + error);

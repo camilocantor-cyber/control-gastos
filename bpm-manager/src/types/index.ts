@@ -41,7 +41,7 @@ export interface Workflow {
     parent_id?: string;
     name_template?: string;
     is_public?: boolean;
-    category_id?: string;
+    category_id?: string | null;
     category?: WorkflowCategory;
     details?: WorkflowDetail[]; // List of available master-detail folders for this workflow
     organizations?: { name: string };
