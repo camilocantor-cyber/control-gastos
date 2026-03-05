@@ -155,9 +155,9 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
     useEffect(() => {
         const fetchLookupData = async () => {
             const [depts, positions, users, tablesRes] = await Promise.all([
-                supabase.from('departments').select('id, name').order('name'),
-                supabase.from('positions').select('id, title, department_id').order('title'),
-                supabase.from('profiles').select('id, email, full_name').order('email'),
+                supabase.from('departments').select('id, name').eq('organization_id', workflow.organization_id).order('name'),
+                supabase.from('positions').select('id, title, department_id').eq('organization_id', workflow.organization_id).order('title'),
+                supabase.from('profiles').select('id, email, full_name').eq('organization_id', workflow.organization_id).order('email'),
                 supabase.rpc('get_database_tables')
             ]);
             setLookupData({

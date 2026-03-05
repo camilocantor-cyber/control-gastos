@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, AlertCircle } from 'lucide-react';
+import { Search, Filter, Calendar, AlertCircle, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ProcessViewerModal } from './ProcessViewerModal';
 import { ProcessTable } from './ProcessTable';
@@ -9,8 +9,12 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
     const [searchQuery, setSearchQuery] = useState('');
     const [processes, setProcesses] = useState<any[]>([]);
     const [workflows, setWorkflows] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [selectedWorkflow, setSelectedWorkflow] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [selectedUser, setSelectedUser] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -21,6 +25,7 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
     useEffect(() => {
         if (user) {
             loadWorkflows();
+            loadUsers();
             loadProcesses();
         }
     }, [user]);
@@ -28,7 +33,7 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
     useEffect(() => {
         setCurrentPage(1); // Reset to page 1 when filters change
         loadProcesses();
-    }, [searchQuery, selectedWorkflow, selectedStatus]);
+    }, [searchQuery, selectedWorkflow, selectedStatus, selectedUser, dateFrom, dateTo]);
 
     async function loadWorkflows() {
         let query = supabase.from('workflows').select('id, name').order('name');
@@ -41,6 +46,16 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
         setWorkflows(data || []);
     }
 
+    async function loadUsers() {
+        if (!user?.organization_id) return;
+        const { data } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('organization_id', user.organization_id)
+            .order('full_name');
+        setUsers(data || []);
+    }
+
     async function loadProcesses() {
         try {
             setLoading(true);
@@ -48,7 +63,7 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
 
             let query = supabase
                 .from('process_instances')
-                .select('*, workflows(name), activities(name, type)')
+                .select('*, workflows(name), activities(name, type), profiles(full_name, email)')
                 .order('created_at', { ascending: false });
 
             if (user?.organization_id) {
@@ -65,6 +80,22 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
                 query = query.eq('status', selectedStatus);
             }
 
+            // Filter by user (creator)
+            if (selectedUser) {
+                query = query.eq('created_by', selectedUser);
+            }
+
+            // Filter by date range
+            if (dateFrom) {
+                query = query.gte('created_at', new Date(dateFrom).toISOString());
+            }
+            if (dateTo) {
+                // Add 1 day so dateTo is inclusive
+                const toDate = new Date(dateTo);
+                toDate.setDate(toDate.getDate() + 1);
+                query = query.lt('created_at', toDate.toISOString());
+            }
+
             const { data, error: fetchError } = await query;
 
             if (fetchError) throw fetchError;
@@ -72,10 +103,10 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
             // Client-side search filter
             let filtered = data || [];
             if (searchQuery.trim()) {
-                const lowerQuery = searchQuery.toLowerCase();
+                const lowerQuery = searchQuery.toLowerCase().replace(/^#/, '');
                 filtered = filtered.filter((p: any) =>
                     p.id.toLowerCase().includes(lowerQuery) ||
-                    (p.process_number && p.process_number.toString().includes(lowerQuery)) ||
+                    (p.process_number && p.process_number.toString().padStart(8, '0').includes(lowerQuery)) ||
                     p.name.toLowerCase().includes(lowerQuery) ||
                     p.activities?.name?.toLowerCase().includes(lowerQuery) ||
                     p.workflows?.name?.toLowerCase().includes(lowerQuery)
@@ -93,28 +124,28 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full relative transition-all duration-300">
             {/* Header */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-200/50 dark:bg-slate-800/50 transition-colors">
-                <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-200/50 dark:bg-slate-800/50 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
                     <div className="p-1.5 bg-blue-600 rounded-lg shadow-lg shadow-blue-200 dark:shadow-blue-900/20">
                         <Search className="w-3.5 h-3.5 text-white" />
                     </div>
-                    <h3 className="text-base font-black text-slate-900 dark:text-white">Buscar Trámites</h3>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Buscar Trámites</h3>
                 </div>
 
                 {/* Search Input */}
-                <div className="relative mb-3">
+                <div className="relative mb-2">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Buscar por ID, nombre, actividad o flujo..."
-                        className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-700 dark:text-slate-200 text-xs"
+                        className="w-full pl-10 pr-4 py-1.5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-700 dark:text-slate-200 text-xs"
                     />
                 </div>
 
-                {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Filters Row 1: Flujo / Estado / Usuario */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                     <div className="relative">
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 dark:text-slate-500" />
                         <select
@@ -141,23 +172,53 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
                             <option value="completed">Completados</option>
                         </select>
                     </div>
+
+                    <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 dark:text-slate-500" />
+                        <select
+                            value={selectedUser}
+                            onChange={(e) => setSelectedUser(e.target.value)}
+                            className="w-full pl-8 pr-4 py-1.5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 dark:text-slate-200 text-[11px] appearance-none cursor-pointer"
+                        >
+                            <option value="">Todos los usuarios</option>
+                            {users.map((u) => (
+                                <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
-                {/* Results Counter */}
-                <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-500">
-                        {loading ? 'Buscando...' : `${processes.length} resultado${processes.length !== 1 ? 's' : ''}`}
-                    </span>
-                    {(searchQuery || selectedWorkflow || selectedStatus) && (
+                {/* Filters Row 2: Date Range — una sola línea */}
+                <div className="flex items-center gap-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0">Desde</label>
+                    <input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        max={dateTo || undefined}
+                        className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 dark:text-slate-200 text-[11px] cursor-pointer"
+                    />
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0">Hasta</label>
+                    <input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        min={dateFrom || undefined}
+                        className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 dark:text-slate-200 text-[11px] cursor-pointer"
+                    />
+                    {(searchQuery || selectedWorkflow || selectedStatus || selectedUser || dateFrom || dateTo) && (
                         <button
                             onClick={() => {
                                 setSearchQuery('');
                                 setSelectedWorkflow('');
                                 setSelectedStatus('');
+                                setSelectedUser('');
+                                setDateFrom('');
+                                setDateTo('');
                             }}
-                            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                            className="text-[9px] font-black text-blue-600 hover:text-blue-700 transition-colors shrink-0 uppercase tracking-wider"
                         >
-                            Limpiar filtros
+                            Limpiar
                         </button>
                     )}
                 </div>
@@ -182,6 +243,8 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
                 pageSize={pageSize}
                 onPageChange={setCurrentPage}
                 onPageSizeChange={setPageSize}
+                searchQuery={searchQuery}
+                onReload={loadProcesses}
             />
 
             {/* Process Viewer Modal */}

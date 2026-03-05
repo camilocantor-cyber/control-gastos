@@ -19,9 +19,10 @@ export function useExecution() {
                 .from('employee_positions')
                 .select(`
                     position_id,
-                    positions (department_id)
+                    positions!inner (department_id, organization_id)
                 `)
-                .eq('user_id', user?.id);
+                .eq('user_id', user?.id)
+                .eq('positions.organization_id', user?.organization_id);
 
             const positionIds = userPos?.map(p => p.position_id) || [];
             const departmentIds = userPos?.map(p => (p.positions as any)?.department_id).filter(Boolean) || [];
@@ -47,6 +48,7 @@ export function useExecution() {
                     activities (*)
                 `)
                 .eq('status', 'active')
+                .eq('organization_id', user?.organization_id)
                 .or(filter)
                 .order('created_at', { ascending: false });
 
@@ -539,20 +541,45 @@ export function useExecution() {
         }
 
         if (activity.assignment_type === 'specific_user') {
-            result.assigned_user_id = activity.assigned_user_id || null;
+            // Check if specific user belongs to the current organization
+            const userId = activity.assigned_user_id;
+            if (userId && orgId) {
+                const { data: userInOrg } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', userId)
+                    .eq('organization_id', orgId)
+                    .maybeSingle();
+
+                if (!userInOrg) {
+                    console.warn(`Attempted to assign user ${userId} who is not in organization ${orgId}. Reverting to group/manual.`);
+                    return result;
+                }
+            }
+            result.assigned_user_id = userId || null;
             return result;
         }
 
         if (activity.assignment_type === 'department' || activity.assignment_type === 'position' || activity.assignment_type === 'department_and_position') {
             const strategy = activity.assignment_strategy || 'manual';
 
-            // Obtener colaboradores con sus detalles de cargo para el costo u otros filtros
-            let query = supabase.from('employee_positions').select('user_id, position_id, positions(hourly_rate, department_id)');
+            // Obtener colaboradores con sus detalles de cargo filtrando SIEMPRE por la organización del trámite
+            let query = supabase
+                .from('employee_positions')
+                .select('user_id, position_id, positions!inner(hourly_rate, department_id, organization_id)');
+
+            if (orgId) {
+                query = query.eq('positions.organization_id', orgId);
+            }
 
             if (activity.assignment_type === 'position' && activity.assigned_position_id) {
                 query = query.eq('position_id', activity.assigned_position_id);
             } else if (activity.assignment_type === 'department' && activity.assigned_department_id) {
-                const { data: positions } = await supabase.from('positions').select('id').eq('department_id', activity.assigned_department_id);
+                let posQuery = supabase.from('positions').select('id').eq('department_id', activity.assigned_department_id);
+                if (orgId) posQuery = posQuery.eq('organization_id', orgId);
+
+                const { data: positions } = await posQuery;
+
                 if (positions && positions.length > 0) {
                     query = query.in('position_id', positions.map(p => p.id));
                 } else {
@@ -562,10 +589,12 @@ export function useExecution() {
                 if (activity.assigned_position_id) {
                     query = query.eq('position_id', activity.assigned_position_id);
                 }
-                // En teoría, si piden un cargo, el cargo ya pertenece a un área, 
-                // pero filtramos extra para seguridad y exactitud.
                 if (activity.assigned_department_id) {
-                    const { data: positions } = await supabase.from('positions').select('id').eq('department_id', activity.assigned_department_id);
+                    let posQuery = supabase.from('positions').select('id').eq('department_id', activity.assigned_department_id);
+                    if (orgId) posQuery = posQuery.eq('organization_id', orgId);
+
+                    const { data: positions } = await posQuery;
+
                     if (positions && positions.length > 0) {
                         query = query.in('position_id', positions.map(p => p.id));
                     } else {

@@ -138,7 +138,7 @@ function AppContent() {
         </div>
       )}
       {activeSection === 'search' && (
-        <div className="h-[calc(100vh-9rem)]">
+        <div className="h-[calc(100vh-7rem)]">
           <ProcessSearch onAttendTask={(id) => setExecutingProcessId(id)} />
         </div>
       )}

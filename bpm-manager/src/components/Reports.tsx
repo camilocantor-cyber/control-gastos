@@ -302,6 +302,7 @@ export function Reports() {
     // Tab State
     const [activeTab, setActiveTab] = useState<'operation' | 'flow' | 'efficiency' | 'bim' | 'costs' | 'predictions'>('operation');
     const [deptEfficiencyData, setDeptEfficiencyData] = useState<any[]>([]);
+    const [userStats, setUserStats] = useState<{ name: string; created: number; completed: number }[]>([]);
 
     useEffect(() => {
         loadWorkflows();
@@ -342,7 +343,7 @@ export function Reports() {
             // 1. Fetch Process Instances
             let query = supabase
                 .from('process_instances')
-                .select(`id, status, created_at, workflow_id, workflows (name)`);
+                .select(`id, status, created_at, workflow_id, workflows (name), profiles(full_name, email)`);
 
             if (user?.organization_id) {
                 query = query.eq('organization_id', user.organization_id);
@@ -379,6 +380,18 @@ export function Reports() {
                 }
             });
             setStatsData(Object.values(statsMap));
+
+            // User stats
+            const userMap: Record<string, { name: string; created: number; completed: number }> = {};
+            instances?.forEach((instance: any) => {
+                const profile = instance.profiles;
+                const name = profile?.full_name || profile?.email || 'Sin asignar';
+                if (!userMap[name]) userMap[name] = { name, created: 0, completed: 0 };
+                userMap[name].created++;
+                if (instance.status === 'completed') userMap[name].completed++;
+            });
+            const sortedUsers = Object.values(userMap).sort((a, b) => b.created - a.created).slice(0, 10);
+            setUserStats(sortedUsers);
 
             // Helper to get Active tasks count and expiration status
             const instanceIds = new Set(instances?.map((i: any) => i.id));
@@ -1051,7 +1064,7 @@ export function Reports() {
                             </div>
                         </div>
 
-                        {/* Chart 4: Completion Trend (Line Chart) */}
+                        {/* Chart 4: Completion Trend */}
                         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2">
                             <div className="mb-4">
                                 <h3 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
@@ -1092,6 +1105,99 @@ export function Reports() {
                                 ) : (
                                     <div className="h-full flex items-center justify-center text-slate-400 text-[10px] font-bold">
                                         <p>No hay datos de tendencia disponibles</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Chart 5: Trámites por Usuario */}
+                        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2">
+                            <div className="mb-4">
+                                <h3 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                                    <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                    Trámites por Usuario
+                                </h3>
+                            </div>
+                            <div className="h-[260px] w-full">
+                                {userStats.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart
+                                            data={userStats}
+                                            margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={document.documentElement.classList.contains('dark') ? "#1e293b" : "#f1f5f9"} />
+                                            <XAxis
+                                                dataKey="name"
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: "#94a3b8", fontSize: 9, fontWeight: 700 }}
+                                                angle={-30}
+                                                textAnchor="end"
+                                                interval={0}
+                                            />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} />
+                                            <Tooltip
+                                                cursor={{ fill: 'transparent' }}
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                            />
+                                            <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                                            <Bar dataKey="created" name="Creados" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={22} />
+                                            <Bar dataKey="completed" name="Completados" fill="#10b981" radius={[4, 4, 0, 0]} barSize={22} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-slate-400 text-[10px] font-bold">
+                                        <p>Sin datos de usuario disponibles</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Chart 6: Tiempo Promedio por Flujo */}
+                        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2">
+                            <div className="mb-4">
+                                <h3 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                    Tiempo Promedio de Resolución por Flujo
+                                </h3>
+                                <p className="text-[9px] text-slate-400 mt-0.5">En horas · Verde &lt;24h · Ámbar 24-48h · Rojo &gt;48h</p>
+                            </div>
+                            <div className="h-[220px] w-full">
+                                {avgResolutionTimeByWorkflow.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart
+                                            data={avgResolutionTimeByWorkflow}
+                                            layout="vertical"
+                                            margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={document.documentElement.classList.contains('dark') ? "#1e293b" : "#f1f5f9"} />
+                                            <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} unit="h" />
+                                            <YAxis
+                                                type="category"
+                                                dataKey="workflow_name"
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: "#94a3b8", fontSize: 9, fontWeight: 700 }}
+                                                width={120}
+                                            />
+                                            <Tooltip
+                                                cursor={{ fill: 'transparent' }}
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                formatter={(value: any) => [`${Number(value).toFixed(1)}h`, 'Promedio']}
+                                            />
+                                            <Bar dataKey="avg_hours" name="Horas Promedio" radius={[0, 4, 4, 0]} barSize={18}>
+                                                {avgResolutionTimeByWorkflow.map((entry, index) => (
+                                                    <Cell
+                                                        key={`cell-${index}`}
+                                                        fill={entry.avg_hours > 48 ? '#ef4444' : entry.avg_hours > 24 ? '#f59e0b' : '#10b981'}
+                                                    />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-slate-400 text-[10px] font-bold">
+                                        <p>Sin datos de resolución disponibles</p>
                                     </div>
                                 )}
                             </div>
