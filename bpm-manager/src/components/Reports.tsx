@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import {
     PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Treemap,
@@ -304,6 +304,18 @@ export function Reports() {
     const [deptEfficiencyData, setDeptEfficiencyData] = useState<any[]>([]);
     const [userStats, setUserStats] = useState<{ name: string; created: number; completed: number }[]>([]);
 
+    const calculatedDateFilter = useMemo(() => {
+        const now = new Date();
+        if (dateRange === 'month') {
+            now.setMonth(now.getMonth() - 1);
+            return now.toISOString();
+        } else if (dateRange === 'week') {
+            now.setDate(now.getDate() - 7);
+            return now.toISOString();
+        }
+        return null;
+    }, [dateRange]);
+
     useEffect(() => {
         loadWorkflows();
     }, []);
@@ -329,17 +341,6 @@ export function Reports() {
         try {
             setLoading(true);
 
-            // Calculate Date Filter
-            let dateFilter = null;
-            const now = new Date();
-            if (dateRange === 'month') {
-                now.setMonth(now.getMonth() - 1);
-                dateFilter = now.toISOString();
-            } else if (dateRange === 'week') {
-                now.setDate(now.getDate() - 7);
-                dateFilter = now.toISOString();
-            }
-
             // 1. Fetch Process Instances
             let query = supabase
                 .from('process_instances')
@@ -353,7 +354,7 @@ export function Reports() {
                 query = query.or(`created_by.eq.${user.id},assigned_user_id.eq.${user.id},current_assigned_user_id.eq.${user.id}`);
             }
 
-            if (dateFilter) query = query.gte('created_at', dateFilter);
+            if (calculatedDateFilter) query = query.gte('created_at', calculatedDateFilter);
             if (selectedWorkflowId) query = query.eq('workflow_id', selectedWorkflowId);
 
             const { data: instances, error } = await query;
@@ -405,7 +406,7 @@ export function Reports() {
                     .from('process_history')
                     .select(`activity_id, created_at, action, process_id, activities (name, workflow_id, due_date_hours, workflows(name))`);
 
-                if (dateFilter) historyQuery = historyQuery.gte('created_at', dateFilter);
+                if (calculatedDateFilter) historyQuery = historyQuery.gte('created_at', calculatedDateFilter);
                 historyQuery = historyQuery.in('process_id', instanceIdsArray);
 
                 const { data, error: historyError } = await historyQuery;
@@ -1210,7 +1211,14 @@ export function Reports() {
             {
                 activeTab === 'flow' && (
                     <div className="animate-in slide-in-from-bottom-5 duration-500">
-                        <WorkflowHeatmap workflowId={selectedWorkflowId || undefined} />
+                        <WorkflowHeatmap
+                            workflowId={selectedWorkflowId || undefined}
+                            startDate={calculatedDateFilter}
+                            onViewCost={(id) => {
+                                setSelectedWorkflowId(id);
+                                setActiveTab('costs');
+                            }}
+                        />
                     </div>
                 )
             }

@@ -102,10 +102,10 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                                     className="p-2.5 bg-slate-50 dark:bg-slate-800/20 rounded-xl border border-slate-100 dark:border-slate-800/40 hover:border-orange-500/20 transition-colors"
                                 >
                                     <div className="flex justify-between items-start mb-1 min-w-0">
-                                        <p className="text-[9px] font-black text-slate-505 dark:text-slate-400 truncate max-w-[80%]">{wf.workflow_name}</p>
+                                        <p className="text-[8.5px] font-black text-slate-500 dark:text-slate-400 truncate max-w-[85%]">{wf.workflow_name}</p>
                                         <span className="text-[8px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-1 rounded whitespace-nowrap">{wf.count}</span>
                                     </div>
-                                    <p className="text-base font-black text-slate-900 dark:text-white leading-none">{formatTime(wf.avg_hours)}</p>
+                                    <p className="text-[13px] font-black text-slate-900 dark:text-white leading-none">{formatTime(wf.avg_hours)}</p>
                                     <div className="mt-1.5 w-full h-1 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-orange-500 rounded-full"

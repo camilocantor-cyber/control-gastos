@@ -14,8 +14,13 @@ import {
     Key,
     X,
     CheckCircle2,
-    Clock
+    Clock,
+    Lock,
+    ShieldCheck,
+    Fingerprint,
+    ArrowRight
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '../utils/cn';
 
 interface AuthAccount {
@@ -37,6 +42,12 @@ export function SystemAccounts() {
     const [newName, setNewName] = useState('');
     const [newPassword, setNewPassword] = useState('Bpm123456!');
     const [currentUser, setCurrentUser] = useState<any>(null);
+
+    // Personal Change Password States
+    const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+    const [selfNewPassword, setSelfNewPassword] = useState('');
+    const [selfConfirmPassword, setSelfConfirmPassword] = useState('');
+    const [updatingSelf, setUpdatingSelf] = useState(false);
 
     useEffect(() => {
         fetchAccounts();
@@ -267,8 +278,82 @@ export function SystemAccounts() {
         acc.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (selfNewPassword.length < 6) {
+            toast.error('La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        if (selfNewPassword !== selfConfirmPassword) {
+            toast.error('Las contraseñas no coinciden');
+            return;
+        }
+
+        setUpdatingSelf(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: selfNewPassword
+            });
+
+            if (error) throw error;
+
+            toast.success('¡Contraseña actualizada correctamente!');
+            setShowChangePasswordModal(false);
+            setSelfNewPassword('');
+            setSelfConfirmPassword('');
+        } catch (error: any) {
+            toast.error('Error al actualizar: ' + error.message);
+        } finally {
+            setUpdatingSelf(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Personal Profile Section */}
+            <div className="bg-gradient-to-br from-indigo-600 via-blue-700 to-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-200/20 dark:shadow-none mb-8 relative overflow-hidden group border border-white/10">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-all duration-700 group-hover:rotate-12 translate-x-10 -translate-y-10 group-hover:translate-x-0 group-hover:translate-y-0">
+                    <Fingerprint className="w-64 h-64" />
+                </div>
+
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+
+                <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+                    <div className="relative">
+                        <div className="w-28 h-28 bg-white/10 backdrop-blur-2xl rounded-[2.2rem] flex items-center justify-center text-4xl font-black border border-white/20 shadow-2xl relative z-10">
+                            {currentUser?.email?.[0].toUpperCase() || 'U'}
+                        </div>
+                        <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 rounded-2xl border-4 border-indigo-600 flex items-center justify-center z-20 shadow-lg">
+                            <ShieldCheck className="w-5 h-5 text-white" />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 text-center md:text-left space-y-4">
+                        <div>
+                            <p className="text-blue-200/60 text-[10px] font-black uppercase tracking-[0.3em] mb-2 leading-none">Mi Perfil de Seguridad</p>
+                            <h2 className="text-4xl font-black mb-1 leading-none tracking-tight uppercase">Dashboard Privado</h2>
+                            <p className="text-blue-100/70 font-bold text-sm">{currentUser?.email}</p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
+                            <button
+                                onClick={() => setShowChangePasswordModal(true)}
+                                className="bg-white/95 text-indigo-600 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 shadow-xl shadow-indigo-900/40"
+                            >
+                                <Lock className="w-3.5 h-3.5" />
+                                Cambiar mi contraseña
+                            </button>
+                            <div className="px-6 py-3.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                                Cuenta Verificada
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Unified Action Bar */}
             <header className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="flex-1 max-w-sm relative group ml-2">
@@ -533,6 +618,79 @@ export function SystemAccounts() {
                                     {loading ? 'Procesando...' : 'Crear Cuenta'}
                                 </button>
                             </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Password Modal */}
+            {showChangePasswordModal && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 rounded-[3rem] w-full max-w-md shadow-2xl p-12 border border-white/10 dark:border-slate-800 relative overflow-hidden">
+                        {/* Decorative background */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -ml-16 -mb-16"></div>
+
+                        <div className="flex justify-between items-center mb-10 relative z-10">
+                            <div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-indigo-600 rounded-xl text-white">
+                                        <Lock className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">Seguridad</h3>
+                                </div>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">Actualiza tu contraseña de acceso</p>
+                            </div>
+                            <button onClick={() => setShowChangePasswordModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all active:scale-90">
+                                <X className="text-slate-400 w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleChangePassword} className="space-y-8 relative z-10">
+                            <div className="space-y-3">
+                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] pl-1">Nueva Contraseña</label>
+                                <div className="relative group">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-indigo-500 transition-all" />
+                                    <input
+                                        type="password"
+                                        required
+                                        value={selfNewPassword}
+                                        onChange={e => setSelfNewPassword(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-4.5 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-50 dark:border-slate-800 rounded-[1.5rem] focus:outline-none focus:border-indigo-500/30 focus:bg-white dark:focus:bg-slate-800 transition-all font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                        placeholder="••••••••••••"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] pl-1">Confirmar Contraseña</label>
+                                <div className="relative group">
+                                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-indigo-500 transition-all" />
+                                    <input
+                                        type="password"
+                                        required
+                                        value={selfConfirmPassword}
+                                        onChange={e => setSelfConfirmPassword(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-4.5 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-50 dark:border-slate-800 rounded-[1.5rem] focus:outline-none focus:border-indigo-500/30 focus:bg-white dark:focus:bg-slate-800 transition-all font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                        placeholder="••••••••••••"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={updatingSelf}
+                                className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 dark:shadow-indigo-900/20 text-xs tracking-[0.2em] uppercase active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
+                            >
+                                {updatingSelf ? (
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <>
+                                        Actualizar Ahora
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </button>
                         </form>
                     </div>
                 </div>

@@ -10,11 +10,12 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-function HeaderNavButton({ active, onClick, icon: Icon, label, color }: { active?: boolean, onClick: () => void, icon: any, label: string, color: 'blue' | 'emerald' | 'indigo' }) {
+function HeaderNavButton({ active, onClick, icon: Icon, label, color }: { active?: boolean, onClick: () => void, icon: any, label: string, color: 'blue' | 'emerald' | 'indigo' | 'vibrant' }) {
     const colors = {
         blue: active ? "text-blue-600 bg-blue-50 dark:bg-blue-400/20 dark:text-blue-300" : "text-slate-500 hover:text-blue-600 hover:bg-blue-50/50 dark:text-slate-400 dark:hover:text-blue-300",
         emerald: active ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-400/20 dark:text-emerald-300" : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50/50 dark:text-slate-400 dark:hover:text-emerald-300",
         indigo: active ? "text-indigo-600 bg-indigo-50 dark:bg-indigo-400/20 dark:text-indigo-300" : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50 dark:text-slate-400 dark:hover:text-indigo-300",
+        vibrant: active ? "text-white bg-emerald-600 shadow-emerald-200/50" : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 border-emerald-100 dark:border-emerald-500/20",
     };
 
     return (
@@ -401,7 +402,7 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                                 onClick={onNewProcess || (() => { })}
                                 icon={Plus}
                                 label="Nuevo"
-                                color="blue"
+                                color="vibrant"
                             />
                             <HeaderNavButton
                                 active={activeSection === 'search'}
@@ -440,8 +441,12 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                                     <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
                                     <div className="absolute top-full right-0 mt-3 w-64 bg-white dark:bg-[#0d111d] border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl p-6 z-50 animate-in fade-in zoom-in duration-200">
                                         <div className="flex flex-col items-center text-center mb-6">
-                                            <div className="w-16 h-16 rounded-[2rem] bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-2xl mb-4 border border-blue-100 dark:border-blue-800/50">
-                                                {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                                            <div className="w-16 h-16 rounded-[2rem] bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-2xl mb-4 border border-blue-100 dark:border-blue-800/50 overflow-hidden shadow-inner">
+                                                {currentOrg?.logo_url ? (
+                                                    <img src={currentOrg.logo_url} alt="Logo" className="w-full h-full object-contain p-2" />
+                                                ) : (
+                                                    profile?.full_name?.[0]?.toUpperCase() || 'U'
+                                                )}
                                             </div>
                                             <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">{profile?.full_name}</h3>
                                             <p className="text-xs text-slate-400 font-medium mb-4">{user?.email}</p>
@@ -465,15 +470,23 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                                                     onSectionChange('accounts');
                                                     setShowProfileMenu(false);
                                                 }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                                                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all group/item border border-transparent hover:border-blue-100 dark:hover:border-blue-800/50 active:scale-95 shadow-sm hover:shadow-blue-200/10"
                                             >
-                                                <Fingerprint className="w-4 h-4" /> Mi Perfil
+                                                <div className="flex items-center gap-3">
+                                                    <Fingerprint className="w-4 h-4 group-hover/item:rotate-12 transition-transform" />
+                                                    Mi Perfil
+                                                </div>
+                                                <ChevronRight className="w-3 h-3 opacity-0 group-hover/item:opacity-100 translate-x-2 group-hover/item:translate-x-0 transition-all" />
                                             </button>
                                             <button
                                                 onClick={signOut}
-                                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+                                                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all group/item border border-transparent hover:border-rose-100 dark:hover:border-rose-900/30 active:scale-95"
                                             >
-                                                <LogOut className="w-4 h-4" /> Cerrar Sesión
+                                                <div className="flex items-center gap-3">
+                                                    <LogOut className="w-4 h-4 group-hover/item:-translate-x-1 transition-transform" />
+                                                    Cerrar Sesión
+                                                </div>
+                                                <ChevronRight className="w-3 h-3 opacity-0 group-hover/item:opacity-100 translate-x-2 group-hover/item:translate-x-0 transition-all" />
                                             </button>
                                         </div>
                                     </div>

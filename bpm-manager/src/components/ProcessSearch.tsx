@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { ProcessViewerModal } from './ProcessViewerModal';
 import { ProcessTable } from './ProcessTable';
 import { useAuth } from '../hooks/useAuth';
+import { useExecution } from '../hooks/useExecution';
 
 export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string) => void }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -21,6 +22,7 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
     const [pageSize, setPageSize] = useState(10);
     const [viewingProcessId, setViewingProcessId] = useState<string | null>(null);
     const { user } = useAuth();
+    const { deleteProcessInstance } = useExecution();
 
     useEffect(() => {
         if (user) {
@@ -63,7 +65,7 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
 
             let query = supabase
                 .from('process_instances')
-                .select('*, workflows(name), activities(name, type), profiles(full_name, email)')
+                .select('*, workflows(name), activities(name, type), profiles(full_name, email), process_data:process_data(count)')
                 .order('created_at', { ascending: false });
 
             if (user?.organization_id) {
@@ -118,6 +120,15 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleToDelete(id: string) {
+        const result = await deleteProcessInstance(id);
+        if (result.success) {
+            loadProcesses();
+        } else {
+            alert('Error al eliminar: ' + result.error);
         }
     }
 
@@ -245,6 +256,7 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
                 onPageSizeChange={setPageSize}
                 searchQuery={searchQuery}
                 onReload={loadProcesses}
+                onDelete={handleToDelete}
             />
 
             {/* Process Viewer Modal */}

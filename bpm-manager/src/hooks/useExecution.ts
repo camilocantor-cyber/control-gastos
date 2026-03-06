@@ -45,7 +45,8 @@ export function useExecution() {
                 .select(`
                     *,
                     workflows (name, description),
-                    activities (*)
+                    activities (*),
+                    process_data:process_data(count)
                 `)
                 .eq('status', 'active')
                 .eq('organization_id', user?.organization_id)
@@ -298,7 +299,7 @@ export function useExecution() {
                     // Fetch organization settings
                     const { data: orgData } = await supabase
                         .from('organizations')
-                        .select('settings')
+                        .select('settings, logo_url')
                         .eq('id', instance?.organization_id)
                         .single();
 
@@ -319,7 +320,7 @@ export function useExecution() {
                     }
 
                     if (allSteps.length > 0) {
-                        const actionResult = await executeServiceTask(allSteps, context, orgData?.settings || {});
+                        const actionResult = await executeServiceTask(allSteps, context, { ...(orgData?.settings || {}), logo_url: orgData?.logo_url });
 
                         if (!actionResult.success) {
                             await supabase.from('process_history').insert({
@@ -376,7 +377,8 @@ export function useExecution() {
         const { data, error } = await supabase
             .from('activity_field_definitions')
             .select('*')
-            .eq('activity_id', activityId);
+            .eq('activity_id', activityId)
+            .order('order_index', { ascending: true, nullsFirst: false });
         if (error) throw error;
         return data;
     }
@@ -720,12 +722,38 @@ export function useExecution() {
         return result;
     }
 
+    async function deleteProcessInstance(processId: string) {
+        try {
+            setLoading(true);
+            // 1. Delete associated data first (though there should be none if unused, for safety)
+            await supabase.from('process_data').delete().eq('process_id', processId);
+            await supabase.from('process_history').delete().eq('process_id', processId);
+            await supabase.from('process_attachments').delete().eq('process_instance_id', processId);
+            await supabase.from('process_bim_states').delete().eq('process_id', processId);
+
+            // 2. Delete the instance
+            const { error } = await supabase
+                .from('process_instances')
+                .delete()
+                .eq('id', processId);
+
+            if (error) throw error;
+            return { success: true };
+        } catch (err: any) {
+            setError(err.message);
+            return { success: false, error: err.message };
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return {
         loading,
         error,
         getActiveTasks,
         startProcess,
         advanceProcess,
+        deleteProcessInstance,
         getFieldDefinitions,
         getProcessData,
         saveProcessData,

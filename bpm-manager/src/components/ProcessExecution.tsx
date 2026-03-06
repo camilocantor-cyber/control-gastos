@@ -603,7 +603,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         <div className="fixed inset-0 z-[60] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300">
             <div className="bg-white dark:bg-slate-950 rounded-[2.5rem] w-full max-w-7xl h-[90vh] flex flex-col shadow-2xl border border-white/10 dark:border-slate-800 overflow-hidden relative">
                 {/* Header */}
-                <div className="px-10 py-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900/50 backdrop-blur-xl z-20">
+                <div className="px-10 py-8 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-white dark:bg-slate-950/80 backdrop-blur-xl z-20">
                     <div className="flex items-center gap-6">
                         <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-200 dark:shadow-blue-900/20">
                             <GitBranch className="w-7 h-7 text-white" />
@@ -735,7 +735,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                     </div>
                 </div>
 
-                <div className="flex-1 flex overflow-hidden bg-slate-200/50 dark:bg-[#080a0f]">
+                <div className="flex-1 flex overflow-hidden bg-slate-200/50 dark:bg-[#020408]">
                     {/* Main Form Area */}
                     <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
                         <div className={clsx(
@@ -774,7 +774,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                             </div>
 
                             {activeTab === 'main' ? (
-                                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none animate-in fade-in duration-300">
+                                <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800/50 shadow-xl shadow-slate-200/50 dark:shadow-none animate-in fade-in duration-300">
                                     <div className="flex items-center gap-3 mb-8">
                                         <Info className="w-5 h-5 text-blue-600" />
                                         <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Información de la Actividad</h3>
@@ -805,15 +805,23 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             <textarea
                                                                 value={formData[field.name] || ''}
                                                                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                                                                className="w-full bg-slate-50/50 dark:bg-slate-900/50 border-2 border-blue-100/50 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 outline-none min-h-[120px] transition-all resize-none shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800/80"
+                                                                className={clsx(
+                                                                    "w-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-blue-100/50 dark:border-slate-700/60 rounded-xl p-3 text-xs text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 outline-none min-h-[120px] transition-all resize-none shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600/50",
+                                                                    field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none grayscale-[0.3]"
+                                                                )}
                                                                 placeholder={field.placeholder || `Ingrese ${field.label || field.name}...`}
+                                                                readOnly={field.is_readonly}
                                                             />
                                                         ) : field.type === 'select' ? (
                                                             <div className="relative group w-full h-full">
                                                                 <select
                                                                     value={formData[field.name] || ''}
-                                                                    onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                                                                    className="w-full h-full bg-slate-50/50 dark:bg-slate-900/50 border-2 border-blue-100/50 dark:border-slate-800 rounded-xl px-4 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer shadow-sm pr-10 font-bold hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800/80"
+                                                                    onChange={(e) => !field.is_readonly && setFormData({ ...formData, [field.name]: e.target.value })}
+                                                                    disabled={field.is_readonly}
+                                                                    className={clsx(
+                                                                        "w-full h-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-blue-100/50 dark:border-slate-700/60 rounded-xl px-4 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer shadow-sm pr-10 font-bold hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600/50",
+                                                                        field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                                    )}
                                                                 >
                                                                     <option value="">Seleccione...</option>
                                                                     {field.options?.map((opt: string) => (
@@ -842,16 +850,24 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                             setFormData({ ...formData, [field.name]: val });
                                                                         }
                                                                     }}
-                                                                    className="w-full h-full bg-slate-50/50 dark:bg-slate-900/50 border-2 border-blue-100/50 dark:border-slate-800 rounded-xl pl-8 pr-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800/80"
+                                                                    className={clsx(
+                                                                        "w-full h-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-blue-100/50 dark:border-slate-700/60 rounded-xl pl-8 pr-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600/50",
+                                                                        field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                                    )}
                                                                     placeholder="0.00"
+                                                                    readOnly={field.is_readonly}
                                                                 />
                                                             </div>
                                                         ) : field.type === 'provider' ? (
                                                             <div className="relative group w-full h-full">
                                                                 <select
                                                                     value={formData[field.name] || ''}
-                                                                    onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                                                                    className="w-full h-full bg-slate-50/50 dark:bg-slate-900/50 border-2 border-blue-100/50 dark:border-slate-800 rounded-xl px-4 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer shadow-sm pr-10 font-bold hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800/80"
+                                                                    onChange={(e) => !field.is_readonly && setFormData({ ...formData, [field.name]: e.target.value })}
+                                                                    disabled={field.is_readonly}
+                                                                    className={clsx(
+                                                                        "w-full h-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-blue-100/50 dark:border-slate-700/60 rounded-xl px-4 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer shadow-sm pr-10 font-bold hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600/50",
+                                                                        field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                                    )}
                                                                 >
                                                                     <option value="">Seleccione...</option>
                                                                     {providers.map(p => (
@@ -865,17 +881,23 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                 type="date"
                                                                 value={formData[field.name] || ''}
                                                                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                                                                className="w-full h-full bg-slate-50/50 dark:bg-slate-900/50 border-2 border-blue-100/50 dark:border-slate-800 rounded-xl px-4 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm font-bold hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800/80"
+                                                                readOnly={field.is_readonly}
+                                                                className={clsx(
+                                                                    "w-full h-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-blue-100/50 dark:border-slate-700/80 rounded-xl px-4 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm font-bold hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700/50",
+                                                                    field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                                )}
                                                             />
                                                         ) : field.type === 'boolean' ? (
                                                             <button
                                                                 type="button"
-                                                                onClick={() => setFormData({ ...formData, [field.name]: formData[field.name] === 'true' ? 'false' : 'true' })}
+                                                                onClick={() => !field.is_readonly && setFormData({ ...formData, [field.name]: formData[field.name] === 'true' ? 'false' : 'true' })}
+                                                                disabled={field.is_readonly}
                                                                 className={clsx(
                                                                     "flex items-center gap-2.5 w-full h-full px-4 rounded-xl border-2 transition-all shadow-sm outline-none hover:shadow-md dark:hover:border-blue-500/30",
                                                                     formData[field.name] === 'true'
                                                                         ? "bg-blue-50/50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/50 dark:text-blue-400"
-                                                                        : "bg-slate-50/40 border-blue-100/50 text-slate-400 dark:bg-slate-900/50 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500/20"
+                                                                        : "bg-slate-50/40 border-blue-100/50 text-slate-400 dark:bg-slate-900/50 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500/20",
+                                                                    field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 grayscale"
                                                                 )}
                                                             >
                                                                 <div className={clsx(
@@ -891,11 +913,12 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                         ) : field.type === 'lookup' ? (
                                                             <div className="h-auto">
                                                                 <InteractiveLookup
-                                                                    field={field}
+                                                                    field={{ ...field, is_readonly: field.is_readonly }}
                                                                     value={formData[field.name]}
-                                                                    onChange={(val: any) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                    onChange={(val: any) => !field.is_readonly && setFormData(prev => ({ ...prev, [field.name]: val }))}
                                                                     formData={formData}
                                                                     setFormData={setFormData}
+                                                                    disabled={field.is_readonly}
                                                                 />
                                                             </div>
                                                         ) : field.type === 'location' ? (
@@ -910,7 +933,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                 type="text"
                                                                 readOnly
                                                                 value={formData[field.name] || 'XXX-####'}
-                                                                className="w-full h-full bg-slate-100 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-800 rounded-2xl px-4 text-sm text-slate-500 dark:text-slate-400 font-bold border-dashed cursor-not-allowed selection:bg-transparent"
+                                                                className="w-full h-full bg-slate-100 dark:bg-slate-950/60 border-2 border-slate-200 dark:border-slate-700/80 rounded-2xl px-4 text-sm text-slate-500 dark:text-slate-400 font-bold border-dashed cursor-not-allowed selection:bg-transparent"
                                                                 title="Este valor fue generado automáticamente"
                                                             />
                                                         ) : (
@@ -918,7 +941,11 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                 type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
                                                                 value={formData[field.name] || ''}
                                                                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                                                                className="w-full h-full bg-slate-50/50 dark:bg-slate-900/50 border-2 border-blue-100/50 dark:border-slate-800 rounded-2xl px-4 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm font-bold placeholder:font-normal placeholder:text-slate-400 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800/80"
+                                                                readOnly={field.is_readonly}
+                                                                className={clsx(
+                                                                    "w-full h-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-blue-100/50 dark:border-slate-700/80 rounded-2xl px-4 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm font-bold placeholder:font-normal placeholder:text-slate-400 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700/50",
+                                                                    field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                                )}
                                                                 placeholder={field.placeholder || `Completar ${field.label || field.name}...`}
                                                             />
                                                         )}

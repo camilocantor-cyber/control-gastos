@@ -3,11 +3,13 @@ import { ChevronRight, CheckCircle2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { evaluateCondition } from '../utils/conditions';
 import { GeoSelector } from './GeoSelector';
+import { InteractiveLookup } from './InteractiveLookup';
 
 export function DynamicForm({ fields, data, onChange }: { fields: any[], data: any, onChange: (k: string, v: any) => void }) {
+    const sortedFields = [...fields].sort((a, b) => (Number(a.order_index ?? 9999) - Number(b.order_index ?? 9999)));
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            {fields.map((field) => (
+            {sortedFields.map((field) => (
                 <div
                     key={field.name}
                     className={clsx(
@@ -26,17 +28,25 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                             <textarea
                                 value={data[field.name] || ''}
                                 onChange={(e) => onChange(field.name, e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl p-3 text-[13px] text-slate-700 dark:text-slate-200 outline-none min-h-[120px] transition-all resize-none focus:border-blue-500/50"
+                                className={clsx(
+                                    "w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl p-3 text-[13px] text-slate-700 dark:text-slate-200 outline-none min-h-[120px] transition-all resize-none focus:border-blue-500/50",
+                                    field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none grayscale-[0.3]"
+                                )}
                                 placeholder={field.placeholder || `Ingrese ${field.label || field.name}...`}
                                 required={field.required}
+                                readOnly={field.is_readonly}
                             />
                         ) : field.type === 'select' ? (
                             <div className="relative group w-full h-full">
                                 <select
                                     value={data[field.name] || ''}
                                     onChange={(e) => onChange(field.name, e.target.value)}
-                                    className="w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer font-bold"
+                                    className={clsx(
+                                        "w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer font-bold",
+                                        field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none"
+                                    )}
                                     required={field.required}
+                                    disabled={field.is_readonly}
                                 >
                                     <option value="">Seleccione...</option>
                                     {field.options?.map((opt: string) => (
@@ -48,12 +58,14 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                         ) : field.type === 'boolean' ? (
                             <button
                                 type="button"
-                                onClick={() => onChange(field.name, data[field.name] === 'true' ? 'false' : 'true')}
+                                onClick={() => !field.is_readonly && onChange(field.name, data[field.name] === 'true' ? 'false' : 'true')}
+                                disabled={field.is_readonly}
                                 className={clsx(
                                     "flex items-center gap-3 w-full h-full px-5 rounded-xl border-2 transition-all cursor-pointer",
                                     data[field.name] === 'true'
                                         ? "bg-blue-50/50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/50 dark:text-blue-400"
-                                        : "bg-slate-50 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-800"
+                                        : "bg-slate-50 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-800",
+                                    field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none grayscale"
                                 )}
                             >
                                 <div className={clsx(
@@ -76,9 +88,13 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                                         const val = e.target.value.replace(/\D/g, '');
                                         onChange(field.name, val);
                                     }}
-                                    className="w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all font-bold"
+                                    className={clsx(
+                                        "w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all font-bold",
+                                        field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none"
+                                    )}
                                     placeholder="0"
                                     required={field.required}
+                                    readOnly={field.is_readonly}
                                 />
                             </div>
                         ) : field.type === 'location' ? (
@@ -86,6 +102,17 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                                 <GeoSelector
                                     value={data[field.name]}
                                     onChange={(val) => onChange(field.name, val)}
+                                />
+                            </div>
+                        ) : field.type === 'lookup' ? (
+                            <div className="h-auto">
+                                <InteractiveLookup
+                                    field={field}
+                                    value={data[field.name]}
+                                    onChange={(val) => onChange(field.name, val)}
+                                    formData={data}
+                                    setFormData={() => { }} // DynamicForm onChange handles it
+                                    disabled={field.is_readonly}
                                 />
                             </div>
                         ) : field.type === 'consecutivo' ? (
@@ -100,9 +127,13 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                                 type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'email' ? 'email' : 'text'}
                                 value={data[field.name] || ''}
                                 onChange={(e) => onChange(field.name, e.target.value)}
-                                className="w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all font-bold"
+                                className={clsx(
+                                    "w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all font-bold",
+                                    field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none"
+                                )}
                                 placeholder={field.placeholder || `Completar...`}
                                 required={field.required}
+                                readOnly={field.is_readonly}
                             />
                         )}
                     </div>

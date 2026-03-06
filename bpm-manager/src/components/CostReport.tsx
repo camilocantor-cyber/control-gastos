@@ -1,19 +1,28 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { DollarSign, Layers, Users, Briefcase, ChevronDown, ChevronRight, Activity, GitBranch } from 'lucide-react';
+import { DollarSign, ChevronDown, ChevronRight, Activity, GitBranch, Clock, Filter, Calendar } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, Legend } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
+import { cn } from '../utils/cn';
+import { ProcessCostMap } from './ProcessCostMap';
 
 export function CostReport() {
     const [loading, setLoading] = useState(true);
     const [workflowCosts, setWorkflowCosts] = useState<any[]>([]);
-    const [areaCosts, setAreaCosts] = useState<any[]>([]);
     const [totalCost, setTotalCost] = useState(0);
 
     const { user } = useAuth();
     // Expanded states
     const [expandedWf, setExpandedWf] = useState<string | null>(null);
-    const [expandedDept, setExpandedDept] = useState<string | null>(null);
-    const [expandedPos, setExpandedPos] = useState<string | null>(null);
+
+    // Filter states
+    const [period, setPeriod] = useState<'all' | 'year' | 'month' | 'day'>('month');
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+    const [trendData, setTrendData] = useState<any[]>([]);
+
+    // Date range for child components
+    const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
 
     useEffect(() => {
         if (user?.organization_id) {
@@ -21,7 +30,7 @@ export function CostReport() {
         } else {
             setLoading(false);
         }
-    }, [user?.organization_id]);
+    }, [user?.organization_id, period, selectedDate, selectedMonth]);
 
     const fetchCostData = async () => {
         try {
@@ -29,23 +38,26 @@ export function CostReport() {
 
             if (!user?.organization_id) return;
 
-            const { data: instances } = await supabase
-                .from('process_instances')
-                .select('id')
-                .eq('organization_id', user.organization_id);
+            const now = new Date();
+            let startDate = null;
+            let endDate = null;
 
-            const instanceIds = instances?.map((i: any) => i.id) || [];
-
-            if (instanceIds.length === 0) {
-                setWorkflowCosts([]);
-                setAreaCosts([]);
-                setTotalCost(0);
-                setLoading(false);
-                return;
+            if (period === 'year') {
+                startDate = new Date(now.getFullYear(), 0, 1).toISOString();
+                endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59).toISOString();
+            } else if (period === 'month') {
+                startDate = new Date(now.getFullYear(), selectedMonth, 1).toISOString();
+                endDate = new Date(now.getFullYear(), selectedMonth + 1, 0, 23, 59, 59).toISOString();
+            } else if (period === 'day') {
+                startDate = selectedDate + 'T00:00:00.000Z';
+                endDate = selectedDate + 'T23:59:59.999Z';
             }
 
-            // Fetch History with costs > 0
-            const { data: history, error: historyError } = await supabase
+            setDateRange({ start: startDate, end: endDate });
+
+            // Fetch History Directly joining process_instances to filter by organization
+            // Using a more robust select pattern
+            let historyQuery = supabase
                 .from('process_history')
                 .select(`
                     id, 
@@ -53,99 +65,93 @@ export function CostReport() {
                     time_spent_hours, 
                     user_id,
                     activity_id,
-                    activities (name, workflows(id, name))
+                    created_at,
+                    activities (id, name, workflows(id, name)),
+                    process_instances:process_id!inner(organization_id)
                 `)
                 .gt('step_cost', 0)
-                .in('process_id', instanceIds);
+                .eq('process_instances.organization_id', user.organization_id);
 
+            if (startDate) historyQuery = historyQuery.gte('created_at', startDate);
+            if (endDate) historyQuery = historyQuery.lte('created_at', endDate);
+
+            const { data: history, error: historyError } = await historyQuery;
             if (historyError) throw historyError;
 
-            // Fetch Positions & Users to map user_id -> Dept -> Position -> User Name
-            const { data: employees } = await supabase
-                .from('employee_positions')
-                .select(`
-                    user_id,
-                    user:user_id (full_name),
-                    positions (id, title, departments(id, name))
-                `);
-
             let globalTotal = 0;
+            const wfMap: Record<string, any> = {};
+            const trendMap: Record<string, Record<string, number>> = {};
+            const wfNames = new Set<string>();
 
-            // Maps for grouping
-            const wfMap: Record<string, { id: string, name: string, total: number, activities: Record<string, { name: string, total: number, hours: number }> }> = {};
-            const deptMap: Record<string, { id: string, name: string, total: number, positions: Record<string, { id: string, name: string, total: number, users: Record<string, { name: string, total: number, hours: number }> }> }> = {};
-
-            // Processing History
             (history || []).forEach((h: any) => {
                 const cost = parseFloat(h.step_cost || 0);
                 const hours = parseFloat(h.time_spent_hours || 0);
+                if (isNaN(cost) || cost <= 0) return;
 
-                if (cost > 0) {
-                    globalTotal += cost;
+                globalTotal += cost;
+                const date = h.created_at ? new Date(h.created_at) : new Date();
 
-                    // 1. Group by Workflow -> Activity
-                    const actName = h.activities?.name || 'Desconocida';
-                    const wf = Array.isArray(h.activities?.workflows) ? h.activities?.workflows[0] : h.activities?.workflows;
-                    const wfId = wf?.id || 'unknown';
-                    const wfName = wf?.name || 'Proceso S/N';
+                // 1. Group by Workflow
+                const actName = h.activities?.name || 'Actividad S/N';
+                const wfRaw = h.activities?.workflows;
+                const wf = Array.isArray(wfRaw) ? wfRaw[0] : wfRaw;
+                const wfId = wf?.id || 'unknown';
+                const wfName = wf?.name || 'Proceso S/N';
+                wfNames.add(wfName);
 
-                    if (!wfMap[wfId]) wfMap[wfId] = { id: wfId, name: wfName, total: 0, activities: {} };
-                    wfMap[wfId].total += cost;
-
-                    if (!wfMap[wfId].activities[h.activity_id]) {
-                        wfMap[wfId].activities[h.activity_id] = { name: actName, total: 0, hours: 0 };
-                    }
-                    wfMap[wfId].activities[h.activity_id].total += cost;
-                    wfMap[wfId].activities[h.activity_id].hours += hours;
-
-                    // 2. Group by Department -> Position -> User
-                    // Find employee mapping
-                    const emp = employees?.find(e => e.user_id === h.user_id);
-                    const pos = Array.isArray(emp?.positions) ? emp.positions[0] : emp?.positions;
-                    const dept = pos?.departments;
-
-                    const deptId = (dept as any)?.id || 'unassigned_dept';
-                    const deptName = (dept as any)?.name || 'Sin Área Asignada';
-
-                    const posId = (pos as any)?.id || 'unassigned_pos';
-                    const posName = (pos as any)?.title || 'Sin Cargo Específico';
-
-                    const userName = (emp?.user as any)?.full_name || h.user_id || 'Usuario Desconocido';
-
-                    if (!deptMap[deptId]) deptMap[deptId] = { id: deptId, name: deptName, total: 0, positions: {} };
-                    deptMap[deptId].total += cost;
-
-                    if (!deptMap[deptId].positions[posId]) {
-                        deptMap[deptId].positions[posId] = { id: posId, name: posName, total: 0, users: {} };
-                    }
-                    deptMap[deptId].positions[posId].total += cost;
-
-                    if (!deptMap[deptId].positions[posId].users[h.user_id]) {
-                        deptMap[deptId].positions[posId].users[h.user_id] = { name: userName, total: 0, hours: 0 };
-                    }
-                    deptMap[deptId].positions[posId].users[h.user_id].total += cost;
-                    deptMap[deptId].positions[posId].users[h.user_id].hours += hours;
+                if (!wfMap[wfId]) {
+                    wfMap[wfId] = { id: wfId, name: wfName, total: 0, activities: {} };
                 }
+                wfMap[wfId].total += cost;
+
+                const actId = h.activity_id || 'unknown_act';
+                if (!wfMap[wfId].activities[actId]) {
+                    wfMap[wfId].activities[actId] = { name: actName, total: 0, hours: 0 };
+                }
+                wfMap[wfId].activities[actId].total += cost;
+                wfMap[wfId].activities[actId].hours += hours;
+
+                // 2. Trend Data
+                const monthsNamesSmall = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+                let label = '';
+                if (period === 'year' || period === 'all') {
+                    label = monthsNamesSmall[date.getMonth()];
+                } else if (period === 'month') {
+                    const d = date.getDate();
+                    if (d <= 7) label = 'Semana 1';
+                    else if (d <= 14) label = 'Semana 2';
+                    else if (d <= 21) label = 'Semana 3';
+                    else label = 'Semana 4';
+                } else if (period === 'day') {
+                    label = date.getHours() + ':00';
+                } else {
+                    label = date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+                }
+
+                if (!trendMap[label]) trendMap[label] = {};
+                trendMap[label][wfName] = (trendMap[label][wfName] || 0) + cost;
             });
 
             setTotalCost(globalTotal);
+            setWorkflowCosts(Object.values(wfMap).sort((a, b) => b.total - a.total).map(w => ({
+                ...w,
+                actArr: Object.values(w.activities).sort((a: any, b: any) => b.total - a.total)
+            })));
 
-            // Format arrays and sort
-            const wfs = Object.values(wfMap).sort((a, b) => b.total - a.total);
-            wfs.forEach(w => {
-                (w as any).actArr = Object.values(w.activities).sort((a: any, b: any) => b.total - a.total);
-            });
-            setWorkflowCosts(wfs);
+            const chartLabels = (period === 'year' || period === 'all')
+                ? ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.']
+                : period === 'month'
+                    ? ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4']
+                    : Object.keys(trendMap).sort();
 
-            const depts = Object.values(deptMap).sort((a, b) => b.total - a.total);
-            depts.forEach(d => {
-                const posArr = Object.values(d.positions).sort((a: any, b: any) => b.total - a.total);
-                posArr.forEach((p: any) => {
-                    p.userArr = Object.values(p.users).sort((a: any, b: any) => b.total - a.total);
+            const finalTrend = chartLabels.map(label => {
+                const entry: any = { name: label };
+                wfNames.forEach(name => {
+                    entry[name] = trendMap[label]?.[name] || 0;
                 });
-                (d as any).posArr = posArr;
+                return entry;
             });
-            setAreaCosts(depts);
+            setTrendData(finalTrend);
 
         } catch (err) {
             console.error('Error fetching cost data:', err);
@@ -155,134 +161,155 @@ export function CostReport() {
     };
 
     const formatMoney = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val);
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const periodLabels: any = { all: 'Histórico', year: 'Este Año', month: 'Mes', day: 'Día' };
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center py-20 bg-white/50 dark:bg-slate-900/50 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
+                <div className="relative">
+                    <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                    <DollarSign className="w-5 h-5 text-emerald-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                </div>
+                <p className="mt-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Recalculando Costos...</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
-            {/* KPI Resumen */}
-            <div className="bg-gradient-to-br from-emerald-600 to-green-800 rounded-3xl p-8 text-white shadow-xl shadow-emerald-900/20 relative overflow-hidden">
-                <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div>
-                        <h2 className="text-emerald-100 font-bold uppercase tracking-widest text-xs flex items-center gap-2 mb-2">
-                            <DollarSign className="w-4 h-4" /> Gasto Total Operativo Histórico
-                        </h2>
-                        <div className="text-5xl font-black drop-shadow-md tracking-tighter">
-                            {formatMoney(totalCost)}
+        <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-700 pb-10">
+            {/* Control Bar */}
+            <div className="flex flex-col gap-4 bg-white dark:bg-slate-900/50 p-4 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 ml-2">
+                        <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl text-emerald-600">
+                            <Filter className="w-4 h-4" />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Periodo de Análisis</p>
+                            <p className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-tighter">
+                                {period === 'month' ? monthNames[selectedMonth] : periodLabels[period]}
+                            </p>
                         </div>
                     </div>
+
+                    <div className="flex gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">
+                        {(Object.keys(periodLabels) as Array<'all' | 'year' | 'month' | 'day'>).map((p) => (
+                            <button
+                                key={p}
+                                onClick={() => setPeriod(p)}
+                                className={cn(
+                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
+                                    period === p
+                                        ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-sm border border-slate-200"
+                                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+                                )}
+                            >
+                                {p === 'all' ? 'Todo' : p === 'year' ? 'Año' : p === 'month' ? 'Mes' : 'Día'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {(period === 'day' || period === 'month') && (
+                    <div className="flex items-center gap-3 pl-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        {period === 'day' ? (
+                            <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-[1.2rem] border border-slate-100 dark:border-slate-700">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-[11px] font-bold text-slate-600 dark:text-slate-300 focus:outline-none" />
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                                {monthNames.map((m, idx) => (
+                                    <button
+                                        key={m}
+                                        onClick={() => setSelectedMonth(idx)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tighter transition-all",
+                                            selectedMonth === idx ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" : "bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-slate-600"
+                                        )}
+                                    >
+                                        {m.substring(0, 3)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-auto italic">Selecciona el rango de análisis</p>
+                    </div>
+                )}
+            </div>
+
+            {/* KPI Resumen */}
+            <div className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-slate-900 rounded-[2rem] p-7 text-white shadow-xl shadow-emerald-900/30 relative overflow-hidden group border border-white/10">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-all duration-1000 group-hover:rotate-12 translate-x-12 -translate-y-12">
+                    <DollarSign className="w-64 h-64" />
+                </div>
+                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl" />
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-center md:text-left">
+                        <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
+                            <div className="px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 text-[8px] font-black uppercase tracking-[0.2em]">{periodLabels[period]}</div>
+                            <div className="flex items-center gap-1.5 text-emerald-300"><Clock className="w-3 h-3" /><span className="text-[8px] font-bold uppercase tracking-widest">Gasto Operativo</span></div>
+                        </div>
+                        <h2 className="text-slate-100/60 font-black uppercase tracking-[0.3em] text-[9px] mb-1.5 leading-none">Total Invertido en Procesos</h2>
+                        <div className="text-4xl font-black drop-shadow-xl tracking-tighter bg-gradient-to-r from-white via-white to-emerald-200 bg-clip-text text-transparent">{formatMoney(totalCost)}</div>
+                    </div>
+                    <div className="hidden lg:flex items-center gap-5 p-4 bg-white/5 backdrop-blur-2xl rounded-[2rem] border border-white/10">
+                        <div className="text-center px-3"><p className="text-[8px] font-black text-emerald-300 uppercase tracking-widest mb-1">Flujos</p><p className="text-xl font-black">{workflowCosts.length}</p></div>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Costos por Flujo y Actividad */}
-                <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-                        <GitBranch className="w-4 h-4" /> Costo por Flujo de Trabajo
-                    </h3>
-
+            <div className="flex flex-col gap-6">
+                {/* Workflow Costs */}
+                <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-5">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3"><GitBranch className="w-4 h-4" /> Costo por Flujo</h3>
                     <div className="space-y-3">
-                        {workflowCosts.length === 0 ? (
-                            <p className="text-xs text-slate-500 italic py-4 text-center">No hay datos de costos registrados.</p>
-                        ) : workflowCosts.map(wf => (
+                        {workflowCosts.map(wf => (
                             <div key={wf.id} className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
-                                <button
-                                    onClick={() => setExpandedWf(expandedWf === wf.id ? null : wf.id)}
-                                    className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                >
-                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                        {expandedWf === wf.id ? <ChevronDown className="w-4 h-4 text-emerald-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                                        {wf.name}
-                                    </div>
+                                <button onClick={() => setExpandedWf(expandedWf === wf.id ? null : wf.id)} className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">{expandedWf === wf.id ? <ChevronDown className="w-4 h-4 text-emerald-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}{wf.name}</div>
                                     <span className="font-black text-emerald-600 dark:text-emerald-400">{formatMoney(wf.total)}</span>
                                 </button>
-
                                 {expandedWf === wf.id && (
-                                    <div className="bg-white dark:bg-slate-900 p-3 flex flex-col gap-2">
-                                        {wf.actArr.map((act: any, idx: number) => (
-                                            <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/20 px-3 py-2 rounded-lg ml-6 border-l-2 border-emerald-500/30">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-                                                        <Activity className="w-3 h-3 text-emerald-500" />
-                                                        {act.name}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400">Total: {act.hours.toFixed(1)} hrs facturadas</span>
+                                    <div className="bg-white dark:bg-slate-900 p-4 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4 duration-300">
+                                        {/* Process Cost Map Integration */}
+                                        <div className="mb-8 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-inner bg-slate-50/50 dark:bg-slate-900/50">
+                                            <ProcessCostMap
+                                                workflowId={wf.id}
+                                                startDate={dateRange.start}
+                                                endDate={dateRange.end}
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <Activity className="w-4 h-4 text-emerald-500" />
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Desglose de Actividades</h4>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {wf.actArr.map((act: any, idx: number) => (
+                                                <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/20 px-4 py-3 rounded-2xl border border-slate-100 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                                            <Activity className="w-3 h-3 text-emerald-500/50" />
+                                                            {act.name}
+                                                        </span>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-[10px] text-slate-400 font-medium bg-white/50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700">
+                                                                {act.hours.toFixed(1)} hrs invertidas
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block tabular-nums">
+                                                            {formatMoney(act.total)}
+                                                        </span>
+                                                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Inversión Actividad</span>
+                                                    </div>
                                                 </div>
-                                                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatMoney(act.total)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Costos por Área Organizacional */}
-                <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-                        <Layers className="w-4 h-4" /> Costo por Área y Equipo
-                    </h3>
-
-                    <div className="space-y-3">
-                        {areaCosts.length === 0 ? (
-                            <p className="text-xs text-slate-500 italic py-4 text-center">No hay datos de costos registrados.</p>
-                        ) : areaCosts.map(dept => (
-                            <div key={dept.id} className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
-                                <button
-                                    onClick={() => setExpandedDept(expandedDept === dept.id ? null : dept.id)}
-                                    className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                >
-                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                        {expandedDept === dept.id ? <ChevronDown className="w-4 h-4 text-blue-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                                        {dept.name}
-                                    </div>
-                                    <span className="font-black text-blue-600 dark:text-blue-400">{formatMoney(dept.total)}</span>
-                                </button>
-
-                                {expandedDept === dept.id && (
-                                    <div className="bg-white dark:bg-slate-900 p-2 flex flex-col gap-2 relative">
-                                        <div className="absolute left-4 top-0 bottom-4 w-px bg-slate-200 dark:bg-slate-700 pointer-events-none" />
-
-                                        {dept.posArr.map((pos: any) => (
-                                            <div key={pos.id} className="ml-6 relative">
-                                                <button
-                                                    onClick={() => setExpandedPos(expandedPos === pos.id ? null : pos.id)}
-                                                    className="w-full flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700 transition-colors relative z-10"
-                                                >
-                                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-                                                        {expandedPos === pos.id ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                                                        <Briefcase className="w-3 h-3 text-slate-400" />
-                                                        {pos.name}
-                                                    </div>
-                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{formatMoney(pos.total)}</span>
-                                                </button>
-
-                                                {expandedPos === pos.id && (
-                                                    <div className="ml-6 mt-1 flex flex-col gap-1 relative z-10">
-                                                        {pos.userArr.map((user: any, idx: number) => (
-                                                            <div key={idx} className="flex justify-between items-center py-1.5 px-3 rounded-md bg-slate-50/50 dark:bg-slate-900/50 border-l-2 border-slate-300 dark:border-slate-600">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Users className="w-3 h-3 text-slate-400" />
-                                                                    <div className="flex flex-col">
-                                                                        <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{user.name}</span>
-                                                                        <span className="text-[9px] text-slate-400">{user.hours.toFixed(1)} hrs</span>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="text-xs font-bold text-slate-500">{formatMoney(user.total)}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -290,6 +317,83 @@ export function CostReport() {
                     </div>
                 </div>
             </div>
+
+            {/* Chart */}
+            {trendData.length > 0 && (
+                <div className="bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-1">
+                                <Activity className="w-4 h-4 text-emerald-500" /> Comportamiento del Gasto
+                            </h3>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Evolución monetaria por flujo de trabajo</p>
+                        </div>
+                    </div>
+
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            {period === 'month' || period === 'year' || period === 'all' ? (
+                                <LineChart data={trendData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
+                                        dy={10}
+                                    />
+                                    <YAxis hide />
+                                    <RechartsTooltip
+                                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)', padding: '15px' }}
+                                        itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
+                                        labelStyle={{ fontSize: '11px', fontWeight: 900, color: '#fff', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}
+                                        formatter={(value: any) => [formatMoney(typeof value === 'number' ? value : 0), '']}
+                                    />
+                                    <Legend
+                                        verticalAlign="top"
+                                        align="right"
+                                        iconType="circle"
+                                        wrapperStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', paddingBottom: '20px' }}
+                                    />
+                                    {Object.keys(trendData[0] || {}).filter(k => k !== 'name').map((wf, idx) => (
+                                        <Line
+                                            key={wf}
+                                            type="monotone"
+                                            dataKey={wf}
+                                            stroke={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][idx % 5]}
+                                            strokeWidth={3}
+                                            dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                                            activeDot={{ r: 6, strokeWidth: 0 }}
+                                            animationDuration={1500}
+                                        />
+                                    ))}
+                                </LineChart>
+                            ) : (
+                                <BarChart data={trendData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} dy={10} />
+                                    <YAxis hide />
+                                    <RechartsTooltip
+                                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)', padding: '15px' }}
+                                        itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
+                                        labelStyle={{ fontSize: '11px', fontWeight: 900, color: '#fff', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}
+                                        formatter={(value: any) => [formatMoney(typeof value === 'number' ? value : 0), '']}
+                                    />
+                                    <Legend
+                                        verticalAlign="top"
+                                        align="right"
+                                        iconType="circle"
+                                        wrapperStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', paddingBottom: '20px' }}
+                                    />
+                                    {Object.keys(trendData[0] || {}).filter(k => k !== 'name').map((wf, idx) => (
+                                        <Bar key={wf} dataKey={wf} stackId="a" fill={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][idx % 5]} radius={idx === Object.keys(trendData[0]).length - 2 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+                                    ))}
+                                </BarChart>
+                            )}
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

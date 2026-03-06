@@ -1,5 +1,5 @@
 import { sendToFinance } from './financeBridge';
-import { generateDocument } from './documentGenerator';
+import { generateDocument, generateExcel, generatePdf } from './documentGenerator';
 import { supabase } from '../lib/supabase';
 
 /**
@@ -135,16 +135,37 @@ export async function executeServiceTask(
                 const templateId = step.document_generation_template_id || step.config?.document_generation_template_id;
                 const filenamePattern = step.document_generation_filename_pattern || step.config?.document_generation_filename_pattern || 'Documento_{{date}}';
 
-                if (!templateId) {
-                    throw new Error("Falta el ID de la plantilla para generar el documento.");
+                const format = (step.document_generation_format || step.config?.document_generation_format || 'docx').toLowerCase();
+
+                if (format === 'docx' && !templateId) {
+                    throw new Error("Falta el ID de la plantilla para generar el documento Word.");
                 }
 
-                // Append date to ensure uniqueness but clean up file names
-                const baseName = substitute(filenamePattern).replace(/[^a-zA-Z0-9_-]/g, '_');
-                const finalFilename = `${baseName}_${new Date().getTime()}.docx`;
+                const genType = step.document_generation_type || (step.config as any)?.document_generation_type || 'generic';
 
-                // 1. Generate document
-                const generatedFile = await generateDocument(templateId, outputs, finalFilename);
+                // Calculate filename
+                const baseName = substitute(filenamePattern).replace(/[^a-zA-Z0-9_-]/g, '_');
+                const ext = genType === 'generic' ? 'pdf' : (format === 'xlsx' ? 'xlsx' : 'docx');
+                const finalFilename = `${baseName}_${new Date().getTime()}.${ext}`;
+
+                // 1. Generate document based on type and format
+                let generatedFile: File;
+
+                if (genType === 'generic') {
+                    // Always PDF for generic
+                    const includeLogo = step.document_generation_include_logo !== undefined ? step.document_generation_include_logo : (step.config as any)?.document_generation_include_logo;
+                    const logoUrl = (includeLogo !== false) ? (companySettings.logo_url || outputs.logo_url) : undefined;
+                    generatedFile = await generatePdf(outputs, finalFilename, logoUrl);
+                } else {
+                    // Template based
+                    if (format === 'xlsx') {
+                        generatedFile = await generateExcel(outputs, finalFilename);
+                    } else {
+                        // Default: Word (.docx) - Also used if 'pdf' was somehow selected for template
+                        if (!templateId) throw new Error("Falta el ID de la plantilla para generar el documento Word.");
+                        generatedFile = await generateDocument(templateId, outputs, finalFilename);
+                    }
+                }
 
                 // 2. Upload to storage
                 const filePath = `${outputs.process_id}/${finalFilename}`;

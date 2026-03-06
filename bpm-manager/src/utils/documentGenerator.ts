@@ -2,8 +2,130 @@
 import PizZip from 'pizzip';
 // @ts-ignore
 import Docxtemplater from 'docxtemplater';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
 import { supabase } from '../lib/supabase';
 import type { WorkflowTemplate } from '../types';
+
+/**
+ * Generates an Excel file from process data.
+ */
+export async function generateExcel(data: Record<string, any>, outputFilename: string): Promise<File> {
+    const flattenedData = [data]; // Simple 1-row sheet for now
+    const worksheet = XLSX.utils.json_to_sheet(flattenedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const finalFilename = outputFilename.endsWith('.xlsx') ? outputFilename : `${outputFilename}.xlsx`;
+
+    return new File([excelBuffer], finalFilename, {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+}
+
+/**
+ * Generates a simple PDF report from process data.
+ */
+export async function generatePdf(data: Record<string, any>, outputFilename: string, logoUrl?: string): Promise<File> {
+    const doc = new jsPDF();
+
+    // Background Header
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.rect(0, 0, 210, 42, 'F');
+
+    // 1. Logo (if provided/requested)
+    if (logoUrl) {
+        try {
+            // Add image to PDF (Position 20, 10, Size 25x25)
+            doc.addImage(logoUrl, 'PNG', 20, 8, 26, 26);
+        } catch (e) {
+            console.warn("Could not add logo to PDF:", e);
+        }
+    }
+
+    // Header
+    const headerX = logoUrl ? 55 : 20;
+
+    // Org Name (optional fallback)
+    doc.setFontSize(10);
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.setFont('helvetica', 'bold');
+    doc.text('REPORTE OFICIAL DEL PROCESO', headerX, 16);
+
+    // Title
+    doc.setFontSize(24);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text('Comprobante de Trámite', headerX, 26);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.setFont('helvetica', 'normal');
+    const today = new Date().toLocaleString();
+    doc.text(`Expedido el: ${today}`, headerX, 33);
+
+    // separator
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.line(0, 42, 210, 42);
+
+    // Content Start
+    let y = 55;
+
+    // Sections Divider
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105); // slate-600
+    doc.setFont('helvetica', 'bold');
+    doc.text('DETALLES CAPTURADOS', 20, y - 5);
+
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+
+    Object.entries(data).forEach(([key, value]) => {
+        // Skip metadata internal keys
+        if (['id', 'process_id', 'workflows', 'activities', 'organization_id'].includes(key)) return;
+
+        if (y > 270) {
+            doc.addPage();
+            y = 30;
+        }
+
+        const label = key.toUpperCase().replace(/_/g, ' ');
+        const valStr = (value === null || value === undefined) ? '-' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
+
+        // Field Container Background
+        doc.setFillColor(249, 250, 251);
+        doc.roundedRect(18, y - 5, 174, 12, 2, 2, 'F');
+
+        // Field Label
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139); // slate-500
+        doc.text(label, 22, y + 2);
+
+        // Field Value
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59); // slate-800
+        const lines = doc.splitTextToSize(valStr, 110);
+        doc.text(lines, 75, y + 2);
+
+        y += Math.max(12, (lines.length * 5) + 6);
+    });
+
+    // Footer
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
+    }
+
+    const pdfBuffer = doc.output('blob');
+    const finalFilename = outputFilename.endsWith('.pdf') ? outputFilename : `${outputFilename}.pdf`;
+
+    return new File([pdfBuffer], finalFilename, { type: 'application/pdf' });
+}
 
 /**
  * Downloads a template from Supabase Storage and generates a new document

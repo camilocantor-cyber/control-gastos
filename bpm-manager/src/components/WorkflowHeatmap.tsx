@@ -1,22 +1,29 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { ZoomIn, ZoomOut, Maximize, Play, Square, AlertCircle, GitBranch, MousePointer2, X, Filter } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, Play, Square, AlertCircle, GitBranch, MousePointer2, X, Filter, Clock, Activity as ActivityIcon, DollarSign, FileSpreadsheet } from 'lucide-react';
+import { exportToExcel } from '../utils/exportUtils';
 import type { Activity, Transition } from '../types';
 import { ProcessTable } from './ProcessTable';
 import { ProcessViewerModal } from './ProcessViewerModal';
 import { useAuth } from '../hooks/useAuth';
+import { cn } from '../utils/cn';
 
 interface WorkflowHeatmapProps {
     workflowId?: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    onViewCost?: (workflowId: string) => void;
 }
 
 interface ActivityStats {
     historical: number; // Total executions (passed through)
     active: number;    // Currently active (pending)
+    total_cost: number;
+    hours: number;
 }
 
-export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatmapProps) {
+export function WorkflowHeatmap({ workflowId: initialWorkflowId, startDate, endDate, onViewCost }: WorkflowHeatmapProps) {
     const [workflows, setWorkflows] = useState<{ id: string; name: string }[]>([]);
     const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(initialWorkflowId || null);
 
@@ -62,7 +69,13 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
             setTransitions([]);
             setStats({});
         }
-    }, [selectedWorkflowId]);
+    }, [selectedWorkflowId, startDate, endDate]);
+
+    useEffect(() => {
+        if (selectedNode) {
+            loadNodeProcesses(selectedNode.id, selectedNode.type === 'active' ? 'active' : 'historical');
+        }
+    }, [startDate, endDate]);
 
     async function loadWorkflows() {
         let query = supabase.from('workflows').select('id, name');
@@ -120,32 +133,34 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
             // Fetch history where activity_id IN (list of activity ids for this workflow).
             const activityIds = activitiesData.map(a => a.id);
 
-            // For history, to isolate by org on public workflows, we should first get instance IDs
-            let instanceIdQuery = supabase.from('process_instances').select('id').eq('workflow_id', wfId);
+            // 2. Fetch History & Cost Stats directly for this period and workflow
+            let historyQuery = supabase
+                .from('process_history')
+                .select(`
+                    activity_id, 
+                    step_cost, 
+                    time_spent_hours,
+                    process_instances!inner(workflow_id, organization_id)
+                `)
+                .eq('process_instances.workflow_id', wfId)
+                .in('activity_id', activityIds);
+
             if (user?.organization_id) {
-                instanceIdQuery = instanceIdQuery.eq('organization_id', user.organization_id);
+                historyQuery = historyQuery.eq('process_instances.organization_id', user.organization_id);
             }
-            const { data: instanceData } = await instanceIdQuery;
-            const instanceIds = instanceData?.map(i => i.id) || [];
+            if (startDate) historyQuery = historyQuery.gte('created_at', startDate);
+            if (endDate) historyQuery = historyQuery.lte('created_at', endDate);
 
-            let historyData: any[] = [];
-            if (instanceIds.length > 0) {
-                const { data, error: historyError } = await supabase
-                    .from('process_history')
-                    .select('activity_id')
-                    .in('activity_id', activityIds)
-                    .in('process_id', instanceIds);
-
-                if (historyError) throw historyError;
-                historyData = data || [];
-            }
+            const { data: dataRaw, error: historyError } = await historyQuery;
+            if (historyError) throw historyError;
+            const historyData = dataRaw || [];
 
             // Aggregate
             const newStats: Record<string, ActivityStats> = {};
 
             // Initialize
             activitiesData.forEach(a => {
-                newStats[a.id] = { historical: 0, active: 0 };
+                newStats[a.id] = { historical: 0, active: 0, total_cost: 0, hours: 0 };
             });
 
             // Count Active
@@ -155,10 +170,12 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
                 }
             });
 
-            // Count Historical
-            historyData?.forEach((item: any) => {
-                if (item.activity_id && newStats[item.activity_id]) {
-                    newStats[item.activity_id].historical++;
+            // Count Historical & Costs
+            historyData?.forEach((h: any) => {
+                if (h.activity_id && newStats[h.activity_id]) {
+                    newStats[h.activity_id].historical++;
+                    newStats[h.activity_id].total_cost += parseFloat(h.step_cost || 0);
+                    newStats[h.activity_id].hours += parseFloat(h.time_spent_hours || 0);
                 }
             });
 
@@ -181,6 +198,9 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
                 .select('*, workflows(name), activities(name, type)')
                 .order('created_at', { ascending: false });
 
+            // 1.5 Dynamic Height Calculation for Heatmap (added for adaptability)
+            // Note: Heatmap height is usually managed by the container, but let's ensure it has breathing room
+
             if (user?.organization_id) {
                 query = query.eq('organization_id', user.organization_id);
             }
@@ -191,26 +211,27 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
                     .eq('current_activity_id', activityId)
                     .eq('status', 'active');
             } else {
-                // Historical: Processes that passed through this node
-                // This requires a join or subquery on process_history
-                // Simplified: Get history first then instances? Or simple approach for UX:
-                // If historical, show ALL instances that have a history record for this activity.
-
-                // 1. Get Instance IDs from history
-                const { data: history } = await supabase
+                let histQuery = supabase
                     .from('process_history')
-                    .select('process_id')
-                    .eq('activity_id', activityId);
+                    .select(`
+                        *,
+                        users:user_id(full_name),
+                        process_instances:process_id(
+                            *,
+                            workflows(name)
+                        )
+                    `)
+                    .eq('activity_id', activityId)
+                    .order('created_at', { ascending: false });
 
-                const instanceIds = history?.map(h => h.process_id) || [];
+                if (startDate) histQuery = histQuery.gte('created_at', startDate);
+                if (endDate) histQuery = histQuery.lte('created_at', endDate);
 
-                if (instanceIds.length > 0) {
-                    query = query.in('id', instanceIds);
-                } else {
-                    setNodeProcesses([]);
-                    setLoadingProcesses(false);
-                    return;
-                }
+                const { data: history, error } = await histQuery;
+                if (error) throw error;
+
+                setNodeProcesses(history || []);
+                return;
             }
 
             const { data, error } = await query;
@@ -255,11 +276,17 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
         setLastMousePos({ x: e.clientX, y: e.clientY });
     };
 
-    const handleStatClick = (e: React.MouseEvent, activity: Activity, type: 'active' | 'historical') => {
+    const handleStatClick = (e: React.MouseEvent, activity: Activity, type: 'active' | 'historical' | 'cost') => {
         e.stopPropagation();
-        setSelectedNode({ id: activity.id, name: activity.name, type });
+        if (type === 'cost') {
+            if (onViewCost && selectedWorkflowId) {
+                onViewCost(selectedWorkflowId);
+            }
+            return;
+        }
+        setSelectedNode({ id: activity.id, name: activity.name, type: type as 'active' | 'historical' });
         setProcessPage(1);
-        loadNodeProcesses(activity.id, type);
+        loadNodeProcesses(activity.id, type as 'active' | 'historical');
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
@@ -346,12 +373,10 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
     };
 
     const handleAttendTask = (taskId: string) => {
-        // Redirect logic would go here, usually navigating to an execution page
-        // For now just console log or maybe open viewer? 
-        // The prompt implies reusing capabilities. We already check status in table.
-        // Let's assume navigating to /execution/:id
         window.location.href = `/execution/${taskId}`;
     };
+
+    const formatMoney = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val);
 
 
     return (
@@ -359,10 +384,10 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
             {/* Header / Toolbar */}
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white z-10">
                 <div className="flex items-center gap-4">
-                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                        <MousePointer2 className="w-5 h-5 text-indigo-600" />
-                        Radiografía de Flujo
-                    </h3>
+                    <h4 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                        <ActivityIcon className="w-5 h-5 text-indigo-600" />
+                        Radiografía
+                    </h4>
 
                     {/* Workflow Selector */}
                     <select
@@ -466,8 +491,9 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
                             <ActivityNodeStats
                                 key={activity.id}
                                 activity={activity}
-                                stats={stats[activity.id] || { historical: 0, active: 0 }}
+                                stats={stats[activity.id] || { historical: 0, active: 0, total_cost: 0, hours: 0 }}
                                 maxActive={maxActive}
+                                formatMoney={formatMoney}
                                 onMouseDown={(e) => handleNodeMouseDown(e, activity.id)}
                                 onStatClick={(e, type) => handleStatClick(e, activity, type)}
                             />
@@ -477,19 +503,22 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
                 </div>
 
                 {/* Controls */}
-                <div className="absolute bottom-6 left-6 flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl z-20 pointer-events-auto">
-                    <button onClick={() => setZoom(z => Math.min(z * 1.2, 3))} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400"><ZoomIn className="w-4 h-4" /></button>
-                    <span className="text-[10px] font-black w-10 text-center text-slate-400">{Math.round(zoom * 100)}%</span>
-                    <button onClick={() => setZoom(z => Math.max(z / 1.2, 0.2))} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400"><ZoomOut className="w-4 h-4" /></button>
-                    <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-bold rounded-lg ml-2"><Maximize className="w-4 h-4" /></button>
-                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1" />
+                <div className="absolute top-6 right-6 flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl z-20 pointer-events-auto">
+                    <button onClick={() => setZoom(z => Math.min(z * 1.2, 3))} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 transition-all active:scale-95" title="Acercar"><ZoomIn className="w-4 h-4" /></button>
+                    <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                    <span className="text-[10px] font-black w-10 text-center text-slate-500 dark:text-slate-400">{Math.round(zoom * 100)}%</span>
+                    <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                    <button onClick={() => setZoom(z => Math.max(z / 1.2, 0.2))} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 transition-all active:scale-95" title="Alejar"><ZoomOut className="w-4 h-4" /></button>
+                    <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                    <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }} className="p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all shadow-sm active:scale-95" title="Centrar Vista"><Maximize className="w-4 h-4" /></button>
+                    <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
                     <button
                         onClick={handleAutoLayout}
-                        className="flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-bold rounded-lg transition-all"
+                        className="p-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all flex items-center gap-2 group/layout active:scale-95"
                         title="Auto-organizar"
                     >
-                        <GitBranch className="w-4 h-4" />
-                        <span className="text-[10px] uppercase tracking-wider">Organizar</span>
+                        <GitBranch className="w-4 h-4 rotate-180" />
+                        <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/layout:max-w-[100px] transition-all duration-300">Organizar</span>
                     </button>
                 </div>
 
@@ -514,12 +543,12 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
                 <div className="mt-6 border-t border-slate-100 pt-6 animate-in slide-in-from-bottom-5 duration-300">
                     <div className="flex items-center justify-between mb-4 px-2">
                         <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-xl ${selectedNode.type === 'active' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                            <div className={`p-2 rounded-xl ${selectedNode.type === 'active' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
                                 <Filter className="w-5 h-5" />
                             </div>
                             <div>
                                 <h4 className="text-sm font-black text-slate-800">
-                                    {selectedNode.type === 'active' ? 'Trámites En Curso' : 'Histórico de Ejecución'}
+                                    {selectedNode.type === 'active' ? 'Trámites En Curso' : 'Detalle de Inversión / Histórico'}
                                 </h4>
                                 <p className="text-xs text-slate-500 font-medium">
                                     En actividad: <span className="text-slate-700 font-bold">{selectedNode.name}</span>
@@ -527,17 +556,27 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId }: WorkflowHeatm
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => setSelectedNode(null)}
-                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-rose-500 transition-colors"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => exportToExcel(nodeProcesses, `Detalle_${selectedNode.name.replace(/\s+/g, '_')}`)}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-emerald-100"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" />
+                                Exportar XLS
+                            </button>
+                            <button
+                                onClick={() => setSelectedNode(null)}
+                                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-rose-500 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden min-h-[300px] flex flex-col shadow-sm">
                         <ProcessTable
                             processes={nodeProcesses}
+                            variant={selectedNode.type === 'active' ? 'current' : 'history'}
                             loading={loadingProcesses}
                             onView={(id) => setViewingProcessId(id)}
                             onAttend={handleAttendTask}
@@ -567,75 +606,114 @@ function ActivityNodeStats({
     stats,
     maxActive,
     onMouseDown,
-    onStatClick
+    onStatClick,
+    formatMoney
 }: {
     activity: Activity,
     stats: ActivityStats,
     maxActive: number,
     onMouseDown: (e: React.MouseEvent) => void,
-    onStatClick: (e: React.MouseEvent, type: 'active' | 'historical') => void
+    onStatClick: (e: React.MouseEvent, type: 'active' | 'historical' | 'cost') => void,
+    formatMoney: (val: number) => string
 }) {
     const icons = {
         start: Play,
         task: Square,
-        decision: AlertCircle,
+        decision: GitBranch,
         end: Square,
     };
-    const Icon = icons[activity.type] || Square;
+    const Icon = icons[activity.type] || ActivityIcon;
+
+    const ratio = stats.active / (maxActive || 1);
 
     const getHeatStyles = () => {
-        if (stats.active === 0) return 'bg-white border-slate-200 text-slate-400 shadow-sm';
-
-        const ratio = stats.active / (maxActive || 1);
-
-        if (ratio >= 0.7 && stats.active > 0) {
-            return 'bg-rose-600 border-rose-700 text-white shadow-xl shadow-rose-200 ring-4 ring-rose-50 animate-pulse';
-        }
-        if (ratio >= 0.3 && stats.active > 0) {
-            return 'bg-orange-500 border-orange-600 text-white shadow-lg shadow-orange-100 ring-4 ring-orange-50';
-        }
-        return 'bg-blue-500 border-blue-600 text-white shadow-lg shadow-blue-100 ring-4 ring-blue-50';
+        if (stats.active === 0) return 'border-slate-100 dark:border-slate-800 ring-transparent shadow-slate-900/5';
+        if (ratio >= 0.7) return 'border-rose-600 shadow-rose-500/20 ring-rose-500/10 animate-pulse';
+        if (ratio >= 0.3) return 'border-orange-500 shadow-orange-500/10 ring-orange-500/5';
+        return 'border-blue-500 shadow-blue-500/10 ring-blue-500/5';
     };
 
-    const heatStyles = getHeatStyles();
+    const colors = {
+        start: 'bg-emerald-500',
+        task: 'bg-blue-500',
+        decision: 'bg-orange-500',
+        end: 'bg-rose-500',
+    };
 
     return (
         <div
-            className="absolute flex flex-col items-center pointer-events-auto group cursor-move"
+            className="absolute flex flex-col items-center pointer-events-auto group cursor-move select-none"
             style={{ left: activity.x_pos, top: activity.y_pos }}
             onMouseDown={onMouseDown}
         >
-            {/* Node Circle */}
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-500 z-10 ${heatStyles}`}>
-                <Icon className={`w-6 h-6 ${stats.active > 0 ? 'text-white' : 'text-slate-400'}`} />
+            <div className={cn(
+                "w-48 p-3 rounded-[1.5rem] bg-white dark:bg-slate-900 border-2 shadow-lg transition-all duration-500 relative ring-4",
+                getHeatStyles()
+            )}>
+                {/* Compact Header */}
+                <div className="flex items-start gap-2.5">
+                    <div className={cn(
+                        "w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform duration-500 group-hover:scale-110 flex-shrink-0",
+                        (colors as any)[activity.type] || 'bg-slate-500'
+                    )}>
+                        <Icon className="w-4 h-4 fill-current" />
+                    </div>
+                    <div className="flex-1 min-w-0 flex items-center h-8">
+                        <div className="flex items-center justify-between gap-2 w-full">
+                            <h4 className="text-[10px] font-black text-slate-900 dark:text-white truncate tracking-tight uppercase leading-none">{activity.name}</h4>
+                            <div className="flex items-center gap-0.5 text-orange-600 font-black flex-shrink-0 bg-orange-50 px-1 py-0.5 rounded-md border border-orange-100/50">
+                                <Clock className="w-2 h-2" />
+                                <span className="text-[8px]">{stats.hours.toFixed(0)}h</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Saturado / Cuello de Botella Badge (More discreet) */}
+                {ratio >= 0.7 && (
+                    <div className="absolute -top-2 -right-2 bg-rose-600 text-white p-1 rounded-lg border-2 border-white dark:border-slate-900 shadow-lg animate-pulse">
+                        <AlertCircle className="w-3 h-3" />
+                    </div>
+                )}
             </div>
 
-            {/* Label */}
-            <div className="mt-2 px-2 py-1 bg-white/90 backdrop-blur rounded text-[10px] font-bold text-slate-600 border border-slate-100 shadow-sm max-w-[120px] truncate text-center z-10">
-                {activity.name}
-            </div>
+            {/* Bottom "Tabs" peeking out */}
+            <div className="flex gap-1 -mt-1.5 z-20">
+                {/* Cost Tab */}
+                <button
+                    onClick={(e) => onStatClick(e, 'cost')}
+                    className={cn(
+                        "px-2 py-1 rounded-b-lg border-x border-b text-[8px] font-black uppercase tracking-tighter shadow-sm flex items-center gap-1 transition-all hover:pt-2 active:scale-95",
+                        stats.total_cost > 0
+                            ? "bg-emerald-600 border-emerald-700 text-white cursor-pointer"
+                            : "bg-white border-slate-100 text-slate-300 pointer-events-none"
+                    )}
+                >
+                    <DollarSign className="w-2.5 h-2.5" />
+                    {formatMoney(stats.total_cost).replace('$', '').trim()}
+                </button>
 
-            {/* Stats Panel */}
-            <div className="mt-1 flex flex-col gap-1 w-24 pointer-events-auto">
-                {/* Active Count */}
                 <button
                     onClick={(e) => onStatClick(e, 'active')}
-                    title="Ver Trámites En Curso"
-                    className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer ${stats.active > 0 ? 'bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 shadow-sm' : 'bg-slate-50 text-slate-300 border border-slate-100 hover:bg-slate-100 cursor-not-allowed'}`}
-                    disabled={stats.active === 0}
+                    className={cn(
+                        "px-2 py-1 rounded-b-lg border-x border-b text-[8px] font-black uppercase tracking-tighter transition-all hover:pt-2 active:scale-95 shadow-sm whitespace-nowrap",
+                        stats.active > 0
+                            ? "bg-blue-600 border-blue-700 text-white"
+                            : "bg-white border-slate-100 text-slate-300 pointer-events-none"
+                    )}
                 >
-                    <span>En Curso</span>
-                    <span>{stats.active}</span>
+                    {stats.active} En curso
                 </button>
-                {/* Historical Count */}
                 <button
                     onClick={(e) => onStatClick(e, 'historical')}
-                    title="Ver Histórico"
-                    className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-bold bg-white text-slate-500 border border-slate-100 transition-all hover:scale-105 active:scale-95 hover:border-slate-300 cursor-pointer ${stats.historical === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-sm'}`}
-                    disabled={stats.historical === 0}
+                    className={cn(
+                        "px-2 py-1 rounded-b-lg border-x border-b text-[8px] font-black uppercase tracking-tighter transition-all hover:pt-2 active:scale-95 shadow-sm whitespace-nowrap",
+                        stats.historical > 0
+                            ? "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
+                            : "bg-white border-slate-100 text-slate-300 pointer-events-none"
+                    )}
                 >
-                    <span>Histórico</span>
-                    <span>{stats.historical}</span>
+                    {stats.historical} Hist.
                 </button>
             </div>
         </div>
@@ -643,35 +721,31 @@ function ActivityNodeStats({
 }
 
 function TransitionArrowHeatmap({ transition, source, target }: { transition: Transition, source: Activity, target: Activity }) {
-    // Docking logic
-    const sCX = source.x_pos + 24;
-    const sCY = source.y_pos + 24;
-    const tCX = target.x_pos + 24;
-    const tCY = target.y_pos + 24;
+    // Better calculation for connection points matching standard card (w-56 = 224px, h ~ 100px)
+    const sourceX = source.x_pos + 112;
+    const sourceY = source.y_pos + 50;
+    const targetX = target.x_pos + 112;
+    const targetY = target.y_pos + 50;
 
-    const dx = tCX - sCX;
-    const dy = tCY - sCY;
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
     let sX, sY, tX, tY;
-    const halfSize = 24;
 
     if (absDx > absDy) {
-        // Horizontal docking
-        sX = sCX + (dx > 0 ? halfSize : -halfSize);
-        sY = sCY + (dy * halfSize / absDx);
-        tX = tCX - (dx > 0 ? halfSize + 8 : -halfSize - 8);
-        tY = tCY - (dy * (halfSize + 8) / absDx);
+        sX = sourceX + (dx > 0 ? 112 : -112);
+        sY = sourceY;
+        tX = targetX - (dx > 0 ? 120 : -120);
+        tY = targetY;
     } else {
-        // Vertical docking
-        sY = sCY + (dy > 0 ? halfSize : -halfSize);
-        sX = sCX + (dx * halfSize / absDy);
-        tY = tCY - (dy > 0 ? halfSize + 8 : -halfSize - 8);
-        tX = tCX - (dx * (halfSize + 8) / absDy);
+        sY = sourceY + (dy > 0 ? 50 : -50);
+        sX = sourceX;
+        tY = targetY - (dy > 0 ? 60 : -60);
+        tX = targetX;
     }
 
-    // Manhattan Path
     const midX = sX + (tX - sX) / 2;
     const pathData = `M ${sX} ${sY} L ${midX} ${sY} L ${midX} ${tY} L ${tX} ${tY}`;
 

@@ -54,6 +54,9 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
 
     const selectedField = fields.find(f => f.id === selectedFieldId);
 
+    // Always sort by order_index so preview matches production render order
+    const sortedFields = [...fields].sort((a, b) => (Number(a.order_index ?? 9999) - Number(b.order_index ?? 9999)));
+
     // Simulation visibility logic
     const handleDragStart = (e: React.DragEvent, id: string) => {
         setDraggedFieldId(id);
@@ -164,8 +167,8 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                             formColumns === 4 ? "grid-cols-1 md:grid-cols-4" :
                                                 "grid-cols-1 md:grid-cols-2"
                                 )}>
-                                    {fields.length > 0 ? (
-                                        fields.map((field) => (
+                                    {sortedFields.length > 0 ? (
+                                        sortedFields.map((field) => (
                                             <div
                                                 key={field.id}
                                                 draggable={!isReadOnly}
@@ -213,15 +216,23 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                                         <textarea
                                                             value={formData[field.name] || ''}
                                                             onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
-                                                            className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl p-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none min-h-[120px] transition-all resize-none shadow-sm focus:border-blue-500/50"
+                                                            className={clsx(
+                                                                "w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl p-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none min-h-[120px] transition-all resize-none shadow-sm focus:border-blue-500/50",
+                                                                (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 grayscale-[0.3]"
+                                                            )}
                                                             placeholder={field.placeholder || `Ingrese ${field.label || field.name}...`}
+                                                            readOnly={field.is_readonly || isReadOnly}
                                                         />
                                                     ) : field.type === 'select' ? (
                                                         <div className="relative group w-full h-full">
                                                             <select
                                                                 value={formData[field.name] || ''}
                                                                 onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
-                                                                className="w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer shadow-sm font-bold"
+                                                                disabled={field.is_readonly || isReadOnly}
+                                                                className={clsx(
+                                                                    "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer shadow-sm font-bold",
+                                                                    (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                                )}
                                                             >
                                                                 <option value="">Seleccione...</option>
                                                                 {field.options?.map(opt => (
@@ -232,12 +243,14 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                                         </div>
                                                     ) : field.type === 'boolean' ? (
                                                         <button
-                                                            onClick={() => setFormData(prev => ({ ...prev, [field.name]: prev[field.name] === 'true' ? 'false' : 'true' }))}
+                                                            onClick={() => !(field.is_readonly || isReadOnly) && setFormData(prev => ({ ...prev, [field.name]: prev[field.name] === 'true' ? 'false' : 'true' }))}
+                                                            disabled={field.is_readonly || isReadOnly}
                                                             className={clsx(
                                                                 "flex items-center gap-3 w-full h-full px-5 rounded-2xl border-2 transition-all",
                                                                 formData[field.name] === 'true'
                                                                     ? "bg-blue-50/50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/50 dark:text-blue-400"
-                                                                    : "bg-white border-slate-100 text-slate-400 dark:bg-slate-900 dark:border-slate-800"
+                                                                    : "bg-white border-slate-100 text-slate-400 dark:bg-slate-900 dark:border-slate-800",
+                                                                (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 grayscale"
                                                             )}
                                                         >
                                                             <div className={clsx(
@@ -260,7 +273,11 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                                                     const val = e.target.value.replace(/\D/g, '');
                                                                     setFormData(prev => ({ ...prev, [field.name]: val }));
                                                                 }}
-                                                                className="w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl pl-8 pr-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm font-bold"
+                                                                readOnly={field.is_readonly || isReadOnly}
+                                                                className={clsx(
+                                                                    "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl pl-8 pr-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm font-bold",
+                                                                    (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                                )}
                                                                 placeholder="0"
                                                             />
                                                         </div>
@@ -276,9 +293,10 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                                             <InteractiveLookup
                                                                 field={field}
                                                                 value={formData[field.name]}
-                                                                onChange={(val: any) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                onChange={(val: any) => !(field.is_readonly || isReadOnly) && setFormData(prev => ({ ...prev, [field.name]: val }))}
                                                                 formData={formData}
                                                                 setFormData={setFormData}
+                                                                disabled={field.is_readonly || isReadOnly}
                                                             />
                                                         </div>
                                                     ) : field.type === 'consecutivo' ? (
@@ -294,7 +312,11 @@ export function FormPreviewModal({ fields, formColumns = 1, activityName, workfl
                                                             type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
                                                             value={formData[field.name] || ''}
                                                             onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
-                                                            className="w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm font-bold"
+                                                            readOnly={field.is_readonly || isReadOnly}
+                                                            className={clsx(
+                                                                "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm font-bold",
+                                                                (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                            )}
                                                             placeholder={field.placeholder || `Completar...`}
                                                         />
                                                     )}

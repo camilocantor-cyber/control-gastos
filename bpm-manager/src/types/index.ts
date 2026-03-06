@@ -138,6 +138,7 @@ export interface FieldDefinition {
     order_index?: number;
     visibility_condition?: string; // Logic to show/hide field based on other field values
     default_value?: string;
+    is_readonly?: boolean;
     // For Grid type
     grid_columns?: GridColumn[]; // Columns for master-detail
     // For Lookup type
@@ -234,6 +235,9 @@ export interface AutomatedAction {
         whatsapp_token?: string;
         document_generation_template_id?: string;
         document_generation_filename_pattern?: string;
+        document_generation_type?: 'generic' | 'template';
+        document_generation_format?: 'pdf' | 'docx' | 'xlsx';
+        document_generation_include_logo?: boolean;
     };
 }
 

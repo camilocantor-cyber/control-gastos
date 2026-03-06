@@ -12,9 +12,10 @@ interface InteractiveLookupProps {
     formData: Record<string, any>;
     setFormData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
     error?: string;
+    disabled?: boolean;
 }
 
-export function InteractiveLookup({ field, value, onChange, setFormData, error }: InteractiveLookupProps) {
+export function InteractiveLookup({ field, value, onChange, setFormData, error, disabled }: InteractiveLookupProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -195,11 +196,12 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
             <div
                 className={cn(
                     "flex items-center gap-2 w-full p-2.5 rounded-2xl border-2 bg-white dark:bg-slate-900 transition-all cursor-pointer",
-                    error ? "border-rose-400" : "border-slate-200 dark:border-slate-800 hover:border-indigo-400"
+                    error ? "border-rose-400" : "border-slate-200 dark:border-slate-800 hover:border-indigo-400",
+                    disabled && "opacity-60 cursor-not-allowed bg-slate-50 dark:bg-slate-800/50"
                 )}
-                onClick={() => setIsOpen(true)}
+                onClick={() => !disabled && setIsOpen(true)}
             >
-                <div className="flex-shrink-0 text-indigo-500">
+                <div className={cn("flex-shrink-0 text-indigo-500", disabled && "grayscale")}>
                     <Search className="w-5 h-5" />
                 </div>
 
@@ -207,7 +209,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
                     {value ? (searchTerm || value) : <span className="text-slate-400 font-medium">{field.placeholder || `Seleccionar ${config?.table_name || 'registro'}...`}</span>}
                 </div>
 
-                {value && (
+                {value && !disabled && (
                     <button
                         onClick={handleClear}
                         className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -224,36 +226,36 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
                     onClick={() => setIsOpen(false)} // clicking outside closes it
                 >
                     <div
-                        className="bg-white dark:bg-slate-900 w-full max-w-3xl max-h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300 relative"
+                        className="bg-white dark:bg-slate-900 w-full max-w-5xl max-h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300 relative"
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Header & Search Bar */}
-                        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-4">
+                        <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-2.5">
                             <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                                            <Search className="w-4 h-4" />
-                                        </div>
-                                        Búsqueda: {config?.table_name || 'Catálogo'}
-                                    </h3>
-                                    <p className="text-xs font-medium text-slate-500 mt-1">
-                                        Escribe al menos 2 letras para buscar en el sistema.
-                                    </p>
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
+                                        <Search className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                                            Búsqueda: {config?.table_name || 'Catálogo'}
+                                        </h3>
+                                        <p className="text-[10px] font-medium text-slate-400">
+                                            Escribe al menos 2 letras para buscar.
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        setIsOpen(false);
-                                    }}
-                                    className="p-2 text-slate-400 hover:text-slate-600 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
+                                    onClick={() => setIsOpen(false)}
+                                    className="p-1.5 text-slate-400 hover:text-slate-600 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
 
                             <div className="relative">
-                                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400">
-                                    <Search className="w-5 h-5" />
+                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+                                    <Search className="w-4 h-4" />
                                 </div>
                                 <input
                                     type="text"
@@ -261,11 +263,11 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="Buscar por nombre, código, etc..."
-                                    className="w-full pl-12 pr-4 py-3 sm:py-4 bg-white dark:bg-slate-950 border-2 border-indigo-100 dark:border-indigo-900/30 rounded-2xl text-base font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner"
+                                    className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-indigo-100 dark:border-indigo-900/30 rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                                 />
                                 {isLoading && (
-                                    <div className="absolute inset-y-0 right-4 flex items-center">
-                                        <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+                                    <div className="absolute inset-y-0 right-3 flex items-center">
+                                        <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
                                     </div>
                                 )}
                             </div>
@@ -273,9 +275,9 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
 
                         {/* Search Results Area */}
                         {isLoading && results.length === 0 && (
-                            <div className="p-12 flex flex-col items-center justify-center text-slate-400 gap-4 flex-1">
-                                <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-                                <span className="text-sm font-bold tracking-widest uppercase text-indigo-500/70">Buscando información...</span>
+                            <div className="p-8 flex flex-col items-center justify-center text-slate-400 gap-3 flex-1">
+                                <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                                <span className="text-[10px] font-bold tracking-widest uppercase text-indigo-500/70">Buscando información...</span>
                             </div>
                         )}
 
@@ -289,17 +291,17 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
                         )}
 
                         {!isLoading && !fetchError && results.length === 0 && searchTerm.length >= 2 && (
-                            <div className="p-12 text-center flex flex-col items-center gap-3 flex-1">
-                                <Search className="w-12 h-12 text-slate-200 dark:text-slate-700" />
-                                <span className="text-base font-medium text-slate-500">No se encontraron resultados</span>
-                                <span className="text-xs text-slate-400">Intenta con otros términos de búsqueda para encontrar lo que necesitas.</span>
+                            <div className="p-8 text-center flex flex-col items-center gap-2 flex-1">
+                                <Search className="w-8 h-8 text-slate-200 dark:text-slate-700" />
+                                <span className="text-sm font-medium text-slate-500">No se encontraron resultados</span>
+                                <span className="text-[10px] text-slate-400">Intenta con otros términos de búsqueda.</span>
                             </div>
                         )}
 
                         {!isLoading && !fetchError && results.length === 0 && searchTerm.length < 2 && (
-                            <div className="p-12 text-center flex flex-col items-center gap-3 flex-1 opacity-50">
-                                <Search className="w-12 h-12 text-slate-200 dark:text-slate-700" />
-                                <span className="text-sm font-medium text-slate-500">Comienza a escribir</span>
+                            <div className="p-8 text-center flex flex-col items-center gap-2 flex-1 opacity-50">
+                                <Search className="w-8 h-8 text-slate-200 dark:text-slate-700" />
+                                <span className="text-xs font-medium text-slate-500">Comienza a escribir</span>
                             </div>
                         )}
 
@@ -309,7 +311,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
                                     <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 z-20 shadow-sm">
                                         <tr>
                                             {config?.display_fields?.map((df, i) => (
-                                                <th key={i} className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
+                                                <th key={i} className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
                                                     {df}
                                                 </th>
                                             ))}
@@ -323,7 +325,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
                                                     key={i}
                                                     onClick={() => handleSelect(row)}
                                                     className={cn(
-                                                        "cursor-pointer transition-colors text-sm font-medium",
+                                                        "cursor-pointer transition-colors",
                                                         isSelected
                                                             ? "bg-indigo-50 dark:bg-indigo-900/30 ring-1 ring-inset ring-indigo-500/20"
                                                             : i % 2 === 0
@@ -332,20 +334,20 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error }
                                                     )}
                                                 >
                                                     {config?.display_fields?.map((df, j) => (
-                                                        <td key={j} className="px-5 py-3.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                                                            <div className="flex items-center gap-3">
+                                                        <td key={j} className="px-4 py-2.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                                                            <div className="flex items-center gap-2">
                                                                 {j === 0 && (
-                                                                    <div className="w-5 flex justify-center flex-shrink-0">
+                                                                    <div className="w-4 flex justify-center flex-shrink-0">
                                                                         {isSelected ? (
-                                                                            <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                                                            <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                                                                         ) : (
-                                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                                                                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
                                                                         )}
                                                                     </div>
                                                                 )}
                                                                 <span className={cn(
-                                                                    "truncate",
-                                                                    isSelected ? "text-indigo-900 dark:text-indigo-200 font-semibold" : "text-slate-700 dark:text-slate-300"
+                                                                    "truncate text-xs",
+                                                                    isSelected ? "text-indigo-900 dark:text-indigo-200 font-semibold" : "text-slate-600 dark:text-slate-300 font-medium"
                                                                 )}>
                                                                     {String(row[df])}
                                                                 </span>

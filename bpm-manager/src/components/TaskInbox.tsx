@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, ArrowRight, CheckCircle2, AlertCircle, Eye, Globe, X } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle2, AlertCircle, Eye, Globe, X, Trash2 } from 'lucide-react';
 import { useExecution } from '../hooks/useExecution';
 import { ProcessViewerModal } from './ProcessViewerModal';
 
 export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (taskId: string) => void, refreshTrigger?: number }) {
-    const { getActiveTasks, loading, error } = useExecution();
+    const { getActiveTasks, deleteProcessInstance, loading, error } = useExecution();
     const [tasks, setTasks] = useState<any[]>([]);
     const [viewingProcessId, setViewingProcessId] = useState<string | null>(null);
     const [escalatedTask, setEscalatedTask] = useState<any | null>(null);
@@ -12,6 +12,16 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
     async function loadTasks() {
         const data = await getActiveTasks();
         setTasks(data || []);
+    }
+
+    async function handleDelete(id: string) {
+        if (!window.confirm('¿Estás seguro de que deseas eliminar este trámite? Se creó por error y no tiene datos guardados.')) return;
+        const result = await deleteProcessInstance(id);
+        if (result.success) {
+            loadTasks();
+        } else {
+            alert('Error al eliminar: ' + result.error);
+        }
     }
 
     useEffect(() => {
@@ -191,6 +201,21 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
                                                         >
                                                             <Eye className="w-3 h-3" />
                                                         </button>
+
+                                                        {/* Borrar si es nuevo y no tiene data */}
+                                                        {task.activities.type === 'start' &&
+                                                            (!task.process_data || (Array.isArray(task.process_data) ? task.process_data[0]?.count === 0 : (task.process_data as any).count === 0)) && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDelete(task.id);
+                                                                    }}
+                                                                    title="Eliminar Trámite (Sin usar)"
+                                                                    className="w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm border bg-rose-50 dark:bg-rose-900/50 text-rose-400 dark:text-rose-500 hover:bg-rose-600 hover:text-white border-rose-100 dark:border-rose-800/50 active:scale-90"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                </button>
+                                                            )}
 
                                                         {/* Attend Button */}
                                                         <div className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm active:scale-95 ${isOverdue
