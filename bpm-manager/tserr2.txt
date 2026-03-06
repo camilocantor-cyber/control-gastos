@@ -1,7 +1,0 @@
-src/components/ProcessTable.tsx(4,1): error TS6133: 'supabase' is declared but its value is never read.
-src/components/ProcessTable.tsx(31,5): error TS6133: 'onReload' is declared but its value is never read.
-src/components/ProcessViewerModal.tsx(2,23): error TS6133: 'GitBranch' is declared but its value is never read.
-src/components/ProcessViewerModal.tsx(94,56): error TS6133: 'isDoubleClick' is declared but its value is never read.
-src/components/WorkflowBuilder.tsx(83,12): error TS6133: 'draggedType' is declared but its value is never read.
-src/components/WorkflowBuilder.tsx(803,25): error TS2322: Type '{ activities: Activity[]; transitions: Transition[]; zoom: number; setZoom: Dispatch<SetStateAction<number>>; offset: { x: number; y: number; }; ... 11 more ...; gridSize: number; }' is not assignable to type 'IntrinsicAttributes & FlowCanvasProps'.
-  Property 'draggedActivityId' does not exist on type 'IntrinsicAttributes & FlowCanvasProps'.

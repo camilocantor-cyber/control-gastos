@@ -9,6 +9,8 @@ import { ProcessCostMap } from './ProcessCostMap';
 export function CostReport() {
     const [loading, setLoading] = useState(true);
     const [workflowCosts, setWorkflowCosts] = useState<any[]>([]);
+    const [userCosts, setUserCosts] = useState<any[]>([]);
+    const [areaCosts, setAreaCosts] = useState<any[]>([]);
     const [totalCost, setTotalCost] = useState(0);
 
     const { user } = useAuth();
@@ -66,6 +68,7 @@ export function CostReport() {
                     user_id,
                     activity_id,
                     created_at,
+                    profiles:user_id(full_name, email, department),
                     activities (id, name, workflows(id, name)),
                     process_instances:process_id!inner(organization_id)
                 `)
@@ -80,6 +83,8 @@ export function CostReport() {
 
             let globalTotal = 0;
             const wfMap: Record<string, any> = {};
+            const userMap: Record<string, any> = {};
+            const areaMap: Record<string, any> = {};
             const trendMap: Record<string, Record<string, number>> = {};
             const wfNames = new Set<string>();
 
@@ -111,7 +116,23 @@ export function CostReport() {
                 wfMap[wfId].activities[actId].total += cost;
                 wfMap[wfId].activities[actId].hours += hours;
 
-                // 2. Trend Data
+                // 2. Group by User
+                const userId = h.user_id || 'unknown';
+                const userName = h.profiles?.full_name || h.profiles?.email || 'Usuario S/N';
+                if (!userMap[userId]) {
+                    userMap[userId] = { id: userId, name: userName, total: 0, hours: 0 };
+                }
+                userMap[userId].total += cost;
+                userMap[userId].hours += hours;
+
+                // 3. Group by Area (Department)
+                const areaName = h.profiles?.department || 'General';
+                if (!areaMap[areaName]) {
+                    areaMap[areaName] = { name: areaName, total: 0 };
+                }
+                areaMap[areaName].total += cost;
+
+                // 4. Trend Data
                 const monthsNamesSmall = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
                 let label = '';
                 if (period === 'year' || period === 'all') {
@@ -137,6 +158,9 @@ export function CostReport() {
                 ...w,
                 actArr: Object.values(w.activities).sort((a: any, b: any) => b.total - a.total)
             })));
+
+            setUserCosts(Object.values(userMap).sort((a, b) => b.total - a.total).slice(0, 10));
+            setAreaCosts(Object.values(areaMap).sort((a, b) => b.total - a.total));
 
             const chartLabels = (period === 'year' || period === 'all')
                 ? ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.']
@@ -261,20 +285,22 @@ export function CostReport() {
             </div>
 
             <div className="flex flex-col gap-6">
-                {/* Workflow Costs */}
+                {/* Workflow Costs - Full Width Again */}
                 <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-5">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3"><GitBranch className="w-4 h-4" /> Costo por Flujo</h3>
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3"><GitBranch className="w-4 h-4" /> Detalle de Inversión por Flujo</h3>
                     <div className="space-y-3">
                         {workflowCosts.map(wf => (
                             <div key={wf.id} className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
-                                <button onClick={() => setExpandedWf(expandedWf === wf.id ? null : wf.id)} className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800">
-                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">{expandedWf === wf.id ? <ChevronDown className="w-4 h-4 text-emerald-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}{wf.name}</div>
-                                    <span className="font-black text-emerald-600 dark:text-emerald-400">{formatMoney(wf.total)}</span>
+                                <button onClick={() => setExpandedWf(expandedWf === wf.id ? null : wf.id)} className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                    <div className="flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                                        {expandedWf === wf.id ? <ChevronDown className="w-4 h-4 text-emerald-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                                        {wf.name}
+                                    </div>
+                                    <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatMoney(wf.total)}</span>
                                 </button>
                                 {expandedWf === wf.id && (
-                                    <div className="bg-white dark:bg-slate-900 p-4 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4 duration-300">
-                                        {/* Process Cost Map Integration */}
-                                        <div className="mb-8 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-inner bg-slate-50/50 dark:bg-slate-900/50">
+                                    <div className="bg-white dark:bg-slate-900 p-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4 duration-300">
+                                        <div className="mb-8 rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-slate-800 shadow-xl bg-slate-50/50 dark:bg-slate-900/50">
                                             <ProcessCostMap
                                                 workflowId={wf.id}
                                                 startDate={dateRange.start}
@@ -282,31 +308,19 @@ export function CostReport() {
                                             />
                                         </div>
 
-                                        <div className="flex items-center gap-2 mb-4">
+                                        <div className="flex items-center gap-2 mb-6">
                                             <Activity className="w-4 h-4 text-emerald-500" />
-                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Desglose de Actividades</h4>
+                                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Inversión por Actividad</h4>
                                         </div>
 
-                                        <div className="grid grid-cols-1 gap-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {wf.actArr.map((act: any, idx: number) => (
-                                                <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/20 px-4 py-3 rounded-2xl border border-slate-100 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                                <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/20 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group">
                                                     <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                                            <Activity className="w-3 h-3 text-emerald-500/50" />
-                                                            {act.name}
-                                                        </span>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="text-[10px] text-slate-400 font-medium bg-white/50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700">
-                                                                {act.hours.toFixed(1)} hrs invertidas
-                                                            </span>
-                                                        </div>
+                                                        <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{act.name}</span>
+                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">{act.hours.toFixed(1)} hrs invertidas</span>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block tabular-nums">
-                                                            {formatMoney(act.total)}
-                                                        </span>
-                                                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Inversión Actividad</span>
-                                                    </div>
+                                                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{formatMoney(act.total)}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -318,82 +332,137 @@ export function CostReport() {
                 </div>
             </div>
 
-            {/* Chart */}
-            {trendData.length > 0 && (
-                <div className="bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8">
-                    <div className="flex items-center justify-between mb-8">
-                        <div>
-                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-1">
-                                <Activity className="w-4 h-4 text-emerald-500" /> Comportamiento del Gasto
-                            </h3>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Evolución monetaria por flujo de trabajo</p>
-                        </div>
-                    </div>
-
-                    <div className="h-[300px] w-full">
+            {/* Analysis Charts - User & Areas */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* User Cost Breakdown */}
+                <div className="bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6"><DollarSign className="w-4 h-4 text-emerald-500" /> Inversión por Usuario</h3>
+                    <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            {period === 'month' || period === 'year' || period === 'all' ? (
-                                <LineChart data={trendData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                                    <XAxis
-                                        dataKey="name"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
-                                        dy={10}
-                                    />
-                                    <YAxis hide />
-                                    <RechartsTooltip
-                                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)', padding: '15px' }}
-                                        itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
-                                        labelStyle={{ fontSize: '11px', fontWeight: 900, color: '#fff', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}
-                                        formatter={(value: any) => [formatMoney(typeof value === 'number' ? value : 0), '']}
-                                    />
-                                    <Legend
-                                        verticalAlign="top"
-                                        align="right"
-                                        iconType="circle"
-                                        wrapperStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', paddingBottom: '20px' }}
-                                    />
-                                    {Object.keys(trendData[0] || {}).filter(k => k !== 'name').map((wf, idx) => (
-                                        <Line
-                                            key={wf}
-                                            type="monotone"
-                                            dataKey={wf}
-                                            stroke={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][idx % 5]}
-                                            strokeWidth={3}
-                                            dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
-                                            activeDot={{ r: 6, strokeWidth: 0 }}
-                                            animationDuration={1500}
-                                        />
-                                    ))}
-                                </LineChart>
-                            ) : (
-                                <BarChart data={trendData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} dy={10} />
-                                    <YAxis hide />
-                                    <RechartsTooltip
-                                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)', padding: '15px' }}
-                                        itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
-                                        labelStyle={{ fontSize: '11px', fontWeight: 900, color: '#fff', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}
-                                        formatter={(value: any) => [formatMoney(typeof value === 'number' ? value : 0), '']}
-                                    />
-                                    <Legend
-                                        verticalAlign="top"
-                                        align="right"
-                                        iconType="circle"
-                                        wrapperStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', paddingBottom: '20px' }}
-                                    />
-                                    {Object.keys(trendData[0] || {}).filter(k => k !== 'name').map((wf, idx) => (
-                                        <Bar key={wf} dataKey={wf} stackId="a" fill={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][idx % 5]} radius={idx === Object.keys(trendData[0]).length - 2 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
-                                    ))}
-                                </BarChart>
-                            )}
+                            <BarChart data={userCosts} layout="vertical">
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" opacity={0.5} />
+                                <XAxis type="number" hide />
+                                <YAxis
+                                    dataKey="name"
+                                    type="category"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }}
+                                    width={90}
+                                />
+                                <RechartsTooltip
+                                    formatter={(value: any) => [formatMoney(value), 'Costo']}
+                                    contentStyle={{ borderRadius: '15px', border: 'none', background: '#0f172a', color: '#fff' }}
+                                />
+                                <Bar dataKey="total" fill="#10b981" radius={[0, 10, 10, 0]} barSize={20} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
-            )}
-        </div>
+
+                {/* Area Cost Breakdown */}
+                <div className="bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6"><Activity className="w-4 h-4 text-emerald-500" /> Inversión por Área</h3>
+                    <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={areaCosts}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }}
+                                />
+                                <YAxis hide />
+                                <RechartsTooltip
+                                    formatter={(value: any) => [formatMoney(value), 'Costo']}
+                                    contentStyle={{ borderRadius: '15px', border: 'none', background: '#0f172a', color: '#fff' }}
+                                />
+                                <Bar dataKey="total" fill="#3b82f6" radius={[10, 10, 0, 0]} barSize={40} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* Trend Chart */}
+            {
+                trendData.length > 0 && (
+                    <div className="bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-1">
+                                    <Activity className="w-4 h-4 text-emerald-500" /> Comportamiento del Gasto
+                                </h3>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Evolución monetaria por flujo de trabajo</p>
+                            </div>
+                        </div>
+
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                {period === 'month' || period === 'year' || period === 'all' ? (
+                                    <LineChart data={trendData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                                        <XAxis
+                                            dataKey="name"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
+                                            dy={10}
+                                        />
+                                        <YAxis hide />
+                                        <RechartsTooltip
+                                            contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)', padding: '15px' }}
+                                            itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
+                                            labelStyle={{ fontSize: '11px', fontWeight: 900, color: '#fff', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}
+                                            formatter={(value: any) => [formatMoney(typeof value === 'number' ? value : 0), '']}
+                                        />
+                                        <Legend
+                                            verticalAlign="top"
+                                            align="right"
+                                            iconType="circle"
+                                            wrapperStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', paddingBottom: '20px' }}
+                                        />
+                                        {Object.keys(trendData[0] || {}).filter(k => k !== 'name').map((wf, idx) => (
+                                            <Line
+                                                key={wf}
+                                                type="monotone"
+                                                dataKey={wf}
+                                                stroke={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][idx % 5]}
+                                                strokeWidth={3}
+                                                dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                                                activeDot={{ r: 6, strokeWidth: 0 }}
+                                                animationDuration={1500}
+                                            />
+                                        ))}
+                                    </LineChart>
+                                ) : (
+                                    <BarChart data={trendData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} dy={10} />
+                                        <YAxis hide />
+                                        <RechartsTooltip
+                                            contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)', padding: '15px' }}
+                                            itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
+                                            labelStyle={{ fontSize: '11px', fontWeight: 900, color: '#fff', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}
+                                            formatter={(value: any) => [formatMoney(typeof value === 'number' ? value : 0), '']}
+                                        />
+                                        <Legend
+                                            verticalAlign="top"
+                                            align="right"
+                                            iconType="circle"
+                                            wrapperStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', paddingBottom: '20px' }}
+                                        />
+                                        {Object.keys(trendData[0] || {}).filter(k => k !== 'name').map((wf, idx) => (
+                                            <Bar key={wf} dataKey={wf} stackId="a" fill={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][idx % 5]} radius={idx === Object.keys(trendData[0]).length - 2 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+                                        ))}
+                                    </BarChart>
+                                )}
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 }
