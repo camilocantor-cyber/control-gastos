@@ -57,8 +57,21 @@ export function CostReport() {
 
             setDateRange({ start: startDate, end: endDate });
 
-            // Fetch History Directly joining process_instances to filter by organization
-            // Using a more robust select pattern
+            // 1. Fetch Area Lookup (to avoid complex nested joins)
+            const { data: areaData } = await supabase
+                .from('employee_positions')
+                .select(`
+                    user_id,
+                    position:positions(department:departments(name))
+                `);
+
+            const areaLookup: Record<string, string> = {};
+            (areaData || []).forEach((ap: any) => {
+                const aName = ap.position?.department?.name;
+                if (aName) areaLookup[ap.user_id] = aName;
+            });
+
+            // 2. Fetch History with direct Profile join
             let historyQuery = supabase
                 .from('process_history')
                 .select(`
@@ -68,7 +81,7 @@ export function CostReport() {
                     user_id,
                     activity_id,
                     created_at,
-                    profiles:user_id(full_name, email, department),
+                    profiles(full_name, email),
                     activities (id, name, workflows(id, name)),
                     process_instances:process_id!inner(organization_id)
                 `)
@@ -83,8 +96,8 @@ export function CostReport() {
 
             let globalTotal = 0;
             const wfMap: Record<string, any> = {};
-            const userMap: Record<string, any> = {};
-            const areaMap: Record<string, any> = {};
+            const userAggMap: Record<string, any> = {};
+            const areaAggMap: Record<string, any> = {};
             const trendMap: Record<string, Record<string, number>> = {};
             const wfNames = new Set<string>();
 
@@ -96,7 +109,7 @@ export function CostReport() {
                 globalTotal += cost;
                 const date = h.created_at ? new Date(h.created_at) : new Date();
 
-                // 1. Group by Workflow
+                // Group by Workflow
                 const actName = h.activities?.name || 'Actividad S/N';
                 const wfRaw = h.activities?.workflows;
                 const wf = Array.isArray(wfRaw) ? wfRaw[0] : wfRaw;
@@ -116,23 +129,25 @@ export function CostReport() {
                 wfMap[wfId].activities[actId].total += cost;
                 wfMap[wfId].activities[actId].hours += hours;
 
-                // 2. Group by User
+                // Group by User (Primary: name from profiles join, Secondary: lookup)
                 const userId = h.user_id || 'unknown';
-                const userName = h.profiles?.full_name || h.profiles?.email || 'Usuario S/N';
-                if (!userMap[userId]) {
-                    userMap[userId] = { id: userId, name: userName, total: 0, hours: 0 };
-                }
-                userMap[userId].total += cost;
-                userMap[userId].hours += hours;
+                const profile = Array.isArray(h.profiles) ? h.profiles[0] : h.profiles;
+                const userName = profile?.full_name || profile?.email || 'Usuario S/N';
 
-                // 3. Group by Area (Department)
-                const areaName = h.profiles?.department || 'General';
-                if (!areaMap[areaName]) {
-                    areaMap[areaName] = { name: areaName, total: 0 };
+                if (!userAggMap[userId]) {
+                    userAggMap[userId] = { id: userId, name: userName, total: 0, hours: 0 };
                 }
-                areaMap[areaName].total += cost;
+                userAggMap[userId].total += cost;
+                userAggMap[userId].hours += hours;
 
-                // 4. Trend Data
+                // Group by Area
+                const areaName = areaLookup[userId] || 'General';
+                if (!areaAggMap[areaName]) {
+                    areaAggMap[areaName] = { name: areaName, total: 0 };
+                }
+                areaAggMap[areaName].total += cost;
+
+                // Trend Data
                 const monthsNamesSmall = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
                 let label = '';
                 if (period === 'year' || period === 'all') {
@@ -159,8 +174,8 @@ export function CostReport() {
                 actArr: Object.values(w.activities).sort((a: any, b: any) => b.total - a.total)
             })));
 
-            setUserCosts(Object.values(userMap).sort((a, b) => b.total - a.total).slice(0, 10));
-            setAreaCosts(Object.values(areaMap).sort((a, b) => b.total - a.total));
+            setUserCosts(Object.values(userAggMap).sort((a, b) => b.total - a.total).slice(0, 10));
+            setAreaCosts(Object.values(areaAggMap).sort((a, b) => b.total - a.total));
 
             const chartLabels = (period === 'year' || period === 'all')
                 ? ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.']
