@@ -26,9 +26,6 @@ interface FlowCanvasProps {
     connectionSourceId?: string | null;
     selectedActivityId?: string | null;
     selectedTransitionId?: string | null;
-    draggedActivityId?: string | null;
-    setDraggedActivityId?: (id: string | null) => void;
-    draggedType?: string | null;
     gridSize?: number;
 }
 
@@ -53,9 +50,6 @@ export function FlowCanvas({
     connectionSourceId,
     selectedActivityId,
     selectedTransitionId,
-    draggedActivityId,
-    setDraggedActivityId,
-    draggedType,
     gridSize = GRID_SIZE
 }: FlowCanvasProps) {
     // Safety guards: ensure we always have arrays, never undefined/null
@@ -274,7 +268,7 @@ export function FlowCanvas({
     );
 }
 
-function FlowNode({ activity, status, isSelected, isConnectionSource, isDragging, onMouseDown, onClick, onDoubleClick, zoom, outgoingTransitions, isReadOnly, onDelete }: any) {
+function FlowNode({ activity, status, isSelected, isConnectionSource, isDragging, onMouseDown, onClick, onDoubleClick, zoom, outgoingTransitions, onDelete }: any) {
     const icons = {
         start: Play,
         task: Square,

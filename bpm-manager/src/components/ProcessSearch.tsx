@@ -255,7 +255,6 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
                 onPageChange={setCurrentPage}
                 onPageSizeChange={setPageSize}
                 searchQuery={searchQuery}
-                onReload={loadProcesses}
                 onDelete={handleToDelete}
             />
 

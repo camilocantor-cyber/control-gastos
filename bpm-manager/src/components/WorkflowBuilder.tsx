@@ -80,9 +80,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
     } = useWorkflowModeler(workflow.id);
 
 
-    const [draggedType, setDraggedType] = useState<ActivityType | null>(null);
     const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
-    const [draggedActivityId, setDraggedActivityId] = useState<string | null>(null);
     const [selectedTransitionId, setSelectedTransitionId] = useState<string | null>(null);
     const [connectionSourceId, setConnectionSourceId] = useState<string | null>(null);
     const [showSaveSuccess, setShowSaveSuccess] = useState(false);
@@ -233,8 +231,6 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
 
     const handleDragStartToolbox = (e: React.DragEvent, type: ActivityType) => {
         e.dataTransfer.setData('activityType', type);
-        setDraggedType(type);
-        setDraggedActivityId(null);
         setSelectedActivityId(null);
         setSelectedTransitionId(null);
         setConnectionSourceId(null);
@@ -797,10 +793,8 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                 actions: []
                             };
                             setActivities(prev => [...prev, newActivity]);
-                            setDraggedType(null);
                         }}
                         onDelete={(id: string) => deleteActivity(id)}
-                        draggedActivityId={draggedActivityId}
                         gridSize={20}
                     />
 

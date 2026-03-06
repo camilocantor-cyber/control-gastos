@@ -1,0 +1,6 @@
+src/components/ProcessTable.tsx(4,1): error TS6133: 'supabase' is declared but its value is never read.
+src/components/ProcessTable.tsx(31,5): error TS6133: 'onReload' is declared but its value is never read.
+src/components/ProcessViewerModal.tsx(2,23): error TS6133: 'GitBranch' is declared but its value is never read.
+src/components/ProcessViewerModal.tsx(94,56): error TS6133: 'isDoubleClick' is declared but its value is never read.
+src/components/WorkflowBuilder.tsx(234,9): error TS2304: Cannot find name 'setDraggedType'.
+src/components/WorkflowBuilder.tsx(235,9): error TS2552: Cannot find name 'setDraggedActivityId'. Did you mean 'selectedActivityId'?

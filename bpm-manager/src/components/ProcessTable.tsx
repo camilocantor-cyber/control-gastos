@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Eye, ArrowRight, Search, ChevronLeft, ChevronRight, Lock, ChevronUp, ChevronDown, ChevronsUpDown, UserCheck, Trash2, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, ArrowRight, Search, ChevronLeft, ChevronRight, Lock, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../lib/supabase';
 
 interface ProcessTableProps {
     processes: any[];
@@ -13,7 +12,6 @@ interface ProcessTableProps {
     onPageChange: (page: number) => void;
     onPageSizeChange?: (size: number) => void;
     searchQuery?: string;
-    onReload?: () => void;
     onDelete?: (id: string) => Promise<void>;
     variant?: 'current' | 'history';
 }
@@ -28,7 +26,6 @@ export function ProcessTable({
     onPageChange,
     onPageSizeChange = () => { },
     searchQuery = '',
-    onReload,
     onDelete,
     variant = 'current'
 }: ProcessTableProps) {
@@ -39,7 +36,6 @@ export function ProcessTable({
 
     const [sortBy, setSortBy] = useState('created_at');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-    const [reassigningId, setReassigningId] = useState<string | null>(null);
 
     const handleSort = (col: string) => {
         if (sortBy === col) {
@@ -70,19 +66,7 @@ export function ProcessTable({
         );
     };
 
-    const handleReassign = async (processId: string, userId: string) => {
-        try {
-            const { error } = await supabase
-                .from('process_instances')
-                .update({ assigned_user_id: userId })
-                .eq('id', processId);
-            if (error) throw error;
-            setReassigningId(null);
-            onReload?.();
-        } catch (err) {
-            console.error('Error reassigning:', err);
-        }
-    };
+
 
     const getElapsedBadge = (createdAt: string, status: string) => {
         if (status === 'completed') return null;
@@ -174,7 +158,6 @@ export function ProcessTable({
                                     const exit = new Date(process.created_at);
                                     const durationMs = (process.time_spent_hours || 0) * 3600000;
                                     const entry = new Date(exit.getTime() - durationMs);
-                                    const isAuthorized = true; // History is usually for auditing/admin
 
                                     return (
                                         <tr key={process.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group border-b border-slate-50 dark:border-slate-800">

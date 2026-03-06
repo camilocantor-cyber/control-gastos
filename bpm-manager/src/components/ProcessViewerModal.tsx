@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, Maximize, GitBranch, Network } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Maximize, Network } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Activity, Transition } from '../types';
 import { HistoryDetailModal } from './HistoryDetailModal';
@@ -91,7 +91,7 @@ export function ProcessViewerModal({ processId, onClose }: ProcessViewerModalPro
         }
     }
 
-    async function handleNodeClick(activityId: string, isDoubleClick: boolean) {
+    async function handleNodeClick(activityId: string) {
         const historyItem = historyLog.find((h: any) => h.activity_id === activityId);
         if (historyItem) {
             try {
