@@ -2,7 +2,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../contexts/ThemeContext';
-import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus } from 'lucide-react';
+import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -119,11 +119,12 @@ const CollapsibleSection = ({
 interface SidebarProps {
     activeSection: string;
     onSectionChange: (section: string) => void;
+    onOpenHelp?: (articleId: string) => void;
     onNewProcess?: () => void;
     isCollapsed?: boolean;
 }
 
-export function Sidebar({ activeSection, onSectionChange, isCollapsed }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapsed }: SidebarProps) {
     const { user, signOut, switchOrganization } = useAuth();
     const [openSections, setOpenSections] = useState<Set<string>>(new Set(['herramientas']));
 
@@ -307,7 +308,21 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                     </div>
                 </nav>
 
-                <div className={cn("pt-4 border-t border-slate-50 dark:border-slate-800", isCollapsed && "mt-auto pt-2")}>
+                <div className={cn("pt-4 border-t border-slate-50 dark:border-slate-800 space-y-1", isCollapsed && "mt-auto pt-2")}>
+                    <button
+                        onClick={() => onOpenHelp ? onOpenHelp('') : onSectionChange('help')}
+                        title={isCollapsed ? "Centro de Ayuda" : undefined}
+                        className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group",
+                            isCollapsed && "justify-center px-0",
+                            activeSection === 'help'
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20"
+                                : "text-slate-400 dark:text-slate-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400"
+                        )}
+                    >
+                        <HelpCircle className="w-5 h-5 flex-shrink-0" />
+                        {!isCollapsed && <span className="font-semibold text-sm truncate">Centro de Ayuda</span>}
+                    </button>
                     <button
                         onClick={signOut}
                         title={isCollapsed ? "Cerrar Sesión" : undefined}
@@ -329,10 +344,11 @@ interface MainLayoutProps {
     children: ReactNode;
     activeSection: string;
     onSectionChange: (section: string) => void;
+    onOpenHelp: (articleId: string) => void;
     onNewProcess?: () => void;
 }
 
-export function MainLayout({ children, activeSection, onSectionChange, onNewProcess }: MainLayoutProps) {
+export function MainLayout({ children, activeSection, onSectionChange, onOpenHelp, onNewProcess }: MainLayoutProps) {
     const { user, signOut } = useAuth();
     const { profile } = useProfile(user?.id);
     const { theme, toggleTheme } = useTheme();
@@ -346,6 +362,7 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
             <Sidebar
                 activeSection={activeSection}
                 onSectionChange={onSectionChange}
+                onOpenHelp={onOpenHelp}
                 isCollapsed={isCollapsed}
             />
             <main className="flex-1 overflow-y-auto custom-scrollbar">
@@ -372,7 +389,8 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                                     accounts: Fingerprint,
                                     monitor: Zap,
                                     organization: Building2,
-                                    settings: ChevronRight
+                                    settings: ChevronRight,
+                                    help: BookOpen,
                                 };
                                 const Icon = icons[activeSection] || ChevronRight;
                                 return (
@@ -391,7 +409,8 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                                                     activeSection === 'users' ? 'Colaboradores' :
                                                         activeSection === 'accounts' ? 'Cuentas de Sistema' :
                                                             activeSection === 'monitor' ? 'Monitor de API' :
-                                                                activeSection}
+                                                                activeSection === 'help' ? 'Centro de Ayuda' : // Added help display name
+                                                                    activeSection}
                                 </h2>
                             </div>
                         </div>
@@ -414,6 +433,15 @@ export function MainLayout({ children, activeSection, onSectionChange, onNewProc
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
+                        {/* Help Quick Access */}
+                        <button
+                            onClick={() => onOpenHelp('')}
+                            className="hidden md:flex p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all active:scale-95"
+                            title="Centro de Ayuda"
+                        >
+                            <HelpCircle className="w-5 h-5" />
+                        </button>
+
                         {/* Theme Toggle */}
                         <button
                             onClick={toggleTheme}

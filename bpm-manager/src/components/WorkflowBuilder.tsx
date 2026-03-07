@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature } from 'lucide-react';
+import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy } from '../types';
 import { exportToBPMN, importFromBPMN } from '../utils/bpmnConverter';
@@ -55,9 +55,10 @@ function FormulaValidationFeedback({ value, availableFields }: { value: string, 
 interface WorkflowBuilderProps {
     workflow: Workflow;
     onBack: () => void;
+    onOpenHelp: (articleId: string) => void;
 }
 
-export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
+export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilderProps) {
     const { user } = useAuth();
     const currentRole = user?.organization_id ? user?.available_organizations?.find((o: any) => o.id === user.organization_id)?.role : user?.role || 'viewer';
     const isViewer = currentRole === 'viewer';
@@ -611,6 +612,13 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
+                    <button
+                        onClick={() => onOpenHelp('workflows-intro')}
+                        className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all border border-transparent hover:border-blue-100 dark:hover:border-blue-800/50 shadow-sm"
+                        title="Ayuda del Constructor"
+                    >
+                        <HelpCircle className="w-5 h-5" />
+                    </button>
                     <div className="flex flex-col">
                         <div className="flex items-center gap-3">
                             <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-none">{workflowName}</h2>
@@ -923,9 +931,8 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                                     details={details}
                                     setDetails={setDetails}
                                     onClose={() => setShowDetailsManager(false)}
-                                    onSave={() => {
-                                        handleSave();
-                                    }}
+                                    onSave={handleSave}
+                                    onOpenHelp={onOpenHelp}
                                 />
                             )}
 
@@ -2749,6 +2756,7 @@ export function WorkflowBuilder({ workflow, onBack }: WorkflowBuilderProps) {
                 onClose={() => setShowSOPGenerator(false)}
                 workflow={workflow}
                 activities={activities}
+                transitions={transitions}
             />
 
             <TemplateManager

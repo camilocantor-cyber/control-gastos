@@ -1,17 +1,49 @@
 import { useState } from 'react';
 import { FileText, Download, Sparkles, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import type { Activity, Workflow } from '../types';
+import type { Activity, Workflow, Transition } from '../types';
 
 interface SOPGeneratorProps {
     isOpen?: boolean;
     workflow: Workflow;
     activities: Activity[];
+    transitions: Transition[];
     onClose: () => void;
 }
 
-export function SOPGenerator({ isOpen = true, workflow, activities, onClose }: SOPGeneratorProps) {
+export function SOPGenerator({ isOpen = true, workflow, activities, transitions, onClose }: SOPGeneratorProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedSOP, setGeneratedSOP] = useState<string | null>(null);
+
+    const generateMermaidDiagram = () => {
+        let mermaid = "```mermaid\ngraph TD\n";
+
+        // Add nodes
+        activities.forEach(act => {
+            const name = act.name.replace(/"/g, "'");
+            let shape = `["${name}"]`;
+            if (act.type === 'start') shape = `(("${name}"))`;
+            if (act.type === 'end') shape = `(("${name}"))`;
+            if (act.type === 'decision') shape = `{"${name}"}`;
+
+            mermaid += `    ${act.id.replace(/-/g, '_')}${shape}\n`;
+        });
+
+        // Add connections
+        transitions.forEach(t => {
+            const source = t.source_id.replace(/-/g, '_');
+            const target = t.target_id.replace(/-/g, '_');
+            const label = t.target_name || t.condition || '';
+
+            if (label) {
+                mermaid += `    ${source} -- "${label}" --> ${target}\n`;
+            } else {
+                mermaid += `    ${source} --> ${target}\n`;
+            }
+        });
+
+        mermaid += "```\n";
+        return mermaid;
+    };
 
     if (!isOpen) return null;
 
@@ -32,6 +64,7 @@ export function SOPGenerator({ isOpen = true, workflow, activities, onClose }: S
 
         content += `## 2. Diagrama de Flujo (Lógica)\n`;
         content += `El proceso consta de ${activities.length} actividades principales organizadas de forma secuencial y condicional.\n\n`;
+        content += generateMermaidDiagram() + `\n`;
 
         content += `## 3. Descripción de Actividades\n\n`;
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from './components/Layout';
 import { Toaster } from 'sonner';
 import { WorkflowList } from './components/WorkflowManagement';
@@ -6,7 +6,7 @@ import { WorkflowBuilder } from './components/WorkflowBuilder';
 import { Auth } from './components/Auth';
 import { ResetPassword } from './components/ResetPassword';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import { Info } from 'lucide-react';
+import { Info, X } from 'lucide-react';
 import type { Workflow } from './types';
 import { Dashboard } from './components/Dashboard';
 import { UserManagement } from './components/UserManagement';
@@ -23,20 +23,43 @@ import { IntegrationMonitor } from './components/IntegrationMonitor';
 import { SelfServicePortal } from './components/SelfServicePortal';
 import { PublicForm } from './components/PublicForm';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
+import { HelpCenter } from './components/HelpCenter';
 
 function AppContent() {
   const { user, loading } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [prevSection, setPrevSection] = useState('dashboard');
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [shouldOpenForm, setShouldOpenForm] = useState(false);
   const [showStartProcess, setShowStartProcess] = useState(false);
   const [executingProcessId, setExecutingProcessId] = useState<string | null>(null);
+  const [helpArticleId, setHelpArticleId] = useState<string | undefined>(undefined);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+
+  const handleSectionChange = (section: string) => {
+    if (activeSection !== 'help') {
+      setPrevSection(activeSection);
+    }
+    setActiveSection(section);
+    setShouldOpenForm(false);
+    setHelpArticleId(undefined);
+  };
   const [isResetPasswordPage] = useState(() => window.location.hash.includes('type=recovery'));
   const [publicWorkflowId] = useState(() => new URLSearchParams(window.location.search).get('public_process'));
   const [publicActivityId] = useState(() => new URLSearchParams(window.location.search).get('public_activity'));
   const [processId] = useState(() => new URLSearchParams(window.location.search).get('process_id'));
   const [isSuperadminPage] = useState(() => window.location.hash.includes('superadmin'));
+
+  // Close help with Escape key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && activeSection === 'help') {
+        setActiveSection(prevSection);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [activeSection, prevSection]);
 
   if (isSuperadminPage) {
     return <SuperAdminPanel />;
@@ -91,14 +114,21 @@ function AppContent() {
     return (
       <MainLayout
         activeSection="workflows"
-        onSectionChange={(section) => {
-          setActiveSection(section);
-          setSelectedWorkflow(null);
+        onSectionChange={handleSectionChange}
+        onOpenHelp={(articleId) => {
+          setPrevSection('workflows');
+          setActiveSection('help');
+          setHelpArticleId(articleId);
         }}
       >
         <WorkflowBuilder
           workflow={selectedWorkflow}
           onBack={() => setSelectedWorkflow(null)}
+          onOpenHelp={(articleId) => {
+            setActiveSection('help');
+            setHelpArticleId(articleId);
+            setSelectedWorkflow(null);
+          }}
         />
       </MainLayout>
     );
@@ -107,9 +137,11 @@ function AppContent() {
   return (
     <MainLayout
       activeSection={activeSection}
-      onSectionChange={(section) => {
-        setActiveSection(section);
-        setShouldOpenForm(false);
+      onSectionChange={handleSectionChange}
+      onOpenHelp={(articleId: string) => {
+        setPrevSection(activeSection);
+        setActiveSection('help');
+        setHelpArticleId(articleId);
       }}
       onNewProcess={() => setShowStartProcess(true)}
     >
@@ -150,6 +182,7 @@ function AppContent() {
       )}
       {activeSection === 'accounts' && <SystemAccounts />}
       {activeSection === 'monitor' && <IntegrationMonitor />}
+      {/* help section removed from here */}
 
       {showStartProcess && (
         <StartProcessModal
@@ -168,6 +201,37 @@ function AppContent() {
             setDashboardRefreshKey(prev => prev + 1);
           }}
         />
+      )}
+
+      {/* Help Center Overlay */}
+      {activeSection === 'help' && (
+        <div className="fixed inset-0 z-[200] animate-in fade-in duration-300">
+          {/* Close Button - Fixed to screen */}
+          <div className="absolute top-6 right-6 z-[210]">
+            <button
+              onClick={() => setActiveSection(prevSection)}
+              className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-red-500 rounded-2xl shadow-2xl transition-all active:scale-95 group flex items-center gap-2"
+              title="Cerrar ayuda (Esc)"
+            >
+              <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">Cerrar</span>
+              <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+          </div>
+
+          {/* Scrolling Content Area */}
+          <div className="h-full overflow-y-auto custom-scrollbar bg-slate-100/95 dark:bg-slate-950/95 backdrop-blur-3xl pt-24 pb-20 p-4 md:p-8">
+            <div className="relative">
+              {/* Decorative background elements inside scrolling area */}
+              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] -translate-y-1/2" />
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] translate-y-1/2" />
+
+              <HelpCenter
+                initialArticleId={helpArticleId}
+                onClose={() => setActiveSection(prevSection)}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </MainLayout>
   );

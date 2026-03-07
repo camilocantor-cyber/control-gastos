@@ -3,6 +3,88 @@ import { generateDocument, generateExcel, generatePdf } from './documentGenerato
 import { supabase } from '../lib/supabase';
 
 /**
+ * Normalizes any string to a snake_case variable name safe for use in docxtemplater.
+ * Example: "Contratos Adicionales" → "contratos_adicionales"
+ */
+function toSnakeCase(str: string): string {
+    return str
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+/**
+ * Loads all process_detail_rows for a process instance and injects them into the
+ * outputs context as arrays keyed by the normalized folder name (snake_case).
+ *
+ * This enables docxtemplater to iterate over carpeta/detalle rows in a Word template
+ * using the loop syntax:
+ *
+ *   {{#nombre_carpeta}}         ← one row per iteration
+ *   {{campo1}} {{campo2}}
+ *   {{/nombre_carpeta}}
+ *
+ * Additionally the total row count is injected as  {{nombre_carpeta_total}}.
+ */
+async function injectDetailRowsIntoContext(
+    processId: string,
+    outputs: Record<string, any>
+): Promise<void> {
+    try {
+        // 1. Find all workflow_details that belong to this process's workflow
+        const { data: instance } = await supabase
+            .from('process_instances')
+            .select('workflow_id')
+            .eq('id', processId)
+            .single();
+
+        if (!instance?.workflow_id) return;
+
+        const { data: details } = await supabase
+            .from('workflow_details')
+            .select('id, name, fields')
+            .eq('workflow_id', instance.workflow_id);
+
+        if (!details || details.length === 0) return;
+
+        // 2. Load all rows for this process
+        const detailIds = details.map((d: any) => d.id);
+        const { data: rows } = await supabase
+            .from('process_detail_rows')
+            .select('detail_id, data')
+            .eq('process_id', processId)
+            .in('detail_id', detailIds)
+            .order('created_at', { ascending: true });
+
+        // 3. Group rows by detail and inject into outputs
+        for (const detail of details) {
+            const key = toSnakeCase(detail.name || 'detalle');
+            const detailRows = (rows || [])
+                .filter((r: any) => r.detail_id === detail.id)
+                .map((r: any) => {
+                    // r.data is already a plain object from the JSONB column
+                    const rowData: Record<string, any> = typeof r.data === 'object' && r.data !== null
+                        ? { ...r.data }
+                        : {};
+
+                    // Also inject a 1-based row number for convenience: {{_fila}}
+                    return rowData;
+                })
+                .map((rowData: Record<string, any>, idx: number) => ({
+                    _fila: String(idx + 1),
+                    ...rowData
+                }));
+
+            outputs[key] = detailRows;
+            outputs[`${key}_total`] = String(detailRows.length);
+        }
+    } catch (err) {
+        console.warn('[actionRunner] Could not inject detail rows into document context:', err);
+    }
+}
+
+/**
  * Utility to execute sequential service tasks (REST/SOAP/Finance)
  */
 
@@ -148,7 +230,15 @@ export async function executeServiceTask(
                 const ext = genType === 'generic' ? 'pdf' : (format === 'xlsx' ? 'xlsx' : 'docx');
                 const finalFilename = `${baseName}_${new Date().getTime()}.${ext}`;
 
-                // 1. Generate document based on type and format
+                // 1. Inject carpeta/detalle rows into the context as arrays
+                //    so docxtemplater can iterate them in the template
+                //    using {{#nombre_carpeta}}...{{/nombre_carpeta}} blocks.
+                //    This is a no-op if the process has no detail rows.
+                if (outputs.process_id) {
+                    await injectDetailRowsIntoContext(outputs.process_id, outputs);
+                }
+
+                // 2. Generate document based on type and format
                 let generatedFile: File;
 
                 if (genType === 'generic') {
@@ -167,7 +257,7 @@ export async function executeServiceTask(
                     }
                 }
 
-                // 2. Upload to storage
+                // 3. Upload to storage
                 const filePath = `${outputs.process_id}/${finalFilename}`;
                 const { error: uploadError } = await supabase.storage
                     .from('process-files')
@@ -177,7 +267,7 @@ export async function executeServiceTask(
                     throw new Error(`Error subiendo documento a storage: ${uploadError.message}`);
                 }
 
-                // 3. Register in process_attachments table
+                // 4. Register in process_attachments table
                 const { error: dbError } = await supabase
                     .from('process_attachments')
                     .insert({
@@ -201,6 +291,7 @@ export async function executeServiceTask(
                 };
                 continue;
             }
+
 
             // 5. Generic Webhook/REST Action
             const url = substitute(step.url);

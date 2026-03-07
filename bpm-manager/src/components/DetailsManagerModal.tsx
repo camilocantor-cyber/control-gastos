@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Edit2, Zap, Save, FileText, Settings2, FolderOpen } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Zap, Save, FileText, Settings2, FolderOpen, Download, HelpCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { FormPreviewModal } from './FormPreviewModal';
+import { generateDetailWordTemplate } from '../utils/documentGenerator';
 import type { WorkflowDetail, FieldDefinition, AutomatedAction, AutomatedActionType, ActionExecutionTiming } from '../types';
 
 interface DetailsManagerModalProps {
@@ -10,9 +11,10 @@ interface DetailsManagerModalProps {
     setDetails: React.Dispatch<React.SetStateAction<WorkflowDetail[]>>;
     onClose: () => void;
     onSave: () => void;
+    onOpenHelp: (articleId: string) => void;
 }
 
-export function DetailsManagerModal({ workflowId, details, setDetails, onClose, onSave }: DetailsManagerModalProps) {
+export function DetailsManagerModal({ workflowId, details, setDetails, onClose, onSave, onOpenHelp }: DetailsManagerModalProps) {
     const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'actions'>('general');
     const [showFormPreview, setShowFormPreview] = useState(false);
@@ -107,9 +109,18 @@ export function DetailsManagerModal({ workflowId, details, setDetails, onClose, 
                         <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-inner">
                             <FolderOpen className="w-6 h-6" />
                         </div>
-                        <div>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Gestor de Carpetas (Maestro-Detalle)</h2>
-                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Defina sub-estructuras repetibles para el flujo</p>
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Gestor de Carpetas (Maestro-Detalle)</h2>
+                                <button
+                                    onClick={() => onOpenHelp('folders-intro')}
+                                    className="p-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors flex items-center gap-2"
+                                >
+                                    <HelpCircle className="w-3.5 h-3.5" />
+                                    Ayuda
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Configura estructuras repetitivas para este flujo de trabajo</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -249,9 +260,26 @@ export function DetailsManagerModal({ workflowId, details, setDetails, onClose, 
                                                 <h4 className="flex items-center gap-2 text-sm font-bold text-indigo-900 dark:text-indigo-100 mb-2">
                                                     <Settings2 className="w-4 h-4" /> ¿Cómo usar esta carpeta?
                                                 </h4>
-                                                <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                                                <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed mb-3">
                                                     Una vez configurada la estructura y acciones de esta carpeta, cierra este gestor, selecciona una Actividad en el lienzo, ve a sus Propiedades y asóciala buscando en la lista de "Carpetas/Detalles Asociados".
                                                 </p>
+                                                <button
+                                                    onClick={() => {
+                                                        const det = details.find(d => d.id === selectedDetailId);
+                                                        if (!det) return;
+                                                        const file = generateDetailWordTemplate(det);
+                                                        const url = URL.createObjectURL(file);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = file.name;
+                                                        a.click();
+                                                        URL.revokeObjectURL(url);
+                                                    }}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 active:scale-95"
+                                                >
+                                                    <Download className="w-3.5 h-3.5" />
+                                                    Descargar Plantilla Word (.docx)
+                                                </button>
                                             </div>
                                         </div>
                                     )}
