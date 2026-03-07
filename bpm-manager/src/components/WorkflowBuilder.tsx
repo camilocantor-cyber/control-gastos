@@ -101,6 +101,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
     // Delete confirmation dialog
     const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
     const [creatingVersion, setCreatingVersion] = useState(false);
+    const [selectedPreviewFieldId, setSelectedPreviewFieldId] = useState<string | null>(null);
 
     // Document Template Generation
     const { loadTemplates } = useTemplateUpload();
@@ -306,12 +307,9 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
             setSelectedActivityId(id);
             setSelectedTransitionId(null);
             setEditingActionId(null); // Reset action editing state
+            setSelectedPreviewFieldId(null); // Ensure no specific field is focused
             if (isDoubleClick) {
-                if (isReadOnly) {
-                    setShowFormPreview(true);
-                } else {
-                    setShowPropertiesModal(true);
-                }
+                setShowFormPreview(true);
             }
         }
     };
@@ -1395,7 +1393,13 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                 return (
                                                                                     <React.Fragment key={field.id}>
                                                                                         {/* Field Main Row */}
-                                                                                        <tr className={`group transition-all border-t-[6px] border-slate-300 dark:border-slate-700/80 first:border-t-0 hover:bg-slate-50/30 dark:hover:bg-slate-800/20`}>
+                                                                                        <tr
+                                                                                            className={`group transition-all border-t-[6px] border-slate-300 dark:border-slate-700/80 first:border-t-0 hover:bg-slate-50/30 dark:hover:bg-slate-800/20 cursor-pointer`}
+                                                                                            onDoubleClick={() => {
+                                                                                                setSelectedPreviewFieldId(field.id);
+                                                                                                setShowFormPreview(true);
+                                                                                            }}
+                                                                                        >
                                                                                             <td className="px-2 py-2 w-10">
                                                                                                 <div className="flex flex-col gap-0.5 items-center">
                                                                                                     <button
@@ -1550,385 +1554,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                             </td>
                                                                                         </tr>
 
-                                                                                        {/* Conditional Advanced Settings Chapter */}
-                                                                                        <tr className="bg-slate-50/40 dark:bg-slate-800/10">
-                                                                                            <td colSpan={7} className="px-4 py-3 border-b border-transparent">
-                                                                                                <div className="grid grid-cols-3 gap-6">
-                                                                                                    <div>
-                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Visibilidad Condicional</label>
-                                                                                                        <input
-                                                                                                            type="text"
-                                                                                                            value={field.visibility_condition || ''}
-                                                                                                            onChange={(e) => {
-                                                                                                                setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                                    ...a,
-                                                                                                                    fields: a.fields?.map(f => f.id === field.id ? { ...f, visibility_condition: e.target.value } : f)
-                                                                                                                } : a));
-                                                                                                            }}
-                                                                                                            className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all font-mono"
-                                                                                                            placeholder="Eje: campo_1 == 'Si'"
-                                                                                                        />
-                                                                                                    </div>
 
-                                                                                                    {field.type === 'text' && (
-                                                                                                        <div>
-                                                                                                            <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Patrón Regex</label>
-                                                                                                            <input
-                                                                                                                type="text"
-                                                                                                                value={field.regex_pattern || ''}
-                                                                                                                onChange={(e) => {
-                                                                                                                    const pattern = e.target.value;
-                                                                                                                    setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                                        ...a,
-                                                                                                                        fields: a.fields?.map(f => f.id === field.id ? { ...f, regex_pattern: pattern } : f)
-                                                                                                                    } : a));
-                                                                                                                }}
-                                                                                                                className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all font-mono"
-                                                                                                                placeholder="Eje: ^[A-Z]{3}-\d{4}$"
-                                                                                                            />
-                                                                                                        </div>
-                                                                                                    )}
-
-                                                                                                    {field.type === 'consecutivo' && (
-                                                                                                        <div className="col-span-3">
-                                                                                                            <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Máscara Secuencial</label>
-                                                                                                            <input
-                                                                                                                type="text"
-                                                                                                                value={field.consecutive_mask || ''}
-                                                                                                                onChange={(e) => {
-                                                                                                                    const pattern = e.target.value;
-                                                                                                                    setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                                        ...a,
-                                                                                                                        fields: a.fields?.map(f => f.id === field.id ? { ...f, consecutive_mask: pattern } : f)
-                                                                                                                    } : a));
-                                                                                                                }}
-                                                                                                                className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all font-mono"
-                                                                                                                placeholder="EJ: CON-YYYY-MM-####"
-                                                                                                            />
-                                                                                                            <p className="text-[8px] text-slate-400 mt-1 ml-1 leading-tight">Usa YYYY (Año 4-digs), YY (Año 2-digs), MM (Mes), DD (Día) y # para autocompletar dígitos. Ejemplo: <b>FAC-YYYY-MM-####</b> se convertirá en FAC-2024-03-0001.</p>
-                                                                                                        </div>
-                                                                                                    )}
-
-                                                                                                    {(field.type === 'number' || field.type === 'currency') && (
-                                                                                                        <div className="flex gap-2">
-                                                                                                            <div className="flex-1">
-                                                                                                                <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Mínimo</label>
-                                                                                                                <input
-                                                                                                                    type="number"
-                                                                                                                    value={field.min_value || ''}
-                                                                                                                    onChange={(e) => {
-                                                                                                                        const val = e.target.value ? parseFloat(e.target.value) : undefined;
-                                                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                                            ...a,
-                                                                                                                            fields: a.fields?.map(f => f.id === field.id ? { ...f, min_value: val } : f)
-                                                                                                                        } : a));
-                                                                                                                    }}
-                                                                                                                    className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all"
-                                                                                                                />
-                                                                                                            </div>
-                                                                                                            <div className="flex-1">
-                                                                                                                <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Máximo</label>
-                                                                                                                <input
-                                                                                                                    type="number"
-                                                                                                                    value={field.max_value || ''}
-                                                                                                                    onChange={(e) => {
-                                                                                                                        const val = e.target.value ? parseFloat(e.target.value) : undefined;
-                                                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                                            ...a,
-                                                                                                                            fields: a.fields?.map(f => f.id === field.id ? { ...f, max_value: val } : f)
-                                                                                                                        } : a));
-                                                                                                                    }}
-                                                                                                                    className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all"
-                                                                                                                />
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                    )}
-
-                                                                                                    {field.type === 'select' && (
-                                                                                                        <div>
-                                                                                                            <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Opciones</label>
-                                                                                                            <input
-                                                                                                                type="text"
-                                                                                                                value={field.options?.join(', ') || ''}
-                                                                                                                onChange={(e) => {
-                                                                                                                    const val = e.target.value;
-                                                                                                                    const opts = val.split(',').map(o => o.startsWith(' ') ? o : o.trimStart());
-                                                                                                                    setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                                        ...a,
-                                                                                                                        fields: a.fields?.map(f => f.id === field.id ? { ...f, options: opts } : f)
-                                                                                                                    } : a));
-                                                                                                                }}
-                                                                                                                className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all"
-                                                                                                                placeholder="Aprobado, Rechazado..."
-                                                                                                            />
-                                                                                                        </div>
-                                                                                                    )}
-
-                                                                                                    {field.type === 'lookup' && (
-                                                                                                        <div className="col-span-3 mt-4 p-4 bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800 rounded-xl space-y-4">
-                                                                                                            <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-800/50 pb-3">
-                                                                                                                <h5 className="text-[10px] font-black tracking-widest uppercase text-indigo-900 dark:text-indigo-200">
-                                                                                                                    Configuración de Búsqueda Interactiva (Lookup)
-                                                                                                                </h5>
-
-                                                                                                                {/* Type Selector Toggle */}
-                                                                                                                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                                                                                                                    <button
-                                                                                                                        type="button"
-                                                                                                                        onClick={() => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', url: undefined, method: undefined, search_param: undefined } } : f) } : a))}
-                                                                                                                        className={cn(
-                                                                                                                            "px-3 py-1 text-[9px] font-bold rounded-md transition-all uppercase tracking-wider",
-                                                                                                                            (field.lookup_config?.type === 'database') ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
-                                                                                                                        )}
-                                                                                                                    >
-                                                                                                                        Catálogo BD
-                                                                                                                    </button>
-                                                                                                                    <button
-                                                                                                                        type="button"
-                                                                                                                        onClick={() => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'rest', table_name: undefined, search_column: undefined } } : f) } : a))}
-                                                                                                                        className={cn(
-                                                                                                                            "px-3 py-1 text-[9px] font-bold rounded-md transition-all uppercase tracking-wider",
-                                                                                                                            (!field.lookup_config?.type || field.lookup_config?.type === 'rest') ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
-                                                                                                                        )}
-                                                                                                                    >
-                                                                                                                        API Externa
-                                                                                                                    </button>
-                                                                                                                </div>
-                                                                                                            </div>
-
-                                                                                                            {field.lookup_config?.type === 'database' ? (
-                                                                                                                /* --- DATABASE CATALOG CONFIG --- */
-                                                                                                                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
-                                                                                                                    <div className="col-span-2">
-                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 tracking-widest ml-1">1. Seleccionar Tabla</label>
-                                                                                                                        <select
-                                                                                                                            value={field.lookup_config?.table_name || ''}
-                                                                                                                            onChange={e => {
-                                                                                                                                const table = e.target.value;
-                                                                                                                                fetchColumnsForTable(table);
-                                                                                                                                setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', table_name: table, search_column: '', display_fields: [], value_field: '', mapping: {} } } : f) } : a));
-                                                                                                                            }}
-                                                                                                                            className="w-full h-8 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-700 dark:text-slate-300 font-bold focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 outline-none transition-all"
-                                                                                                                        >
-                                                                                                                            <option value="">-- Elija una tabla del esquema --</option>
-                                                                                                                            {lookupData.dbTables.map(t => (
-                                                                                                                                <option key={t} value={t}>{t}</option>
-                                                                                                                            ))}
-                                                                                                                        </select>
-                                                                                                                    </div>
-
-                                                                                                                    {field.lookup_config?.table_name && tableColumnsMap[field.lookup_config.table_name] && (
-                                                                                                                        <>
-                                                                                                                            <div className="col-span-2 p-3 bg-white/40 dark:bg-slate-900/20 rounded-lg border border-slate-200/50 dark:border-slate-800/50 space-y-3">
-                                                                                                                                <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-500">2. Configurar Búsqueda</h6>
-                                                                                                                                <div className="grid grid-cols-2 gap-3">
-                                                                                                                                    <div>
-                                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 tracking-widest ml-1">Columna a Buscar (LIKE)</label>
-                                                                                                                                        <select
-                                                                                                                                            value={field.lookup_config?.search_column || ''}
-                                                                                                                                            onChange={e => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', search_column: e.target.value } } : f) } : a))}
-                                                                                                                                            className="w-full h-8 px-2 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-slate-700 dark:text-slate-300 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 outline-none transition-all"
-                                                                                                                                        >
-                                                                                                                                            <option value="">Seleccione columna...</option>
-                                                                                                                                            {tableColumnsMap[field.lookup_config.table_name]?.map(c => <option key={c} value={c}>{c}</option>)}
-                                                                                                                                        </select>
-                                                                                                                                    </div>
-                                                                                                                                    <div>
-                                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 tracking-widest ml-1">Columna a Guardar (Value)</label>
-                                                                                                                                        <select
-                                                                                                                                            value={field.lookup_config?.value_field || ''}
-                                                                                                                                            onChange={e => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', value_field: e.target.value } } : f) } : a))}
-                                                                                                                                            className="w-full h-8 px-2 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-slate-700 dark:text-slate-300 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 outline-none transition-all"
-                                                                                                                                        >
-                                                                                                                                            <option value="">Seleccione columna ID/Value...</option>
-                                                                                                                                            {tableColumnsMap[field.lookup_config.table_name]?.map(c => <option key={c} value={c}>{c}</option>)}
-                                                                                                                                        </select>
-                                                                                                                                    </div>
-                                                                                                                                    <div className="col-span-2">
-                                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 tracking-widest ml-1">Columnas a Mostrar (Popup)</label>
-                                                                                                                                        <div className="flex flex-wrap gap-1.5 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md min-h-8">
-                                                                                                                                            {tableColumnsMap[field.lookup_config.table_name]?.map(c => (
-                                                                                                                                                <label key={c} className={cn("flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 dark:bg-slate-800 border cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors", field.lookup_config?.display_fields?.includes(c) ? "border-indigo-300 dark:border-indigo-700/50 text-indigo-700 dark:text-indigo-300" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400")}>
-                                                                                                                                                    <input
-                                                                                                                                                        type="checkbox"
-                                                                                                                                                        className="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500 rounded-sm"
-                                                                                                                                                        checked={field.lookup_config?.display_fields?.includes(c) || false}
-                                                                                                                                                        onChange={(evt) => {
-                                                                                                                                                            const isChecked = evt.target.checked;
-                                                                                                                                                            const current = field.lookup_config?.display_fields || [];
-                                                                                                                                                            const next = isChecked ? [...current, c] : current.filter(x => x !== c);
-                                                                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', display_fields: next } } : f) } : a));
-                                                                                                                                                        }}
-                                                                                                                                                    />
-                                                                                                                                                    <span className="text-[9px] font-mono">{c}</span>
-                                                                                                                                                </label>
-                                                                                                                                            ))}
-                                                                                                                                        </div>
-                                                                                                                                    </div>
-                                                                                                                                </div>
-                                                                                                                            </div>
-
-                                                                                                                            <div className="col-span-2 p-3 bg-fuchsia-50/50 dark:bg-fuchsia-900/10 rounded-lg border border-fuchsia-100 dark:border-fuchsia-800/50 space-y-3">
-                                                                                                                                <h6 className="text-[9px] font-black uppercase tracking-widest text-fuchsia-800 dark:text-fuchsia-300 flex items-center justify-between">
-                                                                                                                                    3. Mapeo de Campos (Autollenado)
-                                                                                                                                    <button
-                                                                                                                                        type="button"
-                                                                                                                                        onClick={() => {
-                                                                                                                                            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-                                                                                                                                            const key = Array.from({ length: 4 }).map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
-                                                                                                                                            // initialize empty mapping pair using dummy key
-                                                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', mapping: { ...(f.lookup_config?.mapping || {}), [`_new_${key}`]: '' } } } : f) } : a));
-                                                                                                                                        }}
-                                                                                                                                        className="flex items-center gap-1 text-[8px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-fuchsia-200 dark:border-fuchsia-800 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40 transition-colors cursor-pointer"
-                                                                                                                                    >
-                                                                                                                                        <Plus className="w-3 h-3" /> AGREGAR
-                                                                                                                                    </button>
-                                                                                                                                </h6>
-
-                                                                                                                                {(!field.lookup_config?.mapping || Object.keys(field.lookup_config.mapping).length === 0) ? (
-                                                                                                                                    <p className="text-[10px] text-slate-500 italic p-2 pb-0 text-center">No hay mapeos. Agrega uno para llenar otros campos automáticamente.</p>
-                                                                                                                                ) : (
-                                                                                                                                    <div className="space-y-2">
-                                                                                                                                        {Object.entries(field.lookup_config.mapping).map(([sourceKey, targetField]) => (
-                                                                                                                                            <div key={sourceKey} className="flex items-center gap-2">
-                                                                                                                                                <div className="flex-1">
-                                                                                                                                                    <select
-                                                                                                                                                        value={sourceKey.startsWith('_new_') ? '' : sourceKey}
-                                                                                                                                                        onChange={(e) => {
-                                                                                                                                                            const newSource = e.target.value;
-                                                                                                                                                            const currentMapping = { ...field.lookup_config!.mapping };
-                                                                                                                                                            const targetVal = currentMapping[sourceKey];
-                                                                                                                                                            delete currentMapping[sourceKey];
-                                                                                                                                                            currentMapping[newSource] = targetVal;
-                                                                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', mapping: currentMapping } } : f) } : a));
-                                                                                                                                                        }}
-                                                                                                                                                        className="w-full h-8 px-2 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-slate-700 dark:text-slate-300 font-mono"
-                                                                                                                                                    >
-                                                                                                                                                        <option value="">Columna Origen...</option>
-                                                                                                                                                        {tableColumnsMap[field.lookup_config!.table_name!]?.map(c => <option key={c} value={c}>{c}</option>)}
-                                                                                                                                                    </select>
-                                                                                                                                                </div>
-                                                                                                                                                <div className="text-slate-400">
-                                                                                                                                                    <ArrowLeft className="w-3 h-3" />
-                                                                                                                                                </div>
-                                                                                                                                                <div className="flex-1">
-                                                                                                                                                    <select
-                                                                                                                                                        value={targetField}
-                                                                                                                                                        onChange={(e) => {
-                                                                                                                                                            const newTarget = e.target.value;
-                                                                                                                                                            const currentMapping = { ...field.lookup_config!.mapping };
-                                                                                                                                                            currentMapping[sourceKey] = newTarget;
-                                                                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', mapping: currentMapping } } : f) } : a));
-                                                                                                                                                        }}
-                                                                                                                                                        className="w-full h-8 px-2 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-slate-700 dark:text-slate-300 font-bold"
-                                                                                                                                                    >
-                                                                                                                                                        <option value="">Campo Formulario...</option>
-                                                                                                                                                        {activities.find(a => a.id === selectedActivityId)?.fields?.map(f => (
-                                                                                                                                                            <option key={f.id} value={f.name}>{f.name} ({f.label})</option>
-                                                                                                                                                        ))}
-                                                                                                                                                    </select>
-                                                                                                                                                </div>
-                                                                                                                                                <button
-                                                                                                                                                    onClick={() => {
-                                                                                                                                                        const currentMapping = { ...field.lookup_config!.mapping };
-                                                                                                                                                        delete currentMapping[sourceKey];
-                                                                                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, type: 'database', mapping: currentMapping } } : f) } : a));
-                                                                                                                                                    }}
-                                                                                                                                                    className="p-1.5 text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded"
-                                                                                                                                                >
-                                                                                                                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                                                                                                                </button>
-                                                                                                                                            </div>
-                                                                                                                                        ))}
-                                                                                                                                    </div>
-                                                                                                                                )}
-                                                                                                                            </div>
-                                                                                                                        </>
-                                                                                                                    )}
-                                                                                                                </div>
-                                                                                                            ) : (
-                                                                                                                /* --- REST API CONFIG (Legacy) --- */
-                                                                                                                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1">
-                                                                                                                    <div>
-                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">URL del Endpoint</label>
-                                                                                                                        <input
-                                                                                                                            type="text"
-                                                                                                                            value={field.lookup_config?.url || ''}
-                                                                                                                            onChange={e => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, url: e.target.value, type: 'rest', method: f.lookup_config?.method || 'GET', search_param: f.lookup_config?.search_param || '', display_fields: f.lookup_config?.display_fields || [], value_field: f.lookup_config?.value_field || '' } } : f) } : a))}
-                                                                                                                            placeholder="https://api.ejemplo.com/datos"
-                                                                                                                            className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all"
-                                                                                                                        />
-                                                                                                                    </div>
-                                                                                                                    <div>
-                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Parámetro de Búsqueda</label>
-                                                                                                                        <input
-                                                                                                                            type="text"
-                                                                                                                            value={field.lookup_config?.search_param || ''}
-                                                                                                                            onChange={e => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, search_param: e.target.value, type: 'rest', method: f.lookup_config?.method || 'GET', url: f.lookup_config?.url || '', display_fields: f.lookup_config?.display_fields || [], value_field: f.lookup_config?.value_field || '' } } : f) } : a))}
-                                                                                                                            placeholder="q, query, name..."
-                                                                                                                            className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all"
-                                                                                                                        />
-                                                                                                                    </div>
-                                                                                                                    <div>
-                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Campos a Mostrar</label>
-                                                                                                                        <input
-                                                                                                                            type="text"
-                                                                                                                            value={field.lookup_config?.display_fields?.join(', ') || ''}
-                                                                                                                            onChange={e => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, display_fields: e.target.value.split(',').map(s => s.trim()), type: 'rest', method: f.lookup_config?.method || 'GET', search_param: f.lookup_config?.search_param || '', url: f.lookup_config?.url || '', value_field: f.lookup_config?.value_field || '' } } : f) } : a))}
-                                                                                                                            placeholder="nombre, email"
-                                                                                                                            className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all"
-                                                                                                                        />
-                                                                                                                    </div>
-                                                                                                                    <div>
-                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Campo de Valor</label>
-                                                                                                                        <input
-                                                                                                                            type="text"
-                                                                                                                            value={field.lookup_config?.value_field || ''}
-                                                                                                                            onChange={e => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, value_field: e.target.value, type: 'rest', method: f.lookup_config?.method || 'GET', search_param: f.lookup_config?.search_param || '', display_fields: f.lookup_config?.display_fields || [], url: f.lookup_config?.url || '' } } : f) } : a))}
-                                                                                                                            placeholder="id, uuid..."
-                                                                                                                            className="w-full h-7 px-2 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all"
-                                                                                                                        />
-                                                                                                                    </div>
-                                                                                                                    <div className="col-span-2">
-                                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Mapeo Extra (JSON)</label>
-                                                                                                                        <textarea
-                                                                                                                            value={field.lookup_config?.mapping ? JSON.stringify(field.lookup_config.mapping, null, 2) : ''}
-                                                                                                                            onChange={e => {
-                                                                                                                                try {
-                                                                                                                                    const mapping = JSON.parse(e.target.value);
-                                                                                                                                    setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: a.fields?.map(f => f.id === field.id ? { ...f, lookup_config: { ...f.lookup_config, mapping, type: 'rest', method: f.lookup_config?.method || 'GET', search_param: f.lookup_config?.search_param || '', display_fields: f.lookup_config?.display_fields || [], url: f.lookup_config?.url || '', value_field: f.lookup_config?.value_field || '' } } : f) } : a));
-                                                                                                                                } catch (err) {
-                                                                                                                                    // Ignore errors while typing
-                                                                                                                                }
-                                                                                                                            }}
-                                                                                                                            placeholder='{"email_resp": "email_form"}'
-                                                                                                                            className="w-full h-14 px-2 py-1.5 text-[10px] bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 focus:border-blue-400 outline-none transition-all font-mono"
-                                                                                                                        />
-                                                                                                                    </div>
-                                                                                                                </div>
-                                                                                                            )}
-                                                                                                        </div>
-                                                                                                    )}
-
-                                                                                                    <div>
-                                                                                                        <label className="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase mb-1.5 tracking-widest ml-1">Ayuda / Placeholder</label>
-                                                                                                        <input
-                                                                                                            type="text"
-                                                                                                            value={field.placeholder || ''}
-                                                                                                            onChange={(e) => {
-                                                                                                                const val = e.target.value;
-                                                                                                                setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                                    ...a,
-                                                                                                                    fields: a.fields?.map(f => f.id === field.id ? { ...f, placeholder: val } : f)
-                                                                                                                } : a));
-                                                                                                            }}
-                                                                                                            className="w-full h-7 px-2 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400 transition-all font-bold"
-                                                                                                            placeholder="Instrucciones..."
-                                                                                                        />
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </td>
-                                                                                        </tr>
                                                                                     </React.Fragment>
                                                                                 );
                                                                             })}
@@ -2772,13 +2398,21 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                         activityName={activities.find(a => a.id === selectedActivityId)?.name || ''}
                         fields={activities.find(a => a.id === selectedActivityId)?.fields || []}
                         formColumns={activities.find(a => a.id === selectedActivityId)?.form_columns}
-                        onClose={() => setShowFormPreview(false)}
+                        onClose={() => {
+                            setShowFormPreview(false);
+                            setSelectedPreviewFieldId(null);
+                        }}
                         onAddField={handleAddField}
                         onUpdateField={handleUpdateField}
                         onDeleteField={handleDeleteField}
                         onReorderFields={handleReorderFields}
                         onSave={handleSave}
                         isReadOnly={isReadOnly}
+                        dbTables={lookupData.dbTables}
+                        tableColumnsMap={tableColumnsMap}
+                        onFetchColumns={fetchColumnsForTable}
+                        initialSelectedFieldId={selectedPreviewFieldId}
+                        initialShowAdvanced={!!selectedPreviewFieldId}
                     />
                 )
             }
