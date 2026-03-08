@@ -223,13 +223,141 @@ export function useExecution() {
                 nextAssignment = await calculateAssignment(targetActivity, instance?.created_by || user?.id || '', instance?.organization_id);
             }
 
-            // 2. Update process instance to next activity
+            // 2. Determine Next Status based on Target Activity Type
+            let nextStatus = 'active';
+            let waitingSubprocessId = null;
+
+            let waitUntil = null;
+            let waitCondition = null;
+
+            if (targetActivity?.type === 'wait') {
+                nextStatus = 'waiting';
+                const waitConfig = (targetActivity as any).wait_config;
+                if (waitConfig?.type === 'time' && waitConfig.duration) {
+                    const now = new Date();
+                    // Basic parser for "Xh", "Xm", "Xd"
+                    const amount = parseInt(waitConfig.duration);
+                    const unit = waitConfig.duration.slice(-1).toLowerCase();
+                    if (unit === 'm') now.setMinutes(now.getMinutes() + amount);
+                    else if (unit === 'h') now.setHours(now.getHours() + amount);
+                    else if (unit === 'd') now.setDate(now.getDate() + amount);
+                    else now.setMinutes(now.getMinutes() + amount); // default minutes
+                    waitUntil = now.toISOString();
+                } else if (waitConfig?.type === 'condition') {
+                    waitCondition = waitConfig.condition;
+                }
+            } else if (targetActivity?.type === 'subprocess') {
+                nextStatus = 'waiting_subprocess';
+
+                // --- SUB-PROCESS INVOCATION ---
+                const subConfig = (targetActivity as any).subprocess_config;
+                if (subConfig?.workflow_id) {
+                    // 1. Prepare input mapping
+                    const { data: allData } = await supabase.from('process_data').select('field_name, value').eq('process_id', processId);
+                    const processContext: Record<string, any> = {};
+                    allData?.forEach(d => processContext[d.field_name] = d.value);
+
+                    const subInputs: Record<string, string> = {};
+                    subConfig.mapping_in?.forEach((m: any) => {
+                        if (m.source && m.target) {
+                            subInputs[m.target] = processContext[m.source] || '';
+                        }
+                    });
+
+                    // 2. Start Child Process
+                    const subName = `${instance?.workflows?.name || 'Sub-proceso'} - ${instance?.process_number || ''}`;
+                    const startRes = await startProcess(subConfig.workflow_id, subName, instance?.organization_id);
+
+                    if (startRes.success && startRes.instance) {
+                        waitingSubprocessId = startRes.instance.id;
+
+                        // Link child to parent for traceability
+                        await supabase.from('process_instances').update({ parent_process_id: processId }).eq('id', waitingSubprocessId);
+
+                        // Save mapped data to child
+                        if (Object.keys(subInputs).length > 0) {
+                            // Find the child's start activity
+                            const { data: subStart } = await supabase.from('activities').select('id').eq('workflow_id', subConfig.workflow_id).eq('type', 'start').single();
+                            if (subStart) {
+                                await saveProcessData(waitingSubprocessId, subStart.id, subInputs);
+                            }
+                        }
+                    } else {
+                        throw new Error(`Error invocando sub-proceso: ${startRes.error}`);
+                    }
+                }
+            } else if (targetActivity?.type === 'sync') {
+                const syncConfig = (targetActivity as any).sync_config;
+                const mode = syncConfig?.mode || 'synchronous';
+
+                if (mode === 'synchronous') {
+                    // 1. Get ALL predecessors for this sync activity
+                    const { data: incomingTransitions } = await supabase
+                        .from('transitions')
+                        .select('source_id')
+                        .eq('target_id', targetActivity.id);
+
+                    const predecessorIds = incomingTransitions?.map(t => t.source_id) || [];
+
+                    // 2. Check history to see which predecessors have finished for THIS process
+                    const { data: finishedPredecessors } = await supabase
+                        .from('process_history')
+                        .select('activity_id')
+                        .eq('process_id', processId)
+                        .eq('action', 'completed')
+                        .in('activity_id', predecessorIds);
+
+                    const finishedIds = new Set(finishedPredecessors?.map(h => h.activity_id));
+
+                    // Add the one we just finished (sourceActivity)
+                    if (instance?.current_activity_id) finishedIds.add(instance.current_activity_id);
+
+                    const allFinished = predecessorIds.every(id => finishedIds.has(id));
+
+                    if (!allFinished) {
+                        // Stay in "active" status but record history that we are waiting for others
+                        await supabase.from('process_history').insert({
+                            process_id: processId,
+                            activity_id: instance?.current_activity_id,
+                            action: 'commented',
+                            comment: `Sincronización: Esperando otros predecesores (${finishedIds.size}/${predecessorIds.length}).`,
+                            user_id: user?.id
+                        });
+                        return { success: true, message: 'Esperando otros hilos de ejecución.' };
+                    }
+                    // If all finished, continue normally to nextStatus = 'active'
+                } else if (mode === 'async_single') {
+                    // Check if this sync point has already been reached by another branch
+                    const { data: alreadyReached } = await supabase
+                        .from('process_history')
+                        .select('id')
+                        .eq('process_id', processId)
+                        .eq('activity_id', targetActivity.id)
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (alreadyReached) {
+                        return { success: true, message: 'Punto de sincronización ya procesado (Asíncrona Única).' };
+                    }
+                } else if (mode === 'async_multiple') {
+                    // For "Multiple", we don't advance the current process, 
+                    // we SPAWN A NEW ONE based on this one to treat them as parallel instances of the remaining flow.
+                    // Or more simply: we continue the flow normally, but since each branch calls advanceProcess, 
+                    // it naturally creates independent paths if the db allows multiple active tasks (which it does).
+                    // Actually, to avoid "swallowing" the token, we just continue normally.
+                }
+            }
+
+            // 3. Update process instance to next activity
             const { error: updError } = await supabase
                 .from('process_instances')
                 .update({
                     current_activity_id: transition.target_id,
-                    status: 'active',
+                    status: nextStatus,
                     total_cost: totalCost,
+                    waiting_subprocess_id: waitingSubprocessId,
+                    wait_until: waitUntil,
+                    wait_condition: waitCondition,
                     ...nextAssignment
                 })
                 .eq('id', processId);
@@ -308,8 +436,24 @@ export function useExecution() {
 
                     // 1. Add steps from Multi-Actions array
                     actionsToTrace.forEach((act: any) => {
-                        const actSteps = act.config?.steps || [{ id: act.id, type: act.type, ...act.config }];
-                        allSteps = [...allSteps, ...actSteps];
+                        const actSteps = (act.config?.steps || []).map((s: any) => ({
+                            ...s,
+                            condition: s.condition || act.condition || act.config?.condition,
+                            stop_on_failure: s.stop_on_failure ?? act.stop_on_failure ?? act.config?.stop_on_failure
+                        }));
+
+                        if (actSteps.length === 0) {
+                            // If no steps array, it's a single-step action
+                            allSteps.push({
+                                id: act.id,
+                                type: act.type,
+                                condition: act.condition || act.config?.condition,
+                                stop_on_failure: act.stop_on_failure ?? act.config?.stop_on_failure,
+                                ...act.config
+                            });
+                        } else {
+                            allSteps = [...allSteps, ...actSteps];
+                        }
                     });
 
                     // 2. Add steps from Legacy config (backwards compatibility)
@@ -515,6 +659,53 @@ export function useExecution() {
                 });
 
             if (histError) throw histError;
+
+            // 4. Handle Sub-process completion (return to parent)
+            if (instance.parent_process_id) {
+                try {
+                    const parentId = instance.parent_process_id;
+                    const { data: parentInstance } = await supabase
+                        .from('process_instances')
+                        .select('*, activities(*)')
+                        .eq('id', parentId)
+                        .single();
+
+                    if (parentInstance && parentInstance.activities?.type === 'subprocess') {
+                        const subConfig = (parentInstance.activities as any).subprocess_config;
+
+                        // 1. Map Outputs from Child to Parent
+                        if (subConfig?.mapping_out?.length > 0) {
+                            const { data: childData } = await supabase.from('process_data').select('field_name, value').eq('process_id', processId);
+                            const childContext: Record<string, any> = {};
+                            childData?.forEach(d => childContext[d.field_name] = d.value);
+
+                            const parentOutputs: Record<string, string> = {};
+                            subConfig.mapping_out.forEach((m: any) => {
+                                if (m.source && m.target) {
+                                    parentOutputs[m.target] = childContext[m.source] || '';
+                                }
+                            });
+
+                            if (Object.keys(parentOutputs).length > 0) {
+                                await saveProcessData(parentId, parentInstance.current_activity_id, parentOutputs);
+                            }
+                        }
+
+                        // 2. Advance Parent to the next step
+                        const { data: nextTrans } = await supabase
+                            .from('transitions')
+                            .select('id')
+                            .eq('source_id', parentInstance.current_activity_id)
+                            .maybeSingle();
+
+                        if (nextTrans) {
+                            await advanceProcess(parentId, nextTrans.id, `Sub-proceso (${instance.process_number || instance.id}) finalizado.`);
+                        }
+                    }
+                } catch (parentErr) {
+                    console.error('Error returning to parent process:', parentErr);
+                }
+            }
 
             return { success: true };
         } catch (err: any) {

@@ -2,9 +2,10 @@
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../contexts/ThemeContext';
-import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen } from 'lucide-react';
+import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen, Shield } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { usePermissions } from '../hooks/usePermissions';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -126,10 +127,10 @@ interface SidebarProps {
 
 export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapsed }: SidebarProps) {
     const { user, signOut, switchOrganization } = useAuth();
+    const { hasPermission, hasAnyPermission } = usePermissions();
     const [openSections, setOpenSections] = useState<Set<string>>(new Set(['herramientas']));
 
     const currentOrg = user?.available_organizations?.find(o => o.id === user.organization_id);
-    const currentRole = currentOrg?.role || user?.role || 'viewer';
 
     const toggleSection = (section: string) => {
         const newOpen = new Set(openSections);
@@ -228,23 +229,27 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                 onClick={() => onSectionChange('calendar')}
                                 isCollapsed={isCollapsed}
                             />
-                            <SidebarItem
-                                icon={BarChart3}
-                                label="Reportes"
-                                active={activeSection === 'reports'}
-                                onClick={() => onSectionChange('reports')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Zap}
-                                label="Monitor de API"
-                                active={activeSection === 'monitor'}
-                                onClick={() => onSectionChange('monitor')}
-                                isCollapsed={isCollapsed}
-                            />
+                            {hasPermission('view_reports') && (
+                                <SidebarItem
+                                    icon={BarChart3}
+                                    label="Reportes"
+                                    active={activeSection === 'reports'}
+                                    onClick={() => onSectionChange('reports')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('access_settings') && (
+                                <SidebarItem
+                                    icon={Zap}
+                                    label="Monitor de API"
+                                    active={activeSection === 'monitor'}
+                                    onClick={() => onSectionChange('monitor')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
                         </CollapsibleSection>
 
-                        {currentRole !== 'viewer' && (
+                        {hasAnyPermission(['edit_workflows', 'manage_users', 'access_settings']) && (
                             <CollapsibleSection
                                 label="Configuración"
                                 isOpen={openSections.has('configuracion')}
@@ -252,21 +257,25 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                 isActive={isConfigActive}
                                 isCollapsed={isCollapsed}
                             >
-                                <SidebarItem
-                                    icon={GitBranch}
-                                    label="Mis Flujos"
-                                    active={activeSection === 'workflows'}
-                                    onClick={() => onSectionChange('workflows')}
-                                    isCollapsed={isCollapsed}
-                                />
-                                <SidebarItem
-                                    icon={Users}
-                                    label="Usuarios"
-                                    active={activeSection === 'users'}
-                                    onClick={() => onSectionChange('users')}
-                                    isCollapsed={isCollapsed}
-                                />
-                                {user?.role === 'admin' && (
+                                {hasPermission('edit_workflows') && (
+                                    <SidebarItem
+                                        icon={GitBranch}
+                                        label="Mis Flujos"
+                                        active={activeSection === 'workflows'}
+                                        onClick={() => onSectionChange('workflows')}
+                                        isCollapsed={isCollapsed}
+                                    />
+                                )}
+                                {hasPermission('manage_users') && (
+                                    <SidebarItem
+                                        icon={Users}
+                                        label="Usuarios"
+                                        active={activeSection === 'users'}
+                                        onClick={() => onSectionChange('users')}
+                                        isCollapsed={isCollapsed}
+                                    />
+                                )}
+                                {hasPermission('access_settings') && (
                                     <SidebarItem
                                         icon={Building2}
                                         label="Mi Empresa"
@@ -275,20 +284,33 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                         isCollapsed={isCollapsed}
                                     />
                                 )}
-                                <SidebarItem
-                                    icon={Settings}
-                                    label="Parámetros"
-                                    active={activeSection === 'parameters'}
-                                    onClick={() => onSectionChange('parameters')}
-                                    isCollapsed={isCollapsed}
-                                />
-                                <SidebarItem
-                                    icon={Package}
-                                    label="Proveedores"
-                                    active={activeSection === 'providers'}
-                                    onClick={() => onSectionChange('providers')}
-                                    isCollapsed={isCollapsed}
-                                />
+                                {hasPermission('manage_users') && (
+                                    <SidebarItem
+                                        icon={Shield}
+                                        label="Roles y Permisos"
+                                        active={activeSection === 'roles'}
+                                        onClick={() => onSectionChange('roles')}
+                                        isCollapsed={isCollapsed}
+                                    />
+                                )}
+                                {hasPermission('access_settings') && (
+                                    <SidebarItem
+                                        icon={Settings}
+                                        label="Parámetros"
+                                        active={activeSection === 'parameters'}
+                                        onClick={() => onSectionChange('parameters')}
+                                        isCollapsed={isCollapsed}
+                                    />
+                                )}
+                                {hasPermission('access_settings') && (
+                                    <SidebarItem
+                                        icon={Package}
+                                        label="Proveedores"
+                                        active={activeSection === 'providers'}
+                                        onClick={() => onSectionChange('providers')}
+                                        isCollapsed={isCollapsed}
+                                    />
+                                )}
                                 <SidebarItem
                                     icon={Network}
                                     label="Organigrama"
@@ -350,87 +372,127 @@ interface MainLayoutProps {
 
 export function MainLayout({ children, activeSection, onSectionChange, onOpenHelp, onNewProcess }: MainLayoutProps) {
     const { user, signOut } = useAuth();
+    const { hasPermission } = usePermissions();
     const { profile } = useProfile(user?.id);
     const { theme, toggleTheme } = useTheme();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
     const currentOrg = user?.available_organizations?.find((o: any) => o.id === user.organization_id);
+    const activeRole = (currentOrg?.role || profile?.role || user?.role || 'viewer').toLowerCase();
+    const isTurista = activeRole === 'turista';
 
     return (
         <div className="flex h-screen overflow-hidden bg-slate-200/40 dark:bg-[#02040a]">
-            <Sidebar
-                activeSection={activeSection}
-                onSectionChange={onSectionChange}
-                onOpenHelp={onOpenHelp}
-                isCollapsed={isCollapsed}
-            />
+            {!isTurista && (
+                <Sidebar
+                    activeSection={activeSection}
+                    onSectionChange={onSectionChange}
+                    onOpenHelp={onOpenHelp}
+                    isCollapsed={isCollapsed}
+                />
+            )}
             <main className="flex-1 overflow-y-auto custom-scrollbar">
-                <header className="h-16 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-[#080a14]/80 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-40 transition-all">
+                <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-slate-100 bg-white/80 dark:bg-[#080a14]/80 backdrop-blur-md px-4 md:px-8 dark:border-slate-800 shadow-sm">
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsCollapsed(!isCollapsed)}
-                            className="p-2 -ml-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
-                            title={isCollapsed ? "Expandir Menú" : "Contraer Menú"}
-                        >
-                            <Menu className="w-5 h-5" />
-                        </button>
+                        {!isTurista && (
+                            <button
+                                onClick={() => setIsCollapsed(!isCollapsed)}
+                                className="p-2 -ml-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 hidden lg:block"
+                                title={isCollapsed ? "Expandir Menú" : "Contraer Menú"}
+                            >
+                                <Menu className="w-5 h-5" />
+                            </button>
+                        )}
                         <div className="flex items-center gap-3">
-                            {(() => {
-                                const icons: Record<string, any> = {
-                                    dashboard: LayoutDashboard,
-                                    workflows: GitBranch,
-                                    users: Users,
-                                    search: Search,
-                                    reports: BarChart3,
-                                    calendar: Calendar,
-                                    providers: Package,
-                                    orgchart: Network,
-                                    accounts: Fingerprint,
-                                    monitor: Zap,
-                                    organization: Building2,
-                                    settings: ChevronRight,
-                                    help: BookOpen,
-                                };
-                                const Icon = icons[activeSection] || ChevronRight;
-                                return (
-                                    <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                                        <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                    </div>
-                                );
-                            })()}
+                            <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-200 dark:shadow-blue-900/20 border-2 border-white dark:border-slate-800">
+                                {currentOrg?.logo_url ? (
+                                    <img src={currentOrg.logo_url} alt="Logo" className="w-full h-full object-contain p-1.5" />
+                                ) : (
+                                    (currentOrg?.name?.[0] || 'A').toUpperCase()
+                                )}
+                            </div>
                             <div>
-                                <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-0.5 leading-none">Módulo Principal</p>
+                                <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-0.5 leading-none">
+                                    {isTurista ? currentOrg?.name : 'Módulo Principal'}
+                                </p>
                                 <h2 className="text-lg font-black text-slate-900 dark:text-white capitalize leading-none">
-                                    {activeSection === 'orgchart' ? 'Organigrama' :
-                                        activeSection === 'workflows' ? 'Flujos de Trabajo' :
-                                            activeSection === 'search' ? 'Mis Trámites' :
-                                                activeSection === 'calendar' ? 'Calendario' :
-                                                    activeSection === 'users' ? 'Colaboradores' :
-                                                        activeSection === 'accounts' ? 'Cuentas de Sistema' :
-                                                            activeSection === 'monitor' ? 'Monitor de API' :
-                                                                activeSection === 'help' ? 'Centro de Ayuda' : // Added help display name
-                                                                    activeSection}
+                                    {isTurista ? profile?.full_name : (
+                                        activeSection === 'orgchart' ? 'Organigrama' :
+                                            activeSection === 'workflows' ? 'Flujos de Trabajo' :
+                                                activeSection === 'search' ? 'Mis Trámites' :
+                                                    activeSection === 'calendar' ? 'Calendario' :
+                                                        activeSection === 'users' ? 'Colaboradores' :
+                                                            activeSection === 'accounts' ? 'Cuentas de Sistema' :
+                                                                activeSection === 'monitor' ? 'Monitor de API' :
+                                                                    activeSection === 'help' ? 'Centro de Ayuda' : // Added help display name
+                                                                        activeSection
+                                    )}
                                 </h2>
                             </div>
                         </div>
 
-                        {/* Navigation Actions for Admin */}
-                        <div className="hidden md:flex items-center gap-2 ml-4 px-4 border-l border-slate-100 dark:border-slate-800">
-                            <HeaderNavButton
-                                onClick={onNewProcess || (() => { })}
-                                icon={Plus}
-                                label="Nuevo"
-                                color="vibrant"
-                            />
-                            <HeaderNavButton
-                                active={activeSection === 'search'}
-                                onClick={() => onSectionChange('search')}
-                                icon={Search}
-                                label="Buscar"
-                                color="emerald"
-                            />
-                        </div>
+                        {/* Tourist Top Navigation */}
+                        {isTurista && (
+                            <nav className="flex items-center gap-2 ml-4">
+                                <HeaderNavButton
+                                    active={activeSection === 'dashboard'}
+                                    onClick={() => onSectionChange('dashboard')}
+                                    icon={LayoutDashboard}
+                                    label="DashBoard"
+                                    color="blue"
+                                />
+                                <HeaderNavButton
+                                    active={activeSection === 'search'}
+                                    onClick={() => onSectionChange('search')}
+                                    icon={Search}
+                                    label="Buscar"
+                                    color="emerald"
+                                />
+                                <HeaderNavButton
+                                    active={activeSection === 'calendar'}
+                                    onClick={() => onSectionChange('calendar')}
+                                    icon={Calendar}
+                                    label="Calendario"
+                                    color="indigo"
+                                />
+                                <HeaderNavButton
+                                    active={activeSection === 'reports'}
+                                    onClick={() => onSectionChange('reports')}
+                                    icon={BarChart3}
+                                    label="Reportes"
+                                    color="emerald"
+                                />
+                                <HeaderNavButton
+                                    active={activeSection === 'help'}
+                                    onClick={() => onSectionChange('help')}
+                                    icon={BookOpen}
+                                    label="Ayuda"
+                                    color="blue"
+                                />
+                            </nav>
+                        )}
+
+                        {/* Navigation Actions */}
+                        {!isTurista && (
+                            <div className="hidden md:flex items-center gap-2 ml-4 px-4 border-l border-slate-100 dark:border-slate-800">
+                                {hasPermission('edit_workflows') && (
+                                    <HeaderNavButton
+                                        onClick={onNewProcess || (() => { })}
+                                        icon={Plus}
+                                        label="Nuevo"
+                                        color="vibrant"
+                                    />
+                                )}
+                                <HeaderNavButton
+                                    active={activeSection === 'search'}
+                                    onClick={() => onSectionChange('search')}
+                                    icon={Search}
+                                    label="Buscar"
+                                    color="emerald"
+                                />
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-4">
                         {/* Help Quick Access */}
@@ -523,7 +585,7 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                         </div>
                     </div>
                 </header>
-                <div className="p-5">
+                <div className={cn("p-5 transition-all duration-500", (profile?.role === 'viewer' || user?.role === 'viewer' || isTurista) && "p-2")}>
                     {children}
                 </div>
             </main>

@@ -9,7 +9,7 @@ export interface Organization {
     logo_url?: string;
 }
 
-export type UserRole = 'admin' | 'editor' | 'viewer';
+export type UserRole = 'admin' | 'editor' | 'viewer' | 'turista';
 
 export interface User {
     id: string;
@@ -18,6 +18,22 @@ export interface User {
     name?: string;
     organization_id?: string;
     available_organizations?: { id: string, name: string, role: UserRole, logo_url?: string }[];
+    permissions?: string[]; // List of specific capability keys (e.g. 'access_reports')
+    dashboard_widgets?: string[]; // List of widget IDs to display
+}
+
+export interface RoleCapability {
+    id: string;
+    role_name: UserRole | string;
+    capability: string;
+    description?: string;
+}
+
+export interface RoleDashboardConfig {
+    id: string;
+    role_name: UserRole | string;
+    widget_id: string;
+    order_index: number;
 }
 
 export type WorkflowStatus = 'draft' | 'active' | 'archived';
@@ -69,7 +85,7 @@ export interface WorkflowTemplate {
     created_by: string;
 }
 
-export type ActivityType = 'start' | 'task' | 'decision' | 'end';
+export type ActivityType = 'start' | 'task' | 'decision' | 'end' | 'subprocess' | 'wait' | 'sync';
 
 
 export interface Transition {
@@ -109,7 +125,7 @@ export interface ProcessHistory {
     user_id: string;
 }
 
-export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup' | 'location' | 'consecutivo';
+export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup' | 'location' | 'consecutivo' | 'label' | 'accordion';
 
 export interface GridColumn {
     id: string;
@@ -117,6 +133,7 @@ export interface GridColumn {
     label: string;
     type: FieldType;
     required?: boolean;
+    width?: string;
     options?: string[]; // For select type within grid
 }
 
@@ -163,6 +180,7 @@ export interface FieldDefinition {
         mapping?: Record<string, string>; // Maps response/row column names to current target form field names
     };
     consecutive_mask?: string; // e.g. "CON-EH1-YYYY-MM-####" for consecutivo type
+    parent_accordion_id?: string; // ID of the accordion field this field belongs to
 }
 
 export interface ActivityField {
@@ -191,6 +209,8 @@ export interface AutomatedAction {
     id: string;
     type: AutomatedActionType;
     name: string;
+    condition?: string;
+    stop_on_failure?: boolean;
     execution_timing?: ActionExecutionTiming; // Specifically useful for actions inside Details
     config: {
         steps?: {
@@ -268,9 +288,20 @@ export interface Activity {
     assigned_user_id?: string;
     actions?: AutomatedAction[];
     is_public?: boolean;
-    // Legacy single action support
-    action_type?: AutomatedActionType;
-    action_config?: AutomatedAction['config'];
+    subprocess_config?: {
+        workflow_id: string;
+        input_mapping: Record<string, string>;
+        output_mapping: Record<string, string>;
+    };
+    wait_config?: {
+        type: 'time' | 'condition';
+        duration_hours?: number;
+        target_date_field?: string;
+        condition?: string;
+    };
+    sync_config?: {
+        mode: 'synchronous' | 'async_single' | 'async_multiple';
+    };
 }
 
 export interface Provider {

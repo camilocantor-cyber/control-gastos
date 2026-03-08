@@ -336,6 +336,7 @@ export function UserManagement() {
                                     <option value="viewer">Viewer (Lectura)</option>
                                     <option value="editor">Editor (Operador)</option>
                                     <option value="admin">Admin (Control Total)</option>
+                                    <option value="turista">Turista (Vista Satélite)</option>
                                 </select>
                             </div>
 
@@ -399,6 +400,7 @@ export function UserManagement() {
                                         <option value="viewer">Viewer (Lectura)</option>
                                         <option value="editor">Editor (Operador)</option>
                                         <option value="admin">Admin (Control Total)</option>
+                                        <option value="turista">Turista (Vista Satélite)</option>
                                     </select>
                                 </div>
                             </div>
@@ -521,6 +523,7 @@ export function UserManagement() {
                                                     <option value="viewer">VIEW</option>
                                                     <option value="editor">EDIT</option>
                                                     <option value="admin">ADM</option>
+                                                    <option value="turista">TUR</option>
                                                 </select>
                                             </div>
                                         </div>

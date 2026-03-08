@@ -368,28 +368,33 @@ export function FormPreviewModal({
                                     </span>
                                 )}
                             </div>
-                            {openAccordions[field.id] && (
-                                <div className="p-5 bg-slate-50/20 dark:bg-slate-900/40">
-                                    <div className={clsx(
-                                        "grid gap-x-6 gap-y-4",
-                                        formColumns === 1 ? "grid-cols-1" :
-                                            formColumns === 3 ? "grid-cols-1 md:grid-cols-3" :
-                                                formColumns === 4 ? "grid-cols-1 md:grid-cols-4" :
-                                                    "grid-cols-1 md:grid-cols-2"
-                                    )}>
-                                        {sortedFields.filter(f => f.parent_accordion_id === field.id).map(child => (
-                                            <div key={child.id} className="contents">
-                                                {renderField(child)}
-                                            </div>
-                                        ))}
-                                        {!isReadOnly && (
-                                            <div className="col-span-full border border-dashed border-slate-200 dark:border-slate-800 rounded-xl py-4 text-center">
-                                                <p className="text-[9px] text-slate-400 italic">Campos agrupados aquí</p>
-                                            </div>
-                                        )}
+                            <div className={clsx(
+                                "grid transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                                openAccordions[field.id] ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                            )}>
+                                <div className="overflow-hidden">
+                                    <div className="p-6 bg-slate-50/20 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                                        <div className={clsx(
+                                            "grid gap-x-6 gap-y-4 animate-in fade-in slide-in-from-top-2 duration-500",
+                                            formColumns === 1 ? "grid-cols-1" :
+                                                formColumns === 3 ? "grid-cols-1 md:grid-cols-3" :
+                                                    formColumns === 4 ? "grid-cols-1 md:grid-cols-4" :
+                                                        "grid-cols-1 md:grid-cols-2"
+                                        )}>
+                                            {sortedFields.filter(f => f.parent_accordion_id === field.id).map(child => (
+                                                <div key={child.id} className="contents">
+                                                    {renderField(child)}
+                                                </div>
+                                            ))}
+                                            {!isReadOnly && (
+                                                <div className="col-span-full border border-dashed border-slate-200 dark:border-slate-800 rounded-xl py-4 text-center">
+                                                    <p className="text-[9px] text-slate-400 italic">Campos agrupados aquí</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     ) : (
                         <input

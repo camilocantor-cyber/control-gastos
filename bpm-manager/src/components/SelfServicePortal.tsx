@@ -7,8 +7,9 @@ import { StartProcessModal } from './StartProcessModal';
 import { LogOut, Calendar, Inbox, Moon, Sun, User as UserIcon, Search, Activity, CheckCircle2, TrendingUp, Plus } from 'lucide-react';
 import { ProcessExecution } from './ProcessExecution';
 import { useDashboardStats } from '../hooks/useDashboardStats';
+import { Reports } from './Reports';
+import { useTheme } from '../contexts/ThemeContext';
 import clsx from 'clsx';
-import { useEffect } from 'react';
 
 function NavButton({ active, onClick, icon: Icon, label, color }: { active: boolean, onClick: () => void, icon: any, label: string, color: 'blue' | 'emerald' | 'indigo' }) {
     const colors = {
@@ -33,41 +34,15 @@ function NavButton({ active, onClick, icon: Icon, label, color }: { active: bool
 
 export function SelfServicePortal() {
     const { user, signOut } = useAuth();
-    const [activeTab, setActiveTab] = useState<'inbox' | 'calendar' | 'search'>('inbox');
+    const [activeTab, setActiveTab] = useState<'inbox' | 'calendar' | 'search' | 'reports'>('inbox');
     const [executingTaskId, setExecutingTaskId] = useState<string | null>(null);
     const [showStartProcess, setShowStartProcess] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const { theme, toggleTheme } = useTheme();
+    const isDarkMode = theme === 'dark';
 
     const { instancesActive, instancesCompleted, historyCount } = useDashboardStats();
     const currentOrgName = user?.available_organizations?.find(o => o.id === user.organization_id)?.name || 'BPM FLOW';
-
-    useEffect(() => {
-        // Initialize theme from localStorage or system preference
-        const savedTheme = localStorage.getItem('theme');
-        const isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-            setIsDarkMode(true);
-        } else {
-            document.documentElement.classList.remove('dark');
-            setIsDarkMode(false);
-        }
-    }, []);
-
-    const toggleTheme = () => {
-        const newMode = !isDarkMode;
-        setIsDarkMode(newMode);
-
-        if (newMode) {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-        }
-    };
 
     if (executingTaskId) {
         return (
@@ -83,7 +58,7 @@ export function SelfServicePortal() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#030712] flex flex-col font-sans transition-colors duration-500 text-slate-900 dark:text-slate-100">
+        <div className="min-h-screen bg-slate-200/40 dark:bg-[#02040a] flex flex-col font-sans transition-colors duration-500 text-slate-900 dark:text-slate-100">
             {/* Header Mvil / Desktop integrated */}
             <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#030712]/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-4 py-2 shadow-sm">
                 <div className="flex items-center justify-between gap-4">
@@ -105,6 +80,7 @@ export function SelfServicePortal() {
                             <NavButton active={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} icon={Inbox} label="Trámites" color="blue" />
                             <NavButton active={activeTab === 'search'} onClick={() => setActiveTab('search')} icon={Search} label="Buscar" color="emerald" />
                             <NavButton active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={Calendar} label="Calendario" color="indigo" />
+                            <NavButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={TrendingUp} label="Reportes" color="blue" />
                         </div>
                     </div>
 
@@ -119,6 +95,9 @@ export function SelfServicePortal() {
                             </button>
                             <button onClick={() => setActiveTab('calendar')} className={clsx("p-2 rounded-lg transition-colors", activeTab === 'calendar' ? "text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30" : "text-slate-400")}>
                                 <Calendar className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => setActiveTab('reports')} className={clsx("p-2 rounded-lg transition-colors", activeTab === 'reports' ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30" : "text-slate-400")}>
+                                <TrendingUp className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -216,6 +195,15 @@ export function SelfServicePortal() {
                                 <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Búsqueda de Trámites</h3>
                                 <div className="bg-white dark:bg-[#0f172a] rounded-3xl shadow-xl shadow-black/20 border border-slate-100 dark:border-white/5 p-2 min-h-[500px] overflow-hidden">
                                     <ProcessSearch onAttendTask={(id) => setExecutingTaskId(id)} />
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'reports' && (
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Reportes Detallados</h3>
+                                <div className="bg-white dark:bg-[#0f172a] rounded-3xl shadow-xl shadow-black/20 border border-slate-100 dark:border-white/5 p-4 overflow-hidden">
+                                    <Reports />
                                 </div>
                             </div>
                         )}

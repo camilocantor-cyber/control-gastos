@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Play, Square, GitBranch, Clock, CheckCircle2, Zap, Code, X } from 'lucide-react';
+import { Play, Square, GitBranch, Clock, CheckCircle2, Zap, Code, X, GitMerge, AlertCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Activity, Transition } from '../types';
 
@@ -272,7 +272,10 @@ function FlowNode({ activity, status, isSelected, isConnectionSource, isDragging
     const icons = {
         start: Play,
         task: Square,
-        decision: GitBranch,
+        decision: AlertCircle,
+        subprocess: GitBranch,
+        wait: Clock,
+        sync: GitMerge,
         end: Square,
     };
     const Icon = (icons as any)[activity.type] || Square;
@@ -280,7 +283,10 @@ function FlowNode({ activity, status, isSelected, isConnectionSource, isDragging
     const colors = {
         start: isSelected ? 'bg-emerald-600' : 'bg-emerald-500',
         task: isSelected ? 'bg-blue-600' : 'bg-blue-500',
-        decision: isSelected ? 'bg-orange-600' : 'bg-orange-500',
+        decision: isSelected ? 'bg-orange-800' : 'bg-orange-700',
+        subprocess: isSelected ? 'bg-purple-800' : 'bg-purple-700',
+        wait: isSelected ? 'bg-amber-800' : 'bg-amber-700',
+        sync: isSelected ? 'bg-violet-800' : 'bg-violet-700',
         end: isSelected ? 'bg-rose-600' : 'bg-rose-500',
     };
 

@@ -85,6 +85,38 @@ async function injectDetailRowsIntoContext(
 }
 
 /**
+ * Evaluates a condition string against the provided context data.
+ * Example condition: "{{monto}} > 1000"
+ */
+function evaluateCondition(condition: string | undefined, data: Record<string, any>): boolean {
+    if (!condition || condition.trim() === '') return true;
+
+    try {
+        // 1. Substitute variables in the condition string
+        // We use a slightly different approach for substitution here to preserve types (numbers) if possible
+        // but for safety in evaluation, we'll replace variables with their JSON-stringified values if they are strings,
+        // or direct values if they are numbers/booleans.
+        let evalString = condition.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
+            const cleanKey = key.trim();
+            const val = data[cleanKey];
+
+            if (val === undefined) return 'undefined';
+            if (typeof val === 'string') return `"${val.replace(/"/g, '\\"')}"`;
+            return String(val);
+        });
+
+        // 2. Evaluate the expression
+        // Using new Function() is safer than eval() as it doesn't have access to the local closure.
+        // We only allow basic logical/comparison operators to be safe-ish.
+        return new Function(`return (${evalString})`)();
+    } catch (err) {
+        console.warn('[actionRunner] Condition evaluation failed:', condition, err);
+        // If evaluation fails, we default to FALSE to be safe (don't execute if unsure)
+        return false;
+    }
+}
+
+/**
  * Utility to execute sequential service tasks (REST/SOAP/Finance)
  */
 
@@ -98,6 +130,13 @@ export async function executeServiceTask(
     const substitute = (text: string | undefined) => substituteVariables(text, outputs, companySettings);
 
     for (const step of steps) {
+        // 0. Check conditional logic
+        const condition = step.condition || (step as any).config?.condition;
+        if (condition && !evaluateCondition(condition, outputs)) {
+            console.log(`[actionRunner] Saltando paso ${step.id} por condición no cumplida: ${condition}`);
+            continue;
+        }
+
         try {
             // 1. Specialized Finance Action (ERP Integration)
             if (step.type === 'finance' || step.action_type === 'finance') {
@@ -334,7 +373,14 @@ export async function executeServiceTask(
                 outputs[step.output_variable] = result;
             }
         } catch (err: any) {
-            return { success: false, outputs, error: `Error en paso ${step.id}: ${err.message}` };
+            const stopOnFailure = step.stop_on_failure ?? (step as any).config?.stop_on_failure ?? true;
+
+            if (stopOnFailure) {
+                return { success: false, outputs, error: `Error en paso ${step.id}: ${err.message}` };
+            } else {
+                console.warn(`[actionRunner] Error en paso ${step.id} ignorado (stop_on_failure=false):`, err.message);
+                outputs[`${step.id}_error`] = err.message;
+            }
         }
     }
 

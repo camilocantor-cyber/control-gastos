@@ -99,6 +99,7 @@ export function useWorkflowModeler(workflowId: string) {
                         regex_pattern: f.regex_pattern ?? null,
                         visibility_condition: f.visibility_condition ?? null,
                         lookup_config: f.lookup_config ?? null,
+                        parent_accordion_id: f.parent_accordion_id ?? null,
                     };
 
                     // Solo incluir order_index si f lo tiene, para evitar errores si la columna no existe

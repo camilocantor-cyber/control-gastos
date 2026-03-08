@@ -6,6 +6,7 @@ import { WorkflowBuilder } from './components/WorkflowBuilder';
 import { Auth } from './components/Auth';
 import { ResetPassword } from './components/ResetPassword';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { RoleManager } from './components/RoleManager';
 import { Info, X } from 'lucide-react';
 import type { Workflow } from './types';
 import { Dashboard } from './components/Dashboard';
@@ -24,6 +25,7 @@ import { SelfServicePortal } from './components/SelfServicePortal';
 import { PublicForm } from './components/PublicForm';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { HelpCenter } from './components/HelpCenter';
+import { DashboardV2 } from './components/DashboardV2';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -49,6 +51,7 @@ function AppContent() {
   const [publicActivityId] = useState(() => new URLSearchParams(window.location.search).get('public_activity'));
   const [processId] = useState(() => new URLSearchParams(window.location.search).get('process_id'));
   const [isSuperadminPage] = useState(() => window.location.hash.includes('superadmin'));
+  const [isV2Page] = useState(() => window.location.hash.includes('dashboard2'));
 
   // Close help with Escape key
   useEffect(() => {
@@ -63,6 +66,10 @@ function AppContent() {
 
   if (isSuperadminPage) {
     return <SuperAdminPanel />;
+  }
+
+  if (isV2Page) {
+    return <DashboardV2 />;
   }
 
   if (publicWorkflowId) {
@@ -181,6 +188,7 @@ function AppContent() {
         <OrganizationalChart organizationId={user.organization_id} />
       )}
       {activeSection === 'accounts' && <SystemAccounts />}
+      {activeSection === 'roles' && <RoleManager />}
       {activeSection === 'monitor' && <IntegrationMonitor />}
       {/* help section removed from here */}
 

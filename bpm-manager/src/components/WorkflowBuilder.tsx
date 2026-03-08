@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
-import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy } from '../types';
+import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy, Department, Position } from '../types';
 import { exportToBPMN, importFromBPMN } from '../utils/bpmnConverter';
 import { translateCondition } from '../utils/conditions';
 
@@ -148,9 +148,9 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
 
     const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'transitions' | 'assignment' | 'actions' | 'details'>('general');
     const [lookupData, setLookupData] = useState<{
-        departments: any[],
-        positions: any[],
-        users: any[],
+        departments: Department[],
+        positions: Position[],
+        users: { id: string, email: string, full_name?: string }[],
         dbTables: string[]
     }>({ departments: [], positions: [], users: [], dbTables: [] });
     const [tableColumnsMap, setTableColumnsMap] = useState<Record<string, string[]>>({});
@@ -1481,6 +1481,8 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                     <option value="lookup">Búsqueda Interactiva (Lookup)</option>
                                                                                                     <option value="location">Georreferenciación (Mapa)</option>
                                                                                                     <option value="consecutivo">Consecutivo (Autogenerado)</option>
+                                                                                                    <option value="label">Información / Mensaje</option>
+                                                                                                    <option value="accordion">Contenedor / Acordeón</option>
                                                                                                 </select>
                                                                                             </td>
                                                                                             <td className="px-3 py-2">
