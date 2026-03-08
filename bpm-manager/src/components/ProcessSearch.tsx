@@ -6,6 +6,8 @@ import { ProcessTable } from './ProcessTable';
 import { useAuth } from '../hooks/useAuth';
 import { useExecution } from '../hooks/useExecution';
 
+import { toast } from 'sonner';
+
 export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string) => void }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [processes, setProcesses] = useState<any[]>([]);
@@ -126,9 +128,14 @@ export function ProcessSearch({ onAttendTask }: { onAttendTask: (taskId: string)
     async function handleToDelete(id: string) {
         const result = await deleteProcessInstance(id);
         if (result.success) {
+            toast.success('Trámite eliminado correctamente');
             loadProcesses();
         } else {
-            alert('Error al eliminar: ' + result.error);
+            if (result.error?.includes('process_instances_waiting_subprocess_id_fkey') || result.error?.includes('foreign key constraint')) {
+                toast.error('No se puede eliminar: Este trámite es un subproceso del cual dependen otros registros (integridad referencial).');
+            } else {
+                toast.error('Error al eliminar: ' + result.error);
+            }
         }
     }
 

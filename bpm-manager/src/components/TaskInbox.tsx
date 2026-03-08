@@ -3,6 +3,8 @@ import { Mail, ArrowRight, CheckCircle2, AlertCircle, Eye, Globe, X, Trash2 } fr
 import { useExecution } from '../hooks/useExecution';
 import { ProcessViewerModal } from './ProcessViewerModal';
 
+import { toast } from 'sonner';
+
 export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (taskId: string) => void, refreshTrigger?: number }) {
     const { getActiveTasks, deleteProcessInstance, loading, error } = useExecution();
     const [tasks, setTasks] = useState<any[]>([]);
@@ -18,9 +20,15 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
         if (!window.confirm('¿Estás seguro de que deseas eliminar este trámite? Se creó por error y no tiene datos guardados.')) return;
         const result = await deleteProcessInstance(id);
         if (result.success) {
+            toast.success('Trámite eliminado correctamente');
             loadTasks();
         } else {
-            alert('Error al eliminar: ' + result.error);
+            console.error('Error delete:', result.error);
+            if (result.error?.includes('process_instances_waiting_subprocess_id_fkey') || result.error?.includes('foreign key constraint')) {
+                toast.error('No se puede eliminar: Este trámite es un subproceso del cual dependen otros registros (integridad referencial).');
+            } else {
+                toast.error('Error al eliminar: ' + result.error);
+            }
         }
     }
 

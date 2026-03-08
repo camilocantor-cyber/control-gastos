@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { Plus, Search, Edit2, Trash2, X, Building2, Phone, Mail, MapPin } from 'lucide-react';
 import type { Provider } from '../types';
 
+import { toast } from 'sonner';
+
 export function Providers() {
     const { user } = useAuth();
     const [providers, setProviders] = useState<Provider[]>([]);
@@ -63,18 +65,20 @@ export function Providers() {
                     .update(payload)
                     .eq('id', editingId);
                 if (error) throw error;
+                toast.success('Proveedor actualizado correctamente');
             } else {
                 const { error } = await supabase
                     .from('providers')
                     .insert(payload);
                 if (error) throw error;
+                toast.success('Proveedor creado correctamente');
             }
 
             setShowModal(false);
             resetForm();
             fetchProviders();
         } catch (error: any) {
-            alert('Error al guardar: ' + error.message);
+            toast.error('Error al guardar: ' + error.message);
         } finally {
             setSaving(false);
         }
@@ -90,9 +94,14 @@ export function Providers() {
                 .eq('id', id);
 
             if (error) throw error;
+            toast.success('Proveedor eliminado correctamente');
             fetchProviders();
         } catch (error: any) {
-            alert('Error al eliminar: ' + error.message);
+            if (error.message?.includes('foreign key constraint')) {
+                toast.error('No se puede eliminar: Este proveedor tiene registros asociados (facturas, contratos, etc.)');
+            } else {
+                toast.error('Error al eliminar: ' + error.message);
+            }
         }
     }
 
