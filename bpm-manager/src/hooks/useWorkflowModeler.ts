@@ -216,9 +216,10 @@ export function useWorkflowModeler(workflowId: string) {
                     .delete()
                     .eq('workflow_id', workflowId)
                     .not('id', 'in', transitionIds);
-                if (delTransError) console.warn('⚠️ No se pudieron borrar algunas transiciones:', delTransError);
+                if (delTransError) throw new Error('Error al borrar transiciones: ' + delTransError.message);
             } else {
-                await supabase.from('transitions').delete().eq('workflow_id', workflowId);
+                const { error: delTransError } = await supabase.from('transitions').delete().eq('workflow_id', workflowId);
+                if (delTransError) throw new Error('Error al borrar todas las transiciones: ' + delTransError.message);
             }
 
             // Delete orphaned field definitions
@@ -228,25 +229,37 @@ export function useWorkflowModeler(workflowId: string) {
                         .delete()
                         .in('activity_id', activityIds)
                         .not('id', 'in', fieldIds);
-                    if (delFieldsError) console.error('❌ Error al borrar campos huérfanos:', delFieldsError);
+                    if (delFieldsError) throw new Error('Error al borrar campos: ' + delFieldsError.message);
                 } else {
-                    await supabase.from('activity_field_definitions')
+                    const { error: delFieldsError } = await supabase.from('activity_field_definitions')
                         .delete()
                         .in('activity_id', activityIds);
+                    if (delFieldsError) throw new Error('Error al borrar todos los campos: ' + delFieldsError.message);
                 }
             }
 
             // Delete orphaned activities
+            // We do this AFTER transitions and fields to avoid immediate FK violations if possible
             if (activityIds.length > 0) {
                 const { error: delActError } = await supabase.from('activities')
                     .delete()
                     .eq('workflow_id', workflowId)
                     .not('id', 'in', activityIds);
+
                 if (delActError) {
-                    console.warn('⚠️ No se pudieron borrar algunas actividades (posiblemente en uso):', delActError.message);
+                    if (delActError.message?.includes('foreign key constraint') || delActError.code === '23503') {
+                        throw new Error('No se puede eliminar la actividad porque tiene trámites (procesos) asociados en curso. Debes finalizar o mover esos trámites antes de eliminarla.');
+                    }
+                    throw new Error('Error al borrar actividades: ' + delActError.message);
                 }
             } else {
-                await supabase.from('activities').delete().eq('workflow_id', workflowId);
+                const { error: delActError } = await supabase.from('activities').delete().eq('workflow_id', workflowId);
+                if (delActError) {
+                    if (delActError.message?.includes('foreign key constraint') || delActError.code === '23503') {
+                        throw new Error('No se pueden eliminar las actividades porque tienen trámites asociados.');
+                    }
+                    throw new Error('Error al borrar todas las actividades: ' + delActError.message);
+                }
             }
 
             // Delete orphaned details
@@ -255,9 +268,10 @@ export function useWorkflowModeler(workflowId: string) {
                     .delete()
                     .eq('workflow_id', workflowId)
                     .not('id', 'in', detailIds);
-                if (delDetailsError) console.warn('⚠️ No se pudieron borrar detalles:', delDetailsError);
+                if (delDetailsError) throw new Error('Error al borrar detalles: ' + delDetailsError.message);
             } else {
-                await supabase.from('workflow_details').delete().eq('workflow_id', workflowId);
+                const { error: delDetailsError } = await supabase.from('workflow_details').delete().eq('workflow_id', workflowId);
+                if (delDetailsError) throw new Error('Error al borrar todos los detalles: ' + delDetailsError.message);
             }
 
             setActivities(newActivities);

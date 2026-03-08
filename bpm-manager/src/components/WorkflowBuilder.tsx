@@ -77,7 +77,8 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
         setDetails,
         loading,
         saving,
-        saveModel
+        saveModel,
+        reload
     } = useWorkflowModeler(workflow.id);
 
 
@@ -429,6 +430,8 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
             setTimeout(() => setShowSaveSuccess(false), 2000);
         } else {
             toast.error('Error al guardar el flujo: ' + (error || 'Desconocido'));
+            // Reload to sync UI with DB since save failed (e.g. deletion blocked by constraints)
+            reload();
         }
     }
 
