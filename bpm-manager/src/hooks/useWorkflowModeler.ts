@@ -76,9 +76,35 @@ export function useWorkflowModeler(workflowId: string) {
             if (newActivities.length > 0) {
                 const activitiesToUpsert = newActivities.map(({ fields, ...rest }) => rest);
                 const { error: upsActError } = await supabase.from('activities').upsert(activitiesToUpsert);
+
                 if (upsActError) {
-                    console.error('❌ Error al upsertar actividades:', upsActError);
-                    throw upsActError;
+                    const isColumnError = upsActError.message?.includes('column') ||
+                        upsActError.message?.includes('schema cache') ||
+                        upsActError.code === '42703';
+
+                    if (isColumnError) {
+                        console.warn('⚠️ Inconsistencia de esquema en actividades. Reintentando guardado básico...');
+
+                        const optionalColumns = [
+                            'assignment_type', 'assignment_strategy', 'actions', 'associated_details',
+                            'detail_cardinalities', 'form_columns', 'due_date_hours', 'sla_alert_hours',
+                            'enable_supervisor_alerts', 'is_public', 'wait_config', 'subprocess_config',
+                            'sync_config', 'width', 'height', 'x_pos', 'y_pos',
+                            'folder_completion_rule', 'folder_completion_ids', 'require_save_before_folders'
+                        ];
+
+                        const activitiesResilient = activitiesToUpsert.map(a => {
+                            const newA = { ...a };
+                            optionalColumns.forEach(col => delete (newA as any)[col]);
+                            return newA;
+                        });
+
+                        const { error: retryError } = await supabase.from('activities').upsert(activitiesResilient);
+                        if (retryError) throw retryError;
+                    } else {
+                        console.error('❌ Error al upsertar actividades:', upsActError);
+                        throw upsActError;
+                    }
                 }
 
                 // 2. Upsert Field Definitions
@@ -96,9 +122,15 @@ export function useWorkflowModeler(workflowId: string) {
                         options: f.options || [],
                         min_value: f.min_value ?? null,
                         max_value: f.max_value ?? null,
+                        max_length: f.max_length ?? null,
                         regex_pattern: f.regex_pattern ?? null,
                         visibility_condition: f.visibility_condition ?? null,
+                        default_value: f.default_value ?? null,
+                        consecutive_mask: f.consecutive_mask ?? null,
                         lookup_config: f.lookup_config ?? null,
+                        grid_columns: f.grid_columns ?? null,
+                        source_activity_id: f.source_activity_id ?? null,
+                        source_field_name: f.source_field_name ?? null,
                         parent_accordion_id: f.parent_accordion_id ?? null,
                     };
 
@@ -122,11 +154,28 @@ export function useWorkflowModeler(workflowId: string) {
                     const { error: upsFieldsError } = await supabase.from('activity_field_definitions').upsert(cleanedFields);
 
                     if (upsFieldsError) {
-                        // Si falla específicamente por la columna order_index, reintentamos sin ella
-                        if (upsFieldsError.message?.includes('order_index') || upsFieldsError.message?.includes('column')) {
-                            console.warn('⚠️ Reintentando guardado sin columna order_index...');
-                            const fieldsWithoutOrder = cleanedFields.map(({ order_index, ...rest }) => rest);
-                            const { error: retryError } = await supabase.from('activity_field_definitions').upsert(fieldsWithoutOrder);
+                        // Si falla específicamente por columnas inexistentes o caché de esquema, reintentamos eliminando los campos nuevos
+                        const isColumnError = upsFieldsError.message?.includes('column') ||
+                            upsFieldsError.message?.includes('schema cache') ||
+                            upsFieldsError.code === '42703';
+
+                        if (isColumnError) {
+                            console.warn('⚠️ Detectada inconsistencia de esquema. Reintentando guardado básico...');
+
+                            // Lista de columnas que podrían no existir aún
+                            const optionalColumns = [
+                                'order_index', 'consecutive_mask', 'default_value', 'grid_columns',
+                                'source_activity_id', 'source_field_name', 'parent_accordion_id',
+                                'regex_pattern', 'visibility_condition', 'max_length'
+                            ];
+
+                            const fieldsResilient = cleanedFields.map(f => {
+                                const newF = { ...f };
+                                optionalColumns.forEach(col => delete (newF as any)[col]);
+                                return newF;
+                            });
+
+                            const { error: retryError } = await supabase.from('activity_field_definitions').upsert(fieldsResilient);
                             if (retryError) throw retryError;
                         } else {
                             console.error('❌ Error al upsertar campos:', upsFieldsError);

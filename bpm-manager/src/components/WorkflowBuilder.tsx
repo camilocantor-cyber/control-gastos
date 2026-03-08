@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy, Department, Position } from '../types';
 import { exportToBPMN, importFromBPMN } from '../utils/bpmnConverter';
@@ -97,11 +97,13 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
     const [workflowTemplate, setWorkflowTemplate] = useState(workflow.name_template || '');
     const [workflowStatus, setWorkflowStatus] = useState(workflow.status);
     const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
+    const currentActivity = activities.find(a => a.id === selectedActivityId);
 
     // Delete confirmation dialog
     const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
     const [creatingVersion, setCreatingVersion] = useState(false);
     const [selectedPreviewFieldId, setSelectedPreviewFieldId] = useState<string | null>(null);
+    const [availableWorkflows, setAvailableWorkflows] = useState<Workflow[]>([]);
 
     // Document Template Generation
     const { loadTemplates } = useTemplateUpload();
@@ -112,6 +114,20 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
             loadTemplates(workflow.id).then(setWorkflowTemplates);
         }
     }, [isTemplateManagerOpen, workflow.id, loadTemplates]);
+
+    useEffect(() => {
+        const fetchWorkflows = async () => {
+            const { data, error } = await supabase
+                .from('workflows')
+                .select('*')
+                .eq('organization_id', workflow.organization_id)
+                .neq('id', workflow.id); // Don't allow calling itself as subprocess for now (avoid infinite loops unless intended)
+            if (!error && data) {
+                setAvailableWorkflows(data);
+            }
+        };
+        fetchWorkflows();
+    }, [workflow.organization_id, workflow.id]);
     const handleExportBPMN = () => {
         const xml = exportToBPMN(workflow.name, activities, transitions);
         const blob = new Blob([xml], { type: 'text/xml' });
@@ -146,7 +162,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
     const [zoom, setZoom] = useState(0.7);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
 
-    const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'transitions' | 'assignment' | 'actions' | 'details'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'transitions' | 'assignment' | 'actions' | 'details' | 'config'>('general');
     const [lookupData, setLookupData] = useState<{
         departments: Department[],
         positions: Position[],
@@ -166,9 +182,9 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                 supabase.rpc('get_database_tables')
             ]);
             setLookupData({
-                departments: depts.data || [],
-                positions: positions.data || [],
-                users: users.data || [],
+                departments: (depts.data as any[]) || [],
+                positions: (positions.data as any[]) || [],
+                users: (users.data as any[]) || [],
                 dbTables: tablesRes.data ? (tablesRes.data as any[]).map(t => t.table_name) : []
             });
 
@@ -405,8 +421,8 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
         setTransitions(prev => prev.filter(t => t.id !== id));
     }
 
-    async function handleSave() {
-        const { success, error } = await saveModel(activities, transitions);
+    async function handleSave(currentActs?: Activity[], currentTrans?: Transition[]) {
+        const { success, error } = await saveModel(currentActs || activities, currentTrans || transitions);
         if (success) {
             toast.success('Flujo guardado con éxito');
             setShowSaveSuccess(true);
@@ -649,7 +665,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                         {!isFocusMode && !isReadOnly && (
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={handleSave}
+                                    onClick={() => handleSave()}
                                     disabled={saving}
                                     title={showSaveSuccess ? "¡Guardado con éxito!" : "Guardar Diseño"}
                                     className={cn(
@@ -745,6 +761,9 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                 <ToolboxItem icon={Play} label="Inicio" color="emerald" onDragStart={(e) => handleDragStartToolbox(e, 'start')} />
                                 <ToolboxItem icon={Square} label="Tarea" color="blue" onDragStart={(e) => handleDragStartToolbox(e, 'task')} />
                                 <ToolboxItem icon={AlertCircle} label="Decisión" color="orange" onDragStart={(e) => handleDragStartToolbox(e, 'decision')} />
+                                <ToolboxItem icon={GitBranch} label="Subproceso" color="purple" onDragStart={(e) => handleDragStartToolbox(e, 'subprocess')} />
+                                <ToolboxItem icon={Clock} label="Espera (Wait)" color="amber" onDragStart={(e) => handleDragStartToolbox(e, 'wait')} />
+                                <ToolboxItem icon={GitMerge} label="Sincronía" color="violet" onDragStart={(e) => handleDragStartToolbox(e, 'sync')} />
                                 <ToolboxItem icon={Square} label="Fin" color="rose" onDragStart={(e) => handleDragStartToolbox(e, 'end')} />
                             </div>
                         </div>
@@ -979,7 +998,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <button
-                                                        onClick={handleSave}
+                                                        onClick={() => handleSave()}
                                                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-black rounded-2xl hover:scale-105 transition-all shadow-xl shadow-blue-200 dark:shadow-none active:scale-95 text-sm uppercase tracking-widest"
                                                     >
                                                         <Save className="w-4 h-4" />
@@ -1004,10 +1023,11 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                     <div className="flex gap-2 px-8 pt-4 bg-slate-50/50 dark:bg-slate-900/20 border-b border-slate-100 dark:border-slate-800/50">
                                                         {[
                                                             { id: 'general', label: 'General', icon: Edit2 },
-                                                            { id: 'fields', label: 'Campos y Formulario', icon: Plus },
+                                                            { id: 'config', label: 'Configuración', icon: Settings2 },
+                                                            { id: 'fields', label: 'Campos', icon: Plus },
                                                             { id: 'assignment', label: 'Asignación', icon: Users },
-                                                            { id: 'actions', label: 'Acciones Automáticas', icon: Zap },
-                                                            { id: 'details', label: 'Carpetas (Detalles)', icon: FolderOpen },
+                                                            { id: 'actions', label: 'Acciones', icon: Zap },
+                                                            { id: 'details', label: 'Detalles', icon: FolderOpen },
                                                             { id: 'transitions', label: 'Salidas', icon: GitBranch },
                                                         ].map(tab => (
                                                             <button
@@ -1178,20 +1198,247 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                             </div>
                                                         )}
 
+                                                        {activeTab === 'config' && (
+                                                            <div className="space-y-8 animate-fadeIn max-w-2xl">
+                                                                {activities.find(a => a.id === selectedActivityId)?.type === 'subprocess' && (
+                                                                    <div className="space-y-6">
+                                                                        <div>
+                                                                            <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Configuración de Subproceso</h4>
+                                                                            <p className="text-sm text-slate-500 font-medium italic">Seleccione el flujo de trabajo que se iniciará como un subproceso.</p>
+                                                                        </div>
+
+                                                                        <div className="space-y-4">
+                                                                            <div>
+                                                                                <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3 ml-1">Flujo de Trabajo Destino</label>
+                                                                                <select
+                                                                                    value={activities.find(a => a.id === selectedActivityId)?.subprocess_config?.workflow_id || ''}
+                                                                                    onChange={(e) => {
+                                                                                        const wfId = e.target.value;
+                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                            ...a,
+                                                                                            subprocess_config: {
+                                                                                                ...(a.subprocess_config || { input_mapping: {}, output_mapping: {} }),
+                                                                                                workflow_id: wfId
+                                                                                            }
+                                                                                        } : a));
+                                                                                    }}
+                                                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-white"
+                                                                                >
+                                                                                    <option value="">Seleccione un flujo...</option>
+                                                                                    {availableWorkflows.map(wf => (
+                                                                                        <option key={wf.id} value={wf.id}>{wf.name}</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </div>
+
+                                                                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-2xl">
+                                                                                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-2">
+                                                                                    <AlertCircle className="w-4 h-4" />
+                                                                                    <p className="text-[10px] font-black uppercase tracking-widest">Información</p>
+                                                                                </div>
+                                                                                <p className="text-xs text-blue-700 dark:text-blue-300">
+                                                                                    El proceso principal esperará a que el subproceso finalice para continuar con el siguiente paso.
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {activities.find(a => a.id === selectedActivityId)?.type === 'wait' && (
+                                                                    <div className="space-y-6">
+                                                                        <div>
+                                                                            <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Paso de Espera</h4>
+                                                                            <p className="text-sm text-slate-500 font-medium italic">Configure cuánto tiempo o bajo qué condición debe pausarse el flujo.</p>
+                                                                        </div>
+
+                                                                        <div className="grid grid-cols-2 gap-4">
+                                                                            <button
+                                                                                onClick={() => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, wait_config: { ...(a.wait_config || {}), type: 'time' } } : a))}
+                                                                                className={cn(
+                                                                                    "p-4 rounded-2xl border-2 text-left transition-all",
+                                                                                    activities.find(a => a.id === selectedActivityId)?.wait_config?.type === 'time'
+                                                                                        ? "bg-amber-50 border-amber-500 dark:bg-amber-900/20"
+                                                                                        : "bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800"
+                                                                                )}
+                                                                            >
+                                                                                <Clock className={cn("w-6 h-6 mb-2", activities.find(a => a.id === selectedActivityId)?.wait_config?.type === 'time' ? "text-amber-600" : "text-slate-400")} />
+                                                                                <p className="font-black text-xs uppercase tracking-widest">Por Tiempo</p>
+                                                                                <p className="text-[10px] text-slate-500">Espera una cantidad fija de horas</p>
+                                                                            </button>
+
+                                                                            <button
+                                                                                onClick={() => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, wait_config: { ...(a.wait_config || {}), type: 'condition' } } : a))}
+                                                                                className={cn(
+                                                                                    "p-4 rounded-2xl border-2 text-left transition-all",
+                                                                                    activities.find(a => a.id === selectedActivityId)?.wait_config?.type === 'condition'
+                                                                                        ? "bg-indigo-50 border-indigo-500 dark:bg-indigo-900/20"
+                                                                                        : "bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800"
+                                                                                )}
+                                                                            >
+                                                                                <Zap className={cn("w-6 h-6 mb-2", activities.find(a => a.id === selectedActivityId)?.wait_config?.type === 'condition' ? "text-indigo-600" : "text-slate-400")} />
+                                                                                <p className="font-black text-xs uppercase tracking-widest">Por Condición</p>
+                                                                                <p className="text-[10px] text-slate-500">Espera hasta que se cumpla una lógica</p>
+                                                                            </button>
+                                                                        </div>
+
+                                                                        {activities.find(a => a.id === selectedActivityId)?.wait_config?.type === 'time' && (
+                                                                            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-4">
+                                                                                <div>
+                                                                                    <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3 ml-1">Duración (Horas)</label>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        value={activities.find(a => a.id === selectedActivityId)?.wait_config?.duration_hours || 0}
+                                                                                        onChange={(e) => {
+                                                                                            const val = parseInt(e.target.value) || 0;
+                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                ...a,
+                                                                                                wait_config: { ...(a.wait_config || {}), type: 'time' as const, duration_hours: val }
+                                                                                            } : a));
+                                                                                        }}
+                                                                                        className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-bold text-slate-900 dark:text-white"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {activities.find(a => a.id === selectedActivityId)?.wait_config?.type === 'condition' && (
+                                                                            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-4">
+                                                                                <div>
+                                                                                    <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3 ml-1">Fórmula de Condición (JS)</label>
+                                                                                    <textarea
+                                                                                        value={activities.find(a => a.id === selectedActivityId)?.wait_config?.condition || ''}
+                                                                                        onChange={(e) => {
+                                                                                            const val = e.target.value;
+                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                ...a,
+                                                                                                wait_config: { ...(a.wait_config || {}), type: 'condition' as const, condition: val }
+                                                                                            } : a));
+                                                                                        }}
+                                                                                        className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono text-xs text-indigo-600 dark:text-indigo-400"
+                                                                                        placeholder="Ej: {{monto}} > 1000000"
+                                                                                        rows={3}
+                                                                                    />
+                                                                                    <p className="mt-2 text-[10px] text-slate-500 italic">Use {"{{campo}}"} para referenciar valores de pasos anteriores.</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+
+                                                                {activities.find(a => a.id === selectedActivityId)?.type === 'sync' && (
+                                                                    <div className="space-y-6">
+                                                                        <div>
+                                                                            <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Sincronización (Join)</h4>
+                                                                            <p className="text-sm text-slate-500 font-medium italic">Configure cómo deben converger múltiples ramas del flujo.</p>
+                                                                        </div>
+
+                                                                        <div className="space-y-4">
+                                                                            <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3 ml-1">Modo de Convergencia</label>
+                                                                            <select
+                                                                                value={activities.find(a => a.id === selectedActivityId)?.sync_config?.mode || 'synchronous'}
+                                                                                onChange={(e) => {
+                                                                                    const val = e.target.value as any;
+                                                                                    setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                        ...a,
+                                                                                        sync_config: { mode: val }
+                                                                                    } : a));
+                                                                                }}
+                                                                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all font-bold text-slate-900 dark:text-white"
+                                                                            >
+                                                                                <option value="synchronous">Esperar a que TODAS las entradas finalicen (AND)</option>
+                                                                                <option value="async_single">Continuar con la PRIMERA entrada que llegue (OR)</option>
+                                                                                <option value="async_multiple">Ejecutar por cada entrada que llegue (Independiente)</option>
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {['start', 'task', 'decision', 'end'].includes(activities.find(a => a.id === selectedActivityId)?.type || '') && (
+                                                                    <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center text-center bg-slate-50/30 dark:bg-slate-900/10">
+                                                                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
+                                                                            <Settings2 className="w-8 h-8 text-slate-300 opacity-50" />
+                                                                        </div>
+                                                                        <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">Sin ajustes adicionales</h4>
+                                                                        <p className="text-sm text-slate-500 max-w-sm">Esta actividad utiliza la configuración estándar. Ajusta el nombre, asignación o campos en las otras pestañas.</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+
                                                         {activeTab === 'details' && (
                                                             <div className="space-y-6 animate-fadeIn">
                                                                 <div className="flex items-center justify-between">
                                                                     <div>
-                                                                        <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Carpetas (Detalles) Asociados</h4>
+                                                                        <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Detalles</h4>
                                                                         <p className="text-sm text-slate-500 font-medium italic">Seleccione qué sub-carpetas de registros iterables estarán disponibles durante este paso.</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Folder Completion Rules */}
+                                                                <div className="bg-indigo-50/30 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/50 rounded-3xl p-6 mb-6 animate-in slide-in-from-top-2">
+                                                                    <div className="flex items-center gap-3 mb-4">
+                                                                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                                                                            <Scale className="w-5 h-5 text-white" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 className="text-xs font-black text-indigo-900 dark:text-indigo-100 uppercase tracking-widest">Reglas de Finalización de Actividad</h5>
+                                                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60 italic">Control de flujo basado en datos de carpetas</p>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                                                        <div className="space-y-2">
+                                                                            <label className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-[0.2em] px-1 block h-4">Condición de Guardado</label>
+                                                                            <select
+                                                                                value={currentActivity?.folder_completion_rule || 'none'}
+                                                                                onChange={(e) => {
+                                                                                    const val = e.target.value as any;
+                                                                                    const nextActs = activities.map(a => a.id === selectedActivityId ? { ...a, folder_completion_rule: val } : a);
+                                                                                    setActivities(nextActs);
+                                                                                    handleSave(nextActs);
+                                                                                }}
+                                                                                className="w-full bg-white dark:bg-slate-950 border border-indigo-200 dark:border-indigo-800 text-[11px] text-indigo-900 dark:text-indigo-100 font-black rounded-2xl p-3 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm h-[48px]"
+                                                                            >
+                                                                                <option value="none">Opcional (No requiere llenar carpetas)</option>
+                                                                                <option value="and">AND - TODAS las carpetas seleccionadas son obligatorias</option>
+                                                                                <option value="or">OR - AL MENOS UNA de las seleccionadas es obligatoria</option>
+                                                                            </select>
+                                                                        </div>
+
+                                                                        <div className="space-y-2">
+                                                                            <label className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-[0.2em] px-1 block h-4">Protección de Datos</label>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const nextActs = activities.map(a => a.id === selectedActivityId ? { ...a, require_save_before_folders: !a.require_save_before_folders } : a);
+                                                                                    setActivities(nextActs);
+                                                                                    handleSave(nextActs);
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "w-full flex items-center justify-between gap-4 px-4 py-3 rounded-2xl border-2 transition-all group/lock h-[48px]",
+                                                                                    currentActivity?.require_save_before_folders
+                                                                                        ? "bg-rose-50 border-rose-100 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/30"
+                                                                                        : "bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800 text-slate-500"
+                                                                                )}
+                                                                            >
+                                                                                <div className="flex flex-col items-start transition-transform group-hover/lock:translate-x-1">
+                                                                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Bloqueo de Escritura</span>
+                                                                                    <span className="text-[8px] font-bold opacity-60 uppercase tracking-tighter italic">Requiere guardar formulario principal</span>
+                                                                                </div>
+                                                                                <div className={cn(
+                                                                                    "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                                                                                    currentActivity?.require_save_before_folders ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                                                                                )}>
+                                                                                    {currentActivity?.require_save_before_folders ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                                                                                </div>
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
 
                                                                 {details.length > 0 ? (
                                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                         {details.map(detail => {
-                                                                            const activity = activities.find(a => a.id === selectedActivityId);
-                                                                            const isSelected = activity?.associated_details?.includes(detail.id) || false;
+                                                                            const isSelected = currentActivity?.associated_details?.includes(detail.id) || false;
                                                                             return (
                                                                                 <div key={detail.id} className={cn(
                                                                                     "flex flex-col gap-3 p-5 rounded-2xl border transition-all",
@@ -1203,14 +1450,13 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                             checked={isSelected}
                                                                                             onChange={(e) => {
                                                                                                 const checked = e.target.checked;
-                                                                                                setActivities(prev => prev.map(a => {
+                                                                                                const nextActs = activities.map(a => {
                                                                                                     if (a.id === selectedActivityId) {
                                                                                                         const currentDetails = a.associated_details || [];
                                                                                                         const nextDetails = checked
                                                                                                             ? [...currentDetails, detail.id]
                                                                                                             : currentDetails.filter(id => id !== detail.id);
 
-                                                                                                        // Cleanup cardinality config if unselected
                                                                                                         const nextCards = { ...(a.detail_cardinalities || {}) };
                                                                                                         if (!checked) {
                                                                                                             delete nextCards[detail.id];
@@ -1221,8 +1467,9 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                         return { ...a, associated_details: nextDetails, detail_cardinalities: nextCards };
                                                                                                     }
                                                                                                     return a;
-                                                                                                }));
-                                                                                                handleSave(); // Auto-save when linking
+                                                                                                });
+                                                                                                setActivities(nextActs);
+                                                                                                handleSave(nextActs);
                                                                                             }}
                                                                                             className="mt-1 w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 flex-shrink-0 transition-all cursor-pointer"
                                                                                         />
@@ -1234,6 +1481,40 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                 <p className="text-xs text-slate-500 line-clamp-2">{detail.description}</p>
                                                                                             )}
                                                                                         </div>
+                                                                                        {isSelected && currentActivity?.folder_completion_rule !== 'none' && (
+                                                                                            <div className="flex flex-col items-center gap-1 min-w-[60px] animate-in fade-in zoom-in duration-300">
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={(e) => {
+                                                                                                        e.stopPropagation();
+                                                                                                        e.preventDefault();
+                                                                                                        const nextActivities_comp = activities.map(a => {
+                                                                                                            if (a.id === selectedActivityId) {
+                                                                                                                const currentIds = a.folder_completion_ids || [];
+                                                                                                                const isMandatory_inner = currentIds.includes(detail.id);
+                                                                                                                const nextIds = isMandatory_inner
+                                                                                                                    ? currentIds.filter(id => id !== detail.id)
+                                                                                                                    : [...currentIds, detail.id];
+                                                                                                                return { ...a, folder_completion_ids: nextIds };
+                                                                                                            }
+                                                                                                            return a;
+                                                                                                        });
+                                                                                                        setActivities(nextActivities_comp);
+                                                                                                        handleSave(nextActivities_comp);
+                                                                                                    }}
+                                                                                                    className={cn(
+                                                                                                        "w-10 h-10 rounded-xl border flex items-center justify-center transition-all",
+                                                                                                        currentActivity?.folder_completion_ids?.includes(detail.id)
+                                                                                                            ? "bg-amber-500 border-amber-600 text-white shadow-lg shadow-amber-500/20"
+                                                                                                            : "bg-slate-50 border-slate-200 text-slate-300 dark:bg-slate-800 dark:border-slate-700"
+                                                                                                    )}
+                                                                                                    title={currentActivity?.folder_completion_ids?.includes(detail.id) ? "Obligatorio por regla" : "Opcional"}
+                                                                                                >
+                                                                                                    <Award className="w-5 h-5" />
+                                                                                                </button>
+                                                                                                <span className="text-[7px] font-black uppercase tracking-tighter text-slate-400">Obligatorio</span>
+                                                                                            </div>
+                                                                                        )}
                                                                                     </label>
 
                                                                                     {isSelected && (
@@ -1241,18 +1522,19 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                             <label className="text-[9px] font-black text-indigo-400 dark:text-indigo-500 uppercase tracking-widest">Validación de Cardinalidad</label>
                                                                                             <div className="flex gap-2 pb-1">
                                                                                                 <select
-                                                                                                    value={activity?.detail_cardinalities?.[detail.id]?.mode || 'none'}
+                                                                                                    value={currentActivity?.detail_cardinalities?.[detail.id]?.mode || 'none'}
                                                                                                     onChange={(e) => {
                                                                                                         const mode = e.target.value as any;
-                                                                                                        setActivities(prev => prev.map(a => {
+                                                                                                        const nextActivities_card = activities.map(a => {
                                                                                                             if (a.id === selectedActivityId) {
                                                                                                                 const newCards = { ...(a.detail_cardinalities || {}) };
                                                                                                                 newCards[detail.id] = { ...newCards[detail.id], mode, min_items: mode === 'min_x' ? (newCards[detail.id]?.min_items || 1) : undefined };
                                                                                                                 return { ...a, detail_cardinalities: newCards };
                                                                                                             }
                                                                                                             return a;
-                                                                                                        }));
-                                                                                                        handleSave();
+                                                                                                        });
+                                                                                                        setActivities(nextActivities_card);
+                                                                                                        handleSave(nextActivities_card);
                                                                                                     }}
                                                                                                     className="flex-1 bg-white dark:bg-slate-950 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-900 dark:text-indigo-100 font-bold rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
                                                                                                 >
@@ -1265,7 +1547,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                     onClick={(e) => {
                                                                                                         e.stopPropagation();
                                                                                                         e.preventDefault();
-                                                                                                        setActivities(prev => prev.map(a => {
+                                                                                                        const nextActivities_lock = activities.map(a => {
                                                                                                             if (a.id === selectedActivityId) {
                                                                                                                 const newCards = { ...(a.detail_cardinalities || {}) };
                                                                                                                 const currentReadOnly = newCards[detail.id]?.read_only || false;
@@ -1273,18 +1555,19 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                                 return { ...a, detail_cardinalities: newCards };
                                                                                                             }
                                                                                                             return a;
-                                                                                                        }));
-                                                                                                        handleSave();
+                                                                                                        });
+                                                                                                        setActivities(nextActivities_lock);
+                                                                                                        handleSave(nextActivities_lock);
                                                                                                     }}
                                                                                                     className={cn(
                                                                                                         "px-3 rounded-lg border flex items-center justify-center transition-all",
-                                                                                                        activity?.detail_cardinalities?.[detail.id]?.read_only
+                                                                                                        currentActivity?.detail_cardinalities?.[detail.id]?.read_only
                                                                                                             ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-800/50"
                                                                                                             : "bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-800/50"
                                                                                                     )}
-                                                                                                    title={activity?.detail_cardinalities?.[detail.id]?.read_only ? "Modo Lectura (No se pueden añadir filas)" : "Modo Edición (Se pueden añadir filas)"}
+                                                                                                    title={currentActivity?.detail_cardinalities?.[detail.id]?.read_only ? "Modo Lectura (No se pueden añadir filas)" : "Modo Edición (Se pueden añadir filas)"}
                                                                                                 >
-                                                                                                    {activity?.detail_cardinalities?.[detail.id]?.read_only ? (
+                                                                                                    {currentActivity?.detail_cardinalities?.[detail.id]?.read_only ? (
                                                                                                         <Lock className="w-4 h-4" />
                                                                                                     ) : (
                                                                                                         <Unlock className="w-4 h-4" />
@@ -1292,24 +1575,25 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                 </button>
                                                                                             </div>
 
-                                                                                            {activity?.detail_cardinalities?.[detail.id]?.mode === 'min_x' && (
+                                                                                            {currentActivity?.detail_cardinalities?.[detail.id]?.mode === 'min_x' && (
                                                                                                 <div className="flex items-center gap-3 mt-1">
                                                                                                     <span className="text-[10px] font-bold text-indigo-400">Cantidad:</span>
                                                                                                     <input
                                                                                                         type="number"
                                                                                                         min={1}
-                                                                                                        value={activity?.detail_cardinalities?.[detail.id]?.min_items || 1}
+                                                                                                        value={currentActivity?.detail_cardinalities?.[detail.id]?.min_items || 1}
                                                                                                         onChange={(e) => {
                                                                                                             const val = Math.max(1, parseInt(e.target.value) || 1);
-                                                                                                            setActivities(prev => prev.map(a => {
+                                                                                                            const nextActivities_val = activities.map(a => {
                                                                                                                 if (a.id === selectedActivityId) {
                                                                                                                     const newCards = { ...(a.detail_cardinalities || {}) };
                                                                                                                     newCards[detail.id] = { ...newCards[detail.id], min_items: val };
                                                                                                                     return { ...a, detail_cardinalities: newCards };
                                                                                                                 }
                                                                                                                 return a;
-                                                                                                            }));
-                                                                                                            handleSave();
+                                                                                                            });
+                                                                                                            setActivities(nextActivities_val);
+                                                                                                            handleSave(nextActivities_val);
                                                                                                         }}
                                                                                                         className="w-16 bg-white dark:bg-slate-950 border border-indigo-200 dark:border-indigo-800 text-xs text-center font-bold text-indigo-900 dark:text-indigo-100 rounded-lg p-1.5 outline-none focus:ring-2 focus:ring-indigo-500/20"
                                                                                                     />
@@ -1379,16 +1663,29 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                         </thead>
                                                                         <tbody className="bg-white dark:bg-slate-900/50">
                                                                             {activities.find(a => a.id === selectedActivityId)?.fields?.map((field, idx) => {
-                                                                                const previousActivities = activities.filter(a => {
-                                                                                    const hasPath = transitions.some(t =>
-                                                                                        t.target_id === selectedActivityId &&
-                                                                                        (t.source_id === a.id || activities.some(intermediate =>
-                                                                                            transitions.some(t1 => t1.source_id === a.id && t1.target_id === intermediate.id) &&
-                                                                                            transitions.some(t2 => t2.source_id === intermediate.id && t2.target_id === selectedActivityId)
-                                                                                        ))
-                                                                                    );
-                                                                                    return a.id !== selectedActivityId && a.fields && a.fields.length > 0 && hasPath;
-                                                                                });
+                                                                                const getAncestors = (targetId: string): string[] => {
+                                                                                    const ancestors = new Set<string>();
+                                                                                    const queue = [targetId];
+                                                                                    while (queue.length > 0) {
+                                                                                        const curr = queue.shift()!;
+                                                                                        const parents = transitions
+                                                                                            .filter(t => t.target_id === curr)
+                                                                                            .map(t => t.source_id);
+                                                                                        parents.forEach(p => {
+                                                                                            if (!ancestors.has(p)) {
+                                                                                                ancestors.add(p);
+                                                                                                queue.push(p);
+                                                                                            }
+                                                                                        });
+                                                                                    }
+                                                                                    return Array.from(ancestors);
+                                                                                };
+
+                                                                                const ancestorIds = getAncestors(selectedActivityId!);
+                                                                                const previousActivities = activities.filter(a =>
+                                                                                    (ancestorIds.includes(a.id) || a.id === selectedActivityId) &&
+                                                                                    a.fields && a.fields.length > 0
+                                                                                );
 
                                                                                 return (
                                                                                     <React.Fragment key={field.id}>
@@ -1500,59 +1797,65 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                             } : f)
                                                                                                         } : a));
                                                                                                     }}
-                                                                                                    className="w-full h-8 px-2 text-[11px] bg-transparent border-none text-slate-400 dark:text-slate-500 font-medium focus:outline-none cursor-pointer"
+                                                                                                    className="w-full h-8 px-2 text-[11px] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-300 dark:border-slate-700/50 rounded-lg text-slate-500 dark:text-slate-400 focus:bg-white dark:focus:bg-slate-800 outline-none cursor-pointer transition-all font-bold"
                                                                                                 >
                                                                                                     <option value="">Manual (Usuario)</option>
                                                                                                     {previousActivities.map(prevActivity =>
-                                                                                                        prevActivity.fields?.map(prevField => (
+                                                                                                        prevActivity.fields?.filter(pf => !(prevActivity.id === selectedActivityId && pf.id === field.id)).map(prevField => (
                                                                                                             <option key={`${prevActivity.id}:${prevField.name}`} value={`${prevActivity.id}:${prevField.name}`}>
-                                                                                                                {prevActivity.name} → {prevField.label || prevField.name}
+                                                                                                                {prevActivity.id === selectedActivityId ? '(Este Paso) → ' : `${prevActivity.name} → `}{prevField.label || prevField.name}
                                                                                                             </option>
                                                                                                         ))
                                                                                                     )}
                                                                                                 </select>
                                                                                             </td>
-                                                                                            <td className="px-3 py-2 text-center">
-                                                                                                <input
-                                                                                                    type="checkbox"
-                                                                                                    checked={field.required}
-                                                                                                    onChange={(e) => {
-                                                                                                        const isReq = e.target.checked;
-                                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                            ...a,
-                                                                                                            fields: a.fields?.map(f => f.id === field.id ? { ...f, required: isReq } : f)
-                                                                                                        } : a));
-                                                                                                    }}
-                                                                                                    className="w-4 h-4 rounded text-blue-600 border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-800 focus:ring-blue-500 cursor-pointer transition-all"
-                                                                                                />
+                                                                                            <td className="px-3 py-2">
+                                                                                                <div className="flex items-center justify-center h-8">
+                                                                                                    <input
+                                                                                                        type="checkbox"
+                                                                                                        checked={field.required}
+                                                                                                        onChange={(e) => {
+                                                                                                            const isReq = e.target.checked;
+                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                                ...a,
+                                                                                                                fields: a.fields?.map(f => f.id === field.id ? { ...f, required: isReq } : f)
+                                                                                                            } : a));
+                                                                                                        }}
+                                                                                                        className="w-4 h-4 rounded text-blue-600 border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-800 focus:ring-blue-500 cursor-pointer transition-all"
+                                                                                                    />
+                                                                                                </div>
                                                                                             </td>
-                                                                                            <td className="px-3 py-2 text-center">
-                                                                                                <input
-                                                                                                    type="checkbox"
-                                                                                                    checked={field.is_readonly || false}
-                                                                                                    onChange={(e) => {
-                                                                                                        const isRO = e.target.checked;
-                                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                            ...a,
-                                                                                                            fields: a.fields?.map(f => f.id === field.id ? { ...f, is_readonly: isRO } : f)
-                                                                                                        } : a));
-                                                                                                    }}
-                                                                                                    className="w-4 h-4 rounded text-amber-500 border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-800 focus:ring-amber-400 cursor-pointer transition-all accent-amber-500"
-                                                                                                    title="El usuario ve el valor pero no puede editarlo"
-                                                                                                />
+                                                                                            <td className="px-3 py-2">
+                                                                                                <div className="flex items-center justify-center h-8">
+                                                                                                    <input
+                                                                                                        type="checkbox"
+                                                                                                        checked={field.is_readonly || false}
+                                                                                                        onChange={(e) => {
+                                                                                                            const isRO = e.target.checked;
+                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                                ...a,
+                                                                                                                fields: a.fields?.map(f => f.id === field.id ? { ...f, is_readonly: isRO } : f)
+                                                                                                            } : a));
+                                                                                                        }}
+                                                                                                        className="w-4 h-4 rounded text-amber-500 border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-800 focus:ring-amber-400 cursor-pointer transition-all accent-amber-500"
+                                                                                                        title="El usuario ve el valor pero no puede editarlo"
+                                                                                                    />
+                                                                                                </div>
                                                                                             </td>
-                                                                                            <td className="px-3 py-2 text-center">
-                                                                                                <button
-                                                                                                    onClick={() => {
-                                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
-                                                                                                            ...a,
-                                                                                                            fields: a.fields?.filter(f => f.id !== field.id)
-                                                                                                        } : a));
-                                                                                                    }}
-                                                                                                    className="p-1.5 text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
-                                                                                                >
-                                                                                                    <Trash2 className="w-4 h-4" />
-                                                                                                </button>
+                                                                                            <td className="px-3 py-2">
+                                                                                                <div className="flex items-center justify-center h-8">
+                                                                                                    <button
+                                                                                                        onClick={() => {
+                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                                ...a,
+                                                                                                                fields: a.fields?.filter(f => f.id !== field.id)
+                                                                                                            } : a));
+                                                                                                        }}
+                                                                                                        className="p-1.5 text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
+                                                                                                    >
+                                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                                    </button>
+                                                                                                </div>
                                                                                             </td>
                                                                                         </tr>
 
@@ -2415,6 +2718,16 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                         onFetchColumns={fetchColumnsForTable}
                         initialSelectedFieldId={selectedPreviewFieldId}
                         initialShowAdvanced={!!selectedPreviewFieldId}
+                        previousActivities={activities.filter(a => {
+                            const hasPath = transitions.some(t =>
+                                t.target_id === selectedActivityId &&
+                                (t.source_id === a.id || activities.some(intermediate =>
+                                    transitions.some(t1 => t1.source_id === a.id && t1.target_id === intermediate.id) &&
+                                    transitions.some(t2 => t2.source_id === intermediate.id && t2.target_id === selectedActivityId)
+                                ))
+                            );
+                            return a.id !== selectedActivityId && a.fields && a.fields.length > 0 && hasPath;
+                        })}
                     />
                 )
             }
@@ -2507,115 +2820,130 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                 )
             }
             {/* Delete Activity Confirmation Modal */}
-            {deletePendingId && (
-                <div className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-md shadow-2xl border border-white/10 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
-                        {workflow.status === 'active' ? (
-                            <>
-                                {/* Published — suggest new version */}
-                                <div className="bg-amber-500 px-8 py-6 flex items-start gap-4">
-                                    <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                                        <Globe className="w-6 h-6 text-white" />
+            {
+                deletePendingId && (
+                    <div className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-md shadow-2xl border border-white/10 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
+                            {workflow.status === 'active' ? (
+                                <>
+                                    {/* Published — suggest new version */}
+                                    <div className="bg-amber-500 px-8 py-6 flex items-start gap-4">
+                                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <Globe className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-black text-white leading-tight">Flujo Publicado</h3>
+                                            <p className="text-amber-100 text-[11px] font-bold mt-0.5 leading-snug">No puedes modificar un flujo activo con trámites en curso</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-black text-white leading-tight">Flujo Publicado</h3>
-                                        <p className="text-amber-100 text-[11px] font-bold mt-0.5 leading-snug">No puedes modificar un flujo activo con trámites en curso</p>
-                                    </div>
-                                </div>
-                                <div className="p-8 space-y-5">
-                                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                                        Este flujo está <span className="font-black text-amber-600">publicado</span> y puede tener trámites activos. Eliminar una actividad podría romper los procesos en ejecución.
-                                    </p>
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/50">
-                                        <p className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1.5">💡 Recomendación</p>
-                                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                            Crea una <strong>nueva versión en borrador</strong>, realiza tus cambios y publícala cuando esté lista. El flujo actual seguirá activo para los trámites en curso.
+                                    <div className="p-8 space-y-5">
+                                        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                            Este flujo está <span className="font-black text-amber-600">publicado</span> y puede tener trámites activos. Eliminar una actividad podría romper los procesos en ejecución.
                                         </p>
-                                    </div>
-                                    <div className="flex gap-3 pt-1">
-                                        <button
-                                            onClick={() => setDeletePendingId(null)}
-                                            className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-[10px] uppercase tracking-widest"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            onClick={handleCreateNewVersion}
-                                            disabled={creatingVersion}
-                                            className="flex-1 py-3 px-4 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none active:scale-95 text-[10px] uppercase tracking-widest disabled:opacity-60 flex items-center justify-center gap-2"
-                                        >
-                                            {creatingVersion ? (
-                                                <>
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                    Creando...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <GitBranch className="w-4 h-4" />
-                                                    Nueva Versión
-                                                </>
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/50">
+                                            <p className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1.5">💡 Recomendación</p>
+                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                Crea una <strong>nueva versión en borrador</strong>, realiza tus cambios y publícala cuando esté lista. El flujo actual seguirá activo para los trámites en curso.
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-3 pt-1">
+                                            <button
+                                                onClick={() => setDeletePendingId(null)}
+                                                className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-[10px] uppercase tracking-widest"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={handleCreateNewVersion}
+                                                disabled={creatingVersion}
+                                                className="flex-1 py-3 px-4 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none active:scale-95 text-[10px] uppercase tracking-widest disabled:opacity-60 flex items-center justify-center gap-2"
+                                            >
+                                                {creatingVersion ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                        Creando...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <GitBranch className="w-4 h-4" />
+                                                        Nueva Versión
+                                                    </>
+                                                )}
+                                            </button>
+                                            {user?.email?.toLowerCase() === 'ccantor@gmail.com' && (
+                                                <button
+                                                    onClick={confirmDeleteActivity}
+                                                    className="flex-1 py-3 px-4 bg-rose-500/10 text-rose-500 font-black rounded-xl hover:bg-rose-500 hover:text-white transition-all text-[8px] leading-tight uppercase tracking-widest border border-rose-500/20 active:scale-95"
+                                                >
+                                                    bajo su responsabilidad
+                                                </button>
                                             )}
-                                        </button>
+                                        </div>
                                     </div>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                {/* Draft — simple confirmation */}
-                                <div className="bg-rose-500 px-8 py-6 flex items-start gap-4">
-                                    <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                                        <Trash2 className="w-6 h-6 text-white" />
+                                </>
+                            ) : (
+                                <>
+                                    {/* Draft — simple confirmation */}
+                                    <div className="bg-rose-500 px-8 py-6 flex items-start gap-4">
+                                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <Trash2 className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-black text-white leading-tight">Eliminar Actividad</h3>
+                                            <p className="text-rose-100 text-[11px] font-bold mt-0.5 leading-snug">Esta acción no se puede deshacer</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-black text-white leading-tight">Eliminar Actividad</h3>
-                                        <p className="text-rose-100 text-[11px] font-bold mt-0.5 leading-snug">Esta acción no se puede deshacer</p>
+                                    <div className="p-8 space-y-5">
+                                        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                            ¿Estás seguro de que deseas eliminar la actividad <strong className="text-slate-900 dark:text-white">"{activities.find(a => a.id === deletePendingId)?.name || 'esta actividad'}"</strong>?
+                                        </p>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
+                                            También se eliminarán todas las conexiones (transiciones) asociadas a esta actividad.
+                                        </p>
+                                        <div className="flex gap-3 pt-1">
+                                            <button
+                                                onClick={() => setDeletePendingId(null)}
+                                                className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-[10px] uppercase tracking-widest"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={confirmDeleteActivity}
+                                                className="flex-1 py-3 px-4 bg-rose-500 text-white font-black rounded-xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 dark:shadow-none active:scale-95 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                                Sí, Eliminar
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="p-8 space-y-5">
-                                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                                        ¿Estás seguro de que deseas eliminar la actividad <strong className="text-slate-900 dark:text-white">"{activities.find(a => a.id === deletePendingId)?.name || 'esta actividad'}"</strong>?
-                                    </p>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
-                                        También se eliminarán todas las conexiones (transiciones) asociadas a esta actividad.
-                                    </p>
-                                    <div className="flex gap-3 pt-1">
-                                        <button
-                                            onClick={() => setDeletePendingId(null)}
-                                            className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-[10px] uppercase tracking-widest"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            onClick={confirmDeleteActivity}
-                                            className="flex-1 py-3 px-4 bg-rose-500 text-white font-black rounded-xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 dark:shadow-none active:scale-95 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            Sí, Eliminar
-                                        </button>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </div >
     );
 }
 
-function ToolboxItem({ icon: Icon, label, color, onDragStart }: { icon: any, label: string, color: 'emerald' | 'blue' | 'orange' | 'rose', onDragStart: (e: React.DragEvent) => void }) {
-    const colors = {
+function ToolboxItem({ icon: Icon, label, color, onDragStart }: { icon: any, label: string, color: 'emerald' | 'blue' | 'orange' | 'rose' | 'purple' | 'amber' | 'violet', onDragStart: (e: React.DragEvent) => void }) {
+    const colors_map = {
         emerald: "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50 dark:hover:bg-emerald-900/40",
         blue: "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50 dark:hover:bg-blue-900/40",
         orange: "bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50 dark:hover:bg-orange-900/40",
         rose: "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800/50 dark:hover:bg-rose-900/40",
-    }[color];
+        purple: "bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50 dark:hover:bg-purple-900/40",
+        amber: "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50 dark:hover:bg-amber-900/40",
+        violet: "bg-violet-50 text-violet-600 border-violet-100 hover:bg-violet-100 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800/50 dark:hover:bg-violet-900/40",
+    };
+
+    const selectedColor = colors_map[color as keyof typeof colors_map];
 
     return (
         <div
             draggable
             onDragStart={(e) => onDragStart(e)}
-            className={`p-1.5 rounded-xl border ${colors} flex items-center gap-2.5 cursor-grab transition-all shadow-sm active:cursor-grabbing active:scale-95 group`}
+            className={`p-1.5 rounded-xl border ${selectedColor} flex items-center gap-2.5 cursor-grab transition-all shadow-sm active:cursor-grabbing active:scale-95 group`}
         >
             <div className={`p-1.5 rounded-lg bg-white/60 dark:bg-black/40 shadow-inner group-hover:scale-110 transition-transform`}>
                 <Icon className="w-3.5 h-3.5" />

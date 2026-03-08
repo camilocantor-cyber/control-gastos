@@ -85,9 +85,12 @@ export function SOPGenerator({ isOpen = true, workflow, activities, transitions,
                 content += `\n`;
             }
 
-            if (act.action_type && act.action_type !== 'none') {
-                content += `> [!NOTE]\n`;
-                content += `> **Automatización:** Este paso incluye una integración de tipo ${act.action_type.toUpperCase()}.\n\n`;
+            if (act.actions && act.actions.length > 0) {
+                const firstAction = act.actions[0];
+                if (firstAction.type !== 'none') {
+                    content += `> [!NOTE]\n`;
+                    content += `> **Automatización:** Este paso incluye una integración de tipo ${firstAction.type.toUpperCase()}.\n\n`;
+                }
             }
         });
 

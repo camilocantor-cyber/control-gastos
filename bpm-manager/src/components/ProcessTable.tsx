@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Eye, ArrowRight, Search, ChevronLeft, ChevronRight, Lock, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import clsx from 'clsx';
 
 interface ProcessTableProps {
     processes: any[];
@@ -257,11 +258,20 @@ export function ProcessTable({
                                             </div>
                                         </td>
                                         <td className="px-3 py-2.5">
-                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${process.status === 'active'
-                                                ? !isAuthorized ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                                                : !isAuthorized ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                                                }`}>
-                                                {process.status === 'active' ? 'Activo' : 'Completado'}
+                                            <span className={clsx(
+                                                "inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                                                process.status === 'active' ? (
+                                                    !isAuthorized ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                                                ) : (process.status === 'waiting' || process.status === 'waiting_subprocess') ? (
+                                                    'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                                                ) : (
+                                                    !isAuthorized ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                                )
+                                            )}>
+                                                {process.status === 'active' ? 'Activo' :
+                                                    process.status === 'waiting' ? 'Esperando' :
+                                                        process.status === 'waiting_subprocess' ? 'En Subproceso' :
+                                                            'Completado'}
                                             </span>
                                         </td>
                                         <td className="px-3 py-2.5 text-right">

@@ -97,7 +97,7 @@ export interface Transition {
     target_name?: string;
 }
 
-export type ProcessStatus = 'active' | 'completed' | 'cancelled';
+export type ProcessStatus = 'active' | 'completed' | 'cancelled' | 'waiting' | 'waiting_subprocess';
 
 export interface ProcessInstance {
     id: string;
@@ -112,6 +112,10 @@ export interface ProcessInstance {
     assigned_department_id?: string;
     assigned_position_id?: string;
     process_number?: number;
+    parent_process_id?: string;
+    waiting_subprocess_id?: string;
+    wait_until?: string;
+    wait_condition?: string;
 }
 
 export interface ProcessHistory {
@@ -149,6 +153,7 @@ export interface FieldDefinition {
     options?: string[]; // For select type, stored as JSON string or array
     min_value?: number;
     max_value?: number;
+    max_length?: number;
     regex_pattern?: string;
     source_activity_id?: string;
     source_field_name?: string;
@@ -288,6 +293,9 @@ export interface Activity {
     assigned_user_id?: string;
     actions?: AutomatedAction[];
     is_public?: boolean;
+    folder_completion_rule?: 'none' | 'and' | 'or';
+    folder_completion_ids?: string[];
+    require_save_before_folders?: boolean;
     subprocess_config?: {
         workflow_id: string;
         input_mapping: Record<string, string>;

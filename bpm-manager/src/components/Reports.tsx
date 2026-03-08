@@ -375,9 +375,11 @@ export function Reports() {
                 }
 
                 statsMap[wfName].total_executions++;
-                if (instance.status === 'active') {
+                const isActive = instance.status === 'active' || instance.status === 'waiting' || instance.status === 'waiting_subprocess';
+
+                if (isActive) {
                     statsMap[wfName].active++;
-                } else {
+                } else if (instance.status === 'completed') {
                     statsMap[wfName].completed++;
                 }
             });

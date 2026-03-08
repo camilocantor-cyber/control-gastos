@@ -23,6 +23,7 @@ interface FormPreviewModalProps {
     onFetchColumns?: (tableName: string) => void;
     initialSelectedFieldId?: string | null;
     initialShowAdvanced?: boolean;
+    previousActivities?: any[];
 }
 
 const FIELD_TYPES: { value: FieldType; label: string }[] = [
@@ -58,7 +59,8 @@ export function FormPreviewModal({
     tableColumnsMap = {},
     onFetchColumns,
     initialSelectedFieldId = null,
-    initialShowAdvanced = false
+    initialShowAdvanced = false,
+    previousActivities = []
 }: FormPreviewModalProps) {
     const [formData, setFormData] = useState<Record<string, string>>({});
     const [selectedFieldId, setSelectedFieldId] = useState<string | null>(initialSelectedFieldId);
@@ -227,11 +229,13 @@ export function FormPreviewModal({
                             value={formData[field.name] || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
                             className={clsx(
-                                "w-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl p-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none min-h-[120px] transition-all resize-none shadow-xl focus:border-blue-500 hover:shadow-2xl hover:scale-[1.005]",
-                                (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 grayscale-[0.3]"
+                                "w-full bg-white dark:bg-slate-900 border-2 rounded-xl p-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none min-h-[120px] transition-all resize-none shadow-xl focus:border-blue-500 hover:shadow-2xl hover:scale-[1.005]",
+                                (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 grayscale-[0.3]",
+                                field.regex_pattern && formData[field.name] && !new RegExp(field.regex_pattern).test(formData[field.name]) ? "border-rose-500 focus:border-rose-600" : "border-slate-300 dark:border-slate-700 focus:border-blue-500"
                             )}
                             placeholder={field.placeholder || ("Ingrese " + (field.label || field.name) + "...")}
                             readOnly={field.is_readonly || isReadOnly}
+                            maxLength={field.max_length}
                         />
                     ) : field.type === 'select' ? (
                         <div className="relative group w-full h-full">
@@ -285,8 +289,9 @@ export function FormPreviewModal({
                                 }}
                                 readOnly={field.is_readonly || isReadOnly}
                                 className={clsx(
-                                    "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl pl-8 pr-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all shadow-xl font-bold hover:shadow-2xl hover:scale-[1.01]",
-                                    (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                    "w-full h-full bg-white dark:bg-slate-900 border-2 rounded-xl pl-8 pr-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none transition-all shadow-xl font-bold hover:shadow-2xl hover:scale-[1.01]",
+                                    (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50",
+                                    field.regex_pattern && formData[field.name] && !new RegExp(field.regex_pattern).test(formData[field.name]) ? "border-rose-500 focus:border-rose-600" : "border-slate-300 dark:border-slate-700 focus:border-blue-500"
                                 )}
                                 placeholder="0"
                             />
@@ -403,10 +408,13 @@ export function FormPreviewModal({
                             onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
                             readOnly={field.is_readonly || isReadOnly}
                             className={clsx(
-                                "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all shadow-xl font-bold hover:scale-[1.01]",
-                                (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                "w-full h-full bg-white dark:bg-slate-900 border-2 rounded-xl px-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none transition-all shadow-xl font-bold hover:scale-[1.01]",
+                                (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50",
+                                field.regex_pattern && formData[field.name] && !new RegExp(field.regex_pattern).test(formData[field.name]) ? "border-rose-500 focus:border-rose-600" : "border-slate-300 dark:border-slate-700 focus:border-blue-500"
                             )}
                             placeholder={field.placeholder || "Completar..."}
+                            maxLength={field.max_length}
+                            pattern={field.regex_pattern}
                         />
                     )}
                 </div>
@@ -528,38 +536,7 @@ export function FormPreviewModal({
                                             <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                                 <Settings2 className="w-3.5 h-3.5 text-blue-600" />
                                             </div>
-                                            <h3 className="text-sm font-black text-[#0f172a] dark:text-slate-300 uppercase tracking-widest leading-none">Información de la Actividad</h3>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('¿Eliminar este campo?')) {
-                                                        onDeleteField(selectedField.id);
-                                                        setSelectedFieldId(null);
-                                                    }
-                                                }}
-                                                className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-slate-300 hover:text-rose-500 rounded-lg transition-all"
-                                                title="Eliminar Campo"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                                onClick={handleSaveClick}
-                                                disabled={saving}
-                                                className={clsx(
-                                                    "px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all shadow-md active:scale-95 flex items-center gap-1.5 disabled:opacity-50",
-                                                    showSaveSuccess
-                                                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200"
-                                                        : "bg-blue-600 text-white hover:bg-blue-700"
-                                                )}
-                                            >
-                                                {showSaveSuccess ? (
-                                                    <CheckCircle2 className="w-3 h-3 animate-in zoom-in duration-300" />
-                                                ) : (
-                                                    <Save className={clsx("w-3 h-3", saving && "animate-pulse")} />
-                                                )}
-                                                {showSaveSuccess ? '¡Guardado!' : (saving ? 'Guardando...' : 'Guardar')}
-                                            </button>
+                                            <h3 className="text-[10px] font-black text-[#0f172a] dark:text-slate-300 uppercase tracking-widest leading-none">Controles</h3>
                                         </div>
                                     </div>
 
@@ -582,7 +559,17 @@ export function FormPreviewModal({
                                                     <input
                                                         type="text"
                                                         value={selectedField.label || ''}
-                                                        onChange={(e) => onUpdateField(selectedField.id, { label: e.target.value })}
+                                                        onChange={(e) => {
+                                                            const newLabel = e.target.value;
+                                                            const newName = newLabel.toLowerCase()
+                                                                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                                                                .replace(/\s+/g, '_')
+                                                                .replace(/[^a-z0-9_]/g, '');
+                                                            onUpdateField(selectedField.id, {
+                                                                label: newLabel,
+                                                                name: newName || selectedField.name
+                                                            });
+                                                        }}
                                                         className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-bold text-slate-900 dark:text-white"
                                                     />
                                                 </div>
@@ -591,7 +578,19 @@ export function FormPreviewModal({
                                                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Tipo de Dato</label>
                                                     <select
                                                         value={selectedField.type}
-                                                        onChange={(e) => onUpdateField(selectedField.id, { type: e.target.value as FieldType })}
+                                                        onChange={(e) => {
+                                                            const newType = e.target.value as FieldType;
+                                                            const updates: Partial<FieldDefinition> = { type: newType };
+
+                                                            // Provide default regex for email/phone if none is set
+                                                            if (newType === 'email' && !selectedField.regex_pattern) {
+                                                                updates.regex_pattern = '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$';
+                                                            } else if (newType === 'phone' && !selectedField.regex_pattern) {
+                                                                updates.regex_pattern = '^\\+?[1-9]\\d{1,14}$';
+                                                            }
+
+                                                            onUpdateField(selectedField.id, updates);
+                                                        }}
                                                         className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-bold text-slate-900 dark:text-white appearance-none cursor-pointer"
                                                     >
                                                         {FIELD_TYPES.map(t => (
@@ -610,52 +609,9 @@ export function FormPreviewModal({
                                                     />
                                                 </div>
 
-                                                <div className="space-y-1">
-                                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Agrupar en Acordeón</label>
-                                                    <select
-                                                        value={selectedField.parent_accordion_id || ''}
-                                                        onChange={(e) => onUpdateField(selectedField.id, { parent_accordion_id: e.target.value || undefined })}
-                                                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] font-bold text-slate-900 dark:text-white appearance-none cursor-pointer"
-                                                    >
-                                                        <option value="">Ninguno (Raíz)</option>
-                                                        {fields.filter(f => f.type === 'accordion' && f.id !== selectedField.id).map(acc => (
-                                                            <option key={acc.id} value={acc.id}>{acc.label || acc.name}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                            <h4 className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest px-1">Lógica</h4>
-                                            <div className="space-y-3">
-                                                <div className="space-y-1">
-                                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Condición de Visibilidad</label>
-                                                    <input
-                                                        type="text"
-                                                        value={selectedField.visibility_condition || ''}
-                                                        onChange={(e) => onUpdateField(selectedField.id, { visibility_condition: e.target.value })}
-                                                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[10px] font-mono text-blue-600 dark:text-blue-400"
-                                                        placeholder="Ej: valor > 10"
-                                                    />
-                                                </div>
-                                                <label className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded-lg cursor-pointer">
-                                                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Requerido</span>
-                                                    <button
-                                                        onClick={() => onUpdateField(selectedField.id, { required: !selectedField.required })}
-                                                        className={clsx(
-                                                            "w-8 h-4 rounded-full transition-all relative",
-                                                            selectedField.required ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
-                                                        )}
-                                                    >
-                                                        <div className={clsx(
-                                                            "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
-                                                            selectedField.required ? "left-4.5" : "left-0.5"
-                                                        )} />
-                                                    </button>
-                                                </label>
-                                            </div>
-                                        </div>
 
                                         {selectedField.type === 'select' && (
                                             <div className="space-y-1.5 pt-4 border-t border-slate-100 dark:border-slate-800">
@@ -668,15 +624,40 @@ export function FormPreviewModal({
                                                 />
                                             </div>
                                         )}
+                                    </div>
 
-                                        <div className="space-y-1 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Descripción / Ayuda</label>
-                                            <textarea
-                                                value={selectedField.description || ''}
-                                                onChange={(e) => onUpdateField(selectedField.id, { description: e.target.value })}
-                                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-[10px] text-slate-500 dark:text-slate-400 min-h-[50px] resize-none"
-                                            />
-                                        </div>
+                                    {/* Sidebar Footer Acciones */}
+                                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 flex flex-col gap-1.5">
+                                        <button
+                                            onClick={handleSaveClick}
+                                            disabled={saving}
+                                            className={clsx(
+                                                "w-full py-2 px-4 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2",
+                                                showSaveSuccess
+                                                    ? "bg-emerald-500 text-white shadow-emerald-200"
+                                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                            )}
+                                        >
+                                            {showSaveSuccess ? (
+                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                            ) : (
+                                                <Save className={clsx("w-3.5 h-3.5", saving && "animate-pulse")} />
+                                            )}
+                                            {showSaveSuccess ? '¡Cambios Guardados!' : (saving ? 'Guardando...' : 'Guardar Cambios')}
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('¿Estás seguro de que deseas eliminar este control? Esta acción no se puede deshacer.')) {
+                                                    onDeleteField(selectedField.id);
+                                                    setSelectedFieldId(null);
+                                                }
+                                            }}
+                                            className="w-full py-2 px-4 text-[9px] font-black uppercase tracking-widest bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all shadow-lg shadow-rose-200 dark:shadow-rose-900/20 active:scale-95 flex items-center justify-center gap-2 group"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5 group-hover:animate-bounce" />
+                                            Eliminar Control
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
@@ -749,35 +730,52 @@ export function FormPreviewModal({
                                     {(selectedField.type === 'number' || selectedField.type === 'currency' || selectedField.type === 'date') && (
                                         <>
                                             <div className="space-y-1.5">
-                                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Valor Mínimo</label>
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Valor Mínimo</label>
                                                 <input
                                                     type="number"
                                                     value={selectedField.min_value ?? ''}
                                                     onChange={e => onUpdateField(selectedField.id, { min_value: e.target.value ? Number(e.target.value) : undefined })}
-                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm"
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                                     placeholder="Ej: 0"
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Valor Máximo</label>
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Valor Máximo</label>
                                                 <input
                                                     type="number"
                                                     value={selectedField.max_value ?? ''}
                                                     onChange={e => onUpdateField(selectedField.id, { max_value: e.target.value ? Number(e.target.value) : undefined })}
-                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm"
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                                     placeholder="Ej: 9999"
                                                 />
                                             </div>
                                         </>
                                     )}
+
+                                    {(selectedField.type === 'text' || selectedField.type === 'textarea' || selectedField.type === 'email' || selectedField.type === 'phone' || selectedField.type === 'consecutivo') && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Longitud Máxima (Caracteres)</label>
+                                            <input
+                                                type="number"
+                                                value={selectedField.max_length ?? ''}
+                                                onChange={e => onUpdateField(selectedField.id, { max_length: e.target.value ? Number(e.target.value) : undefined })}
+                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                                                placeholder="Ej: 255"
+                                            />
+                                        </div>
+                                    )}
                                     <div className="col-span-full space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Patrón de Validación (Regex)</label>
+                                        <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Patrón de Validación (Regex)</label>
                                         <input
                                             type="text"
                                             value={selectedField.regex_pattern ?? ''}
                                             onChange={e => onUpdateField(selectedField.id, { regex_pattern: e.target.value })}
-                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-mono text-xs text-blue-600 dark:text-blue-400 shadow-inner"
-                                            placeholder="Ej: ^[A-Z]{2}-\d{4}$"
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-mono text-slate-900 dark:text-blue-400 shadow-sm placeholder:text-slate-400"
+                                            placeholder={
+                                                selectedField.type === 'email' ? "Ej: ^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$" :
+                                                    selectedField.type === 'phone' ? "Ej: ^\\+?[1-9]\\d{1,14}$" :
+                                                        "Ej: ^[A-Z]{2}-\\d{4}$"
+                                            }
                                         />
                                     </div>
                                 </div>
@@ -789,7 +787,7 @@ export function FormPreviewModal({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Database className="w-4 h-4 text-blue-600" />
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0f172a] dark:text-slate-300 text-blue-600">Configuración de Búsqueda Interactiva (Lookup)</h4>
+                                            <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Configuración de Búsqueda Interactiva (Lookup)</h4>
                                         </div>
                                         {/* Type Selector Toggle */}
                                         <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner">
@@ -820,49 +818,63 @@ export function FormPreviewModal({
                                         /* CONFIGURACIÓN BASE DE DATOS */
                                         <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
                                             <div className="col-span-full space-y-1.5">
-                                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">1. Seleccionar Tabla del Sistema</label>
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">1. Seleccionar Tabla del Sistema</label>
                                                 <select
                                                     value={selectedField.lookup_config?.table_name || ''}
                                                     onChange={e => {
                                                         const table = e.target.value;
-                                                        if (onFetchColumns) onFetchColumns(table);
-                                                        onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, type: 'database', table_name: table, search_column: '', display_fields: [], value_field: '', mapping: {} } as any });
+                                                        if (table === selectedField.lookup_config?.table_name) return;
+                                                        if (onFetchColumns && table) onFetchColumns(table);
+                                                        onUpdateField(selectedField.id, {
+                                                            lookup_config: {
+                                                                ...selectedField.lookup_config,
+                                                                type: 'database',
+                                                                table_name: table,
+                                                                // Solo resetear estos si cambia la tabla
+                                                                search_column: '',
+                                                                display_fields: [],
+                                                                value_field: '',
+                                                                mapping: selectedField.lookup_config?.mapping || {}
+                                                            } as any
+                                                        });
                                                     }}
-                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm"
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100"
                                                 >
                                                     <option value="">-- Elija una tabla --</option>
-                                                    {dbTables?.map(t => (
+                                                    {dbTables && dbTables.length > 0 ? dbTables.map(t => (
                                                         <option key={t} value={t}>{t}</option>
-                                                    ))}
+                                                    )) : (
+                                                        <option disabled>No hay tablas disponibles</option>
+                                                    )}
                                                 </select>
                                             </div>
 
                                             {selectedField.lookup_config?.table_name && (
                                                 <>
                                                     <div className="space-y-1.5">
-                                                        <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Columna de Búsqueda</label>
+                                                        <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Columna de Búsqueda</label>
                                                         <select
                                                             value={selectedField.lookup_config?.search_column || ''}
                                                             onChange={e => onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, type: selectedField.lookup_config?.type || 'database', search_column: e.target.value } as any })}
-                                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm"
+                                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100"
                                                         >
                                                             <option value="">Seleccione columna...</option>
                                                             {tableColumnsMap?.[selectedField.lookup_config.table_name!]?.map(c => <option key={c} value={c}>{c}</option>)}
                                                         </select>
                                                     </div>
                                                     <div className="space-y-1.5">
-                                                        <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Columna de Valor (ID)</label>
+                                                        <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Columna de Valor (ID)</label>
                                                         <select
                                                             value={selectedField.lookup_config?.value_field || ''}
                                                             onChange={e => onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, type: selectedField.lookup_config?.type || 'database', value_field: e.target.value } as any })}
-                                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm"
+                                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100"
                                                         >
                                                             <option value="">Seleccione valor...</option>
                                                             {tableColumnsMap?.[selectedField.lookup_config.table_name!]?.map(c => <option key={c} value={c}>{c}</option>)}
                                                         </select>
                                                     </div>
                                                     <div className="col-span-full space-y-1.5">
-                                                        <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Columnas a Mostrar en Popup</label>
+                                                        <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Columnas a Mostrar en Popup</label>
                                                         <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl">
                                                             {tableColumnsMap?.[selectedField.lookup_config.table_name!]?.map(c => (
                                                                 <label key={c} className={clsx(
@@ -894,32 +906,32 @@ export function FormPreviewModal({
                                         /* CONFIGURACIÓN API REST */
                                         <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
                                             <div className="col-span-full space-y-1.5">
-                                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Endpoint / URL de API</label>
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Endpoint / URL de API</label>
                                                 <input
                                                     type="text"
                                                     value={selectedField.lookup_config?.url ?? ''}
                                                     onChange={e => onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, url: e.target.value, type: 'rest', method: selectedField.lookup_config?.method || 'GET' } })}
-                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold"
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                                     placeholder="https://su-api.com/v1/datos"
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Campo de Valor (ID)</label>
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Campo de Valor (ID)</label>
                                                 <input
                                                     type="text"
                                                     value={selectedField.lookup_config?.value_field ?? ''}
                                                     onChange={e => onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, value_field: e.target.value, type: 'rest' } })}
-                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold"
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                                     placeholder="id"
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Parámetro de Búsqueda</label>
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Parámetro de Búsqueda</label>
                                                 <input
                                                     type="text"
                                                     value={selectedField.lookup_config?.search_param ?? ''}
                                                     onChange={e => onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, search_param: e.target.value, type: 'rest' } })}
-                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold"
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                                     placeholder="q"
                                                 />
                                             </div>
@@ -929,7 +941,7 @@ export function FormPreviewModal({
                                     {/* Mapeo Automático (Común para ambos) */}
                                     <div className="col-span-full space-y-3 p-4 bg-slate-50/50 dark:bg-slate-950/50 border-2 border-slate-200 dark:border-slate-800 rounded-2xl">
                                         <div className="flex items-center justify-between px-1">
-                                            <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Mapeo de Autollenado</label>
+                                            <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Mapeo de Autollenado</label>
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -954,16 +966,19 @@ export function FormPreviewModal({
                                                         <input
                                                             type="text"
                                                             placeholder="Campo Origen (API/Tabla)"
-                                                            defaultValue={sourceKey}
-                                                            onBlur={(e) => {
+                                                            value={sourceKey}
+                                                            onChange={(e) => {
                                                                 const newSource = e.target.value;
                                                                 if (newSource === sourceKey) return;
                                                                 const mapping = { ...selectedField.lookup_config?.mapping };
-                                                                delete mapping[sourceKey];
-                                                                mapping[newSource] = targetField;
-                                                                onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, type: selectedField.lookup_config?.type || 'rest', mapping } as any });
+                                                                // Preservamos el orden eliminando y añadiendo si es necesario,
+                                                                // pero para inputs controlados en tiempo real es mejor actualizar la clave cuidadosamente
+                                                                const newMapping = Object.fromEntries(
+                                                                    Object.entries(mapping).map(([k, v]) => [k === sourceKey ? newSource : k, v])
+                                                                );
+                                                                onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, type: selectedField.lookup_config?.type || 'rest', mapping: newMapping } as any });
                                                             }}
-                                                            className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-mono shadow-sm"
+                                                            className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-mono shadow-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                                                         />
                                                         <ChevronRight className="w-3 h-3 text-slate-400" />
                                                         <select
@@ -972,10 +987,10 @@ export function FormPreviewModal({
                                                                 const mapping = { ...selectedField.lookup_config?.mapping, [sourceKey]: e.target.value };
                                                                 onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, type: selectedField.lookup_config?.type || 'rest', mapping } as any });
                                                             }}
-                                                            className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold shadow-sm"
+                                                            className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold shadow-sm text-slate-900 dark:text-slate-200"
                                                         >
                                                             <option value="">Llenar campo...</option>
-                                                            {fields.filter(f => f.id !== selectedField.id && f.type !== 'label' && f.type !== 'accordion').map(f => (
+                                                            {fields.filter(f => f.type !== 'label' && f.type !== 'accordion').map(f => (
                                                                 <option key={f.id} value={f.name}>{f.label || f.name}</option>
                                                             ))}
                                                         </select>
@@ -1004,15 +1019,16 @@ export function FormPreviewModal({
                                 <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2">
                                     <div className="flex items-center gap-2">
                                         <Hash className="w-4 h-4 text-amber-500" />
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0f172a] dark:text-slate-300">Máscara de Consecutivo</h4>
+                                        <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Máscara de Consecutivo</h4>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Formato de Máscara</label>
+                                        <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Formato de Máscara</label>
                                         <input
                                             type="text"
                                             value={selectedField.consecutive_mask ?? ''}
                                             onChange={e => onUpdateField(selectedField.id, { consecutive_mask: e.target.value })}
-                                            className="w-full px-4 py-4 bg-[#0f172a] text-white border-2 border-blue-500/30 rounded-2xl outline-none focus:border-blue-500 font-black text-lg text-center tracking-[0.3em] shadow-xl"
+                                            className="w-full px-4 py-3 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 font-extrabold text-sm tracking-widest text-slate-900 dark:text-blue-400 shadow-inner transition-all placeholder:text-slate-300"
+                                            placeholder="Ej: CTR-YYYY-####"
                                         />
                                         <p className="text-[8px] text-slate-400 italic px-2 pt-2">YYYY: Año | MM: Mes | ####: Contador secuencial.</p>
                                     </div>
@@ -1025,7 +1041,7 @@ export function FormPreviewModal({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Layout className="w-4 h-4 text-indigo-500" />
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0f172a] dark:text-slate-300">Definición de Columnas (Grid)</h4>
+                                            <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Definición de Columnas (Grid)</h4>
                                         </div>
                                         <button
                                             onClick={() => {
@@ -1108,39 +1124,141 @@ export function FormPreviewModal({
                                 </div>
                             )}
 
+                            {/* Sección: Lógica de Visibilidad */}
+                            <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2">
+                                <div className="flex items-center gap-2">
+                                    <Eye className="w-4 h-4 text-indigo-500" />
+                                    <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Lógica de Visibilidad</h4>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Condición para Mostrar este Campo</label>
+                                    <input
+                                        type="text"
+                                        value={selectedField.visibility_condition ?? ''}
+                                        onChange={e => onUpdateField(selectedField.id, { visibility_condition: e.target.value })}
+                                        className="w-full px-4 py-3 bg-[#0f172a] dark:bg-black text-white placeholder:text-slate-500 border-2 border-indigo-500/30 rounded-2xl outline-none focus:border-indigo-500 font-mono text-xs shadow-xl"
+                                        placeholder="Ej: monto_total > 1000000 o tipo_persona === 'natural'"
+                                    />
+                                    <div className="flex items-start gap-2 px-1 mt-2">
+                                        <Info className="w-3 h-3 text-slate-500 mt-0.5" />
+                                        <p className="text-[8px] text-slate-500 italic">
+                                            Usa nombres de campos y operadores JS básicos (===, !==, {'>'}, {'<'}, &&, ||). Si la condición es verdadera, el campo será visible.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Sección 4: Otros Ajustes */}
                             <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                                 <div className="flex items-center gap-2">
                                     <Zap className="w-4 h-4 text-blue-500" />
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0f172a] dark:text-slate-300">Otros Ajustes</h4>
+                                    <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Otros Ajustes</h4>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Valor por Defecto</label>
+                                        <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Valor por Defecto</label>
                                         <input
                                             type="text"
                                             value={selectedField.default_value ?? ''}
                                             onChange={e => onUpdateField(selectedField.id, { default_value: e.target.value })}
-                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold"
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                             placeholder="Valor inicial..."
                                         />
                                     </div>
-                                    <div className="flex items-end pb-1 px-1">
-                                        <label className="flex items-center justify-between w-full p-2.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl cursor-pointer hover:border-amber-200 transition-all">
-                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">Solo Lectura (Read Only)</span>
-                                            <button
-                                                onClick={() => onUpdateField(selectedField.id, { is_readonly: !selectedField.is_readonly })}
-                                                className={clsx(
-                                                    "w-8 h-4 rounded-full transition-all relative",
-                                                    selectedField.is_readonly ? "bg-amber-500 shadow-md shadow-amber-200" : "bg-slate-300 dark:bg-slate-700"
-                                                )}
-                                            >
-                                                <div className={clsx(
-                                                    "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
-                                                    selectedField.is_readonly ? "left-4" : "left-0.5"
-                                                )} />
-                                            </button>
-                                        </label>
+
+                                    <div className="space-y-1.5 col-span-full overflow-visible">
+                                        <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Auto-llenar Desde</label>
+                                        <select
+                                            value={selectedField.source_activity_id && selectedField.source_field_name ? `${selectedField.source_activity_id}:${selectedField.source_field_name}` : ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                const [sourceActivityId, sourceFieldName] = value ? value.split(':') : [undefined, undefined];
+                                                onUpdateField(selectedField.id, {
+                                                    source_activity_id: sourceActivityId,
+                                                    source_field_name: sourceFieldName
+                                                });
+                                            }}
+                                            className="w-full h-[45px] px-4 py-2 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold shadow-sm text-slate-900 dark:text-slate-100"
+                                        >
+                                            <option value="">Ingreso Manual (Usuario)</option>
+                                            {previousActivities.map(prevActivity =>
+                                                prevActivity.fields?.map((prevField: any) => (
+                                                    <option key={`${prevActivity.id}:${prevField.name}`} value={`${prevActivity.id}:${prevField.name}`}>
+                                                        {prevActivity.name} → {prevField.label || prevField.name}
+                                                    </option>
+                                                ))
+                                            )}
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                                        <div className="flex items-center gap-2">
+                                            <Layout className="w-4 h-4 text-indigo-500" />
+                                            <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Organización y Visibilidad</h4>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-6">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Agrupar en Acordeón</label>
+                                                <select
+                                                    value={selectedField.parent_accordion_id || ''}
+                                                    onChange={(e) => onUpdateField(selectedField.id, { parent_accordion_id: e.target.value || undefined })}
+                                                    className="w-full h-[45px] px-4 py-2 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold shadow-sm text-slate-900 dark:text-slate-100"
+                                                >
+                                                    <option value="">Ninguno (Raíz)</option>
+                                                    {fields.filter(f => f.type === 'accordion' && f.id !== selectedField.id).map(acc => (
+                                                        <option key={acc.id} value={acc.id}>{acc.label || acc.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <label className="flex items-center justify-between w-full h-[45px] px-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl cursor-pointer hover:border-blue-200 transition-all shadow-sm">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">Obligatorio</span>
+                                                        <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest opacity-60">(Required)</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => onUpdateField(selectedField.id, { required: !selectedField.required })}
+                                                        className={clsx(
+                                                            "w-8 h-4 rounded-full transition-all relative shrink-0 ml-2",
+                                                            selectedField.required ? "bg-blue-600 shadow-md shadow-blue-200" : "bg-slate-300 dark:bg-slate-700"
+                                                        )}
+                                                    >
+                                                        <div className={clsx(
+                                                            "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
+                                                            selectedField.required ? "left-4" : "left-0.5"
+                                                        )} />
+                                                    </button>
+                                                </label>
+                                                <label className="flex items-center justify-between w-full h-[45px] px-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl cursor-pointer hover:border-amber-200 transition-all shadow-sm">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">Solo Lectura</span>
+                                                        <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest opacity-60">(Read Only)</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => onUpdateField(selectedField.id, { is_readonly: !selectedField.is_readonly })}
+                                                        className={clsx(
+                                                            "w-8 h-4 rounded-full transition-all relative shrink-0 ml-2",
+                                                            selectedField.is_readonly ? "bg-amber-500 shadow-md shadow-amber-200" : "bg-slate-300 dark:bg-slate-700"
+                                                        )}
+                                                    >
+                                                        <div className={clsx(
+                                                            "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
+                                                            selectedField.is_readonly ? "left-4" : "left-0.5"
+                                                        )} />
+                                                    </button>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-full space-y-1.5 pt-2">
+                                        <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Descripción / Texto de Ayuda</label>
+                                        <textarea
+                                            value={selectedField.description || ''}
+                                            onChange={(e) => onUpdateField(selectedField.id, { description: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 text-xs font-bold shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 min-h-[80px] resize-none"
+                                            placeholder="Información adicional para el usuario final..."
+                                        />
                                     </div>
                                 </div>
                             </div>

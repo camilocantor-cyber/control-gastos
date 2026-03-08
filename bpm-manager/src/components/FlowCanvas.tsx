@@ -402,30 +402,43 @@ function FlowNode({ activity, status, isSelected, isConnectionSource, isDragging
 }
 
 function TransitionArrow({ transition, source, target, isExecuted, isSelected, onClick }: any) {
-    // Better calculation for connection points
-    const sourceX = source.x_pos + 104;
-    const sourceY = source.y_pos + 36;
-    const targetX = target.x_pos + 104;
-    const targetY = target.y_pos + 36;
+    // Standard dimensions for nodes (w-52 = 208px, h ~ 80px)
+    const hW = 104;
+    const hH = 40;
+
+    const sourceX = source.x_pos + hW;
+    const sourceY = source.y_pos + hH;
+    const targetX = target.x_pos + hW;
+    const targetY = target.y_pos + hH;
 
     const dx = targetX - sourceX;
     const dy = targetY - sourceY;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
-    let startX = sourceX, startY = sourceY, endX = targetX, endY = targetY;
+    let startX, startY, endX, endY, pathData, midPoint;
 
-    // Exit points based on direction
     if (absDx > absDy) {
-        startX = sourceX + (dx > 0 ? 104 : -104);
-        endX = targetX - (dx > 0 ? 110 : -110);
-    } else {
-        startY = sourceY + (dy > 0 ? 36 : -36);
-        endY = targetY - (dy > 0 ? 42 : -42);
-    }
+        // Dominant Horizontal: Exit/Entry from sides
+        startX = sourceX + (dx > 0 ? hW : -hW);
+        startY = sourceY;
+        endX = targetX + (dx > 0 ? -hW - 8 : hW + 8); // 8px for arrowhead
+        endY = targetY;
 
-    const midX = startX + (endX - startX) / 2;
-    const pathData = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+        const midX = startX + (endX - startX) / 2;
+        pathData = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+        midPoint = { x: midX, y: (startY + endY) / 2 };
+    } else {
+        // Dominant Vertical: Exit/Entry from top/bottom
+        startX = sourceX;
+        startY = sourceY + (dy > 0 ? hH : -hH);
+        endX = targetX;
+        endY = targetY + (dy > 0 ? -hH - 10 : hH + 10);
+
+        const midY = startY + (endY - startY) / 2;
+        pathData = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+        midPoint = { x: (startX + endX) / 2, y: midY };
+    }
 
     const color = isSelected ? "#3b82f6" : (isExecuted ? "#475569" : (document.documentElement.classList.contains('dark') ? "#334155" : "#cbd5e1"));
 
@@ -440,7 +453,7 @@ function TransitionArrow({ transition, source, target, isExecuted, isSelected, o
                 className="transition-all duration-300 pointer-events-auto"
             />
             {transition.condition && (
-                <g transform={`translate(${midX}, ${(startY + endY) / 2})`}>
+                <g transform={`translate(${midPoint.x}, ${midPoint.y})`}>
                     <rect x="-35" y="-9" width="70" height="18" rx="9" fill="white" className="dark:fill-slate-900" stroke={color} strokeWidth="1" />
                     <text textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="900" fill={color} className="uppercase tracking-tighter">
                         {transition.condition}

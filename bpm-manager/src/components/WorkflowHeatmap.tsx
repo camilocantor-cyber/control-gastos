@@ -209,7 +209,7 @@ export function WorkflowHeatmap({ workflowId: initialWorkflowId, startDate, endD
                 // Active instances currently AT this node
                 query = query
                     .eq('current_activity_id', activityId)
-                    .eq('status', 'active');
+                    .in('status', ['active', 'waiting', 'waiting_subprocess']);
             } else {
                 let histQuery = supabase
                     .from('process_history')
@@ -616,10 +616,13 @@ function ActivityNodeStats({
     onStatClick: (e: React.MouseEvent, type: 'active' | 'historical' | 'cost') => void,
     formatMoney: (val: number) => string
 }) {
-    const icons = {
+    const icons: Record<string, any> = {
         start: Play,
         task: Square,
         decision: GitBranch,
+        subprocess: GitBranch,
+        wait: Clock,
+        sync: ActivityIcon,
         end: Square,
     };
     const Icon = icons[activity.type] || ActivityIcon;
@@ -633,10 +636,13 @@ function ActivityNodeStats({
         return 'border-blue-500 shadow-blue-500/10 ring-blue-500/5';
     };
 
-    const colors = {
+    const colors: Record<string, string> = {
         start: 'bg-emerald-500',
         task: 'bg-blue-500',
         decision: 'bg-orange-500',
+        subprocess: 'bg-indigo-500',
+        wait: 'bg-amber-500',
+        sync: 'bg-cyan-500',
         end: 'bg-rose-500',
     };
 
@@ -721,50 +727,56 @@ function ActivityNodeStats({
 }
 
 function TransitionArrowHeatmap({ transition, source, target }: { transition: Transition, source: Activity, target: Activity }) {
-    // Better calculation for connection points matching standard card (w-56 = 224px, h ~ 100px)
-    const sourceX = source.x_pos + 112;
-    const sourceY = source.y_pos + 50;
-    const targetX = target.x_pos + 112;
-    const targetY = target.y_pos + 50;
+    // Standard dimensions for heatmap nodes (w-48 = 192px, h ~ 80px)
+    const hW = 96;
+    const hH = 40;
+
+    const sourceX = source.x_pos + hW;
+    const sourceY = source.y_pos + hH;
+    const targetX = target.x_pos + hW;
+    const targetY = target.y_pos + hH;
 
     const dx = targetX - sourceX;
     const dy = targetY - sourceY;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
-    let sX, sY, tX, tY;
+    let sX, sY, tX, tY, pathData, midPoint;
 
     if (absDx > absDy) {
-        sX = sourceX + (dx > 0 ? 112 : -112);
+        // Horizontal Dominant
+        sX = sourceX + (dx > 0 ? hW : -hW);
         sY = sourceY;
-        tX = targetX - (dx > 0 ? 120 : -120);
         tY = targetY;
+        tX = targetX + (dx > 0 ? -hW - 8 : hW + 8);
+
+        const midX = sX + (tX - sX) / 2;
+        pathData = `M ${sX} ${sY} L ${midX} ${sY} L ${midX} ${tY} L ${tX} ${tY}`;
+        midPoint = { x: midX, y: (sY + tY) / 2 };
     } else {
-        sY = sourceY + (dy > 0 ? 50 : -50);
+        // Vertical Dominant
         sX = sourceX;
-        tY = targetY - (dy > 0 ? 60 : -60);
+        sY = sourceY + (dy > 0 ? hH : -hH);
         tX = targetX;
+        tY = targetY + (dy > 0 ? -hH - 10 : hH + 10);
+
+        const midY = sY + (tY - sY) / 2;
+        pathData = `M ${sX} ${sY} L ${sX} ${midY} L ${tX} ${midY} L ${tX} ${tY}`;
+        midPoint = { x: (sX + tX) / 2, y: midY };
     }
-
-    const midX = sX + (tX - sX) / 2;
-    const pathData = `M ${sX} ${sY} L ${midX} ${sY} L ${midX} ${tY} L ${tX} ${tY}`;
-
-    const textX = midX;
-    const textY = sY + (tY - sY) / 2;
 
     return (
         <g>
             <path
                 d={pathData}
                 stroke="#cbd5e1"
-                dark-stroke="#334155"
                 strokeWidth="2"
                 fill="none"
                 markerEnd="url(#arrowhead-heatmap)"
                 className="transition-all duration-300 dark:stroke-slate-800"
             />
             {transition.condition && (
-                <g transform={`translate(${textX}, ${textY})`}>
+                <g transform={`translate(${midPoint.x}, ${midPoint.y})`}>
                     <rect x="-24" y="-8" width="48" height="16" rx="8" fill="white" className="dark:fill-slate-900" stroke="#cbd5e1" strokeWidth="1" />
                     <text textAnchor="middle" dominantBaseline="middle" fontSize="7" fontWeight="bold" fill="#94a3b8">
                         {transition.condition}

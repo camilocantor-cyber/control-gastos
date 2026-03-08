@@ -28,7 +28,6 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     const [instance, setInstance] = useState<any>(null);
     const [transitions, setTransitions] = useState<Transition[]>([]);
     const [fields, setFields] = useState<any[]>([]);
-    const [focusedField, setFocusedField] = useState<string | null>(null);
     const [savingDraft, setSavingDraft] = useState(false);
     const [draftSaved, setDraftSaved] = useState(false);
     const [formData, setFormData] = useState<Record<string, string>>({});
@@ -40,6 +39,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     const [showProcessViewer, setShowProcessViewer] = useState(false);
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
+    const [hasSavedOnce, setHasSavedOnce] = useState(false);
 
     const toggleAccordion = (id: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -162,6 +162,9 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                     }
                 }
                 setFormData(initialData);
+                if (existingData && existingData.length > 0) {
+                    setHasSavedOnce(true);
+                }
 
                 // Load Associated Details
                 const detailIds = ins.activities?.associated_details || [];
@@ -279,9 +282,13 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
             }
         });
 
-        // Check Master-Detail cardinalities
-        if (instance?.activities?.detail_cardinalities) {
-            const cardinalities = instance.activities.detail_cardinalities;
+        // Check Master-Detail cardinalities and completion rules
+        if (instance?.activities) {
+            const cardinalities = instance.activities.detail_cardinalities || {};
+            const rule = instance.activities.folder_completion_rule || 'none';
+            const mandatoryIds = instance.activities.folder_completion_ids || [];
+
+            // 1. Standard Cardinality Checks
             workflowDetails.forEach(detail => {
                 const config = cardinalities[detail.id];
                 if (!config || config.mode === 'none') return;
@@ -289,11 +296,28 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                 const rowsCount = detailRows[detail.id]?.length || 0;
 
                 if (config.mode === '1_to_many' && rowsCount < 1) {
-                    errors.push(`La carpeta "${detail.name}" es obligatoria(requiere al menos 1 registro).`);
+                    errors.push(`La carpeta "${detail.name}" es obligatoria (requiere al menos 1 registro).`);
                 } else if (config.mode === 'min_x' && config.min_items && rowsCount < config.min_items) {
-                    errors.push(`La carpeta "${detail.name}" requiere un mínimo de ${config.min_items} registros(tiene ${rowsCount}).`);
+                    errors.push(`La carpeta "${detail.name}" requiere un mínimo de ${config.min_items} registros (tiene ${rowsCount}).`);
                 }
             });
+
+            // 2. Folder Completion Rules (AND / OR)
+            if (rule === 'and' && mandatoryIds.length > 0) {
+                const missingFolders = mandatoryIds
+                    .map((id: string) => workflowDetails.find(d => d.id === id))
+                    .filter((d: any) => d && (detailRows[d.id]?.length || 0) < 1);
+
+                if (missingFolders.length > 0) {
+                    errors.push(`Regla AND: Todas las siguientes carpetas deben tener al menos un registro: ${missingFolders.map((d: any) => d?.name).join(', ')}.`);
+                }
+            } else if (rule === 'or' && mandatoryIds.length > 0) {
+                const hasAtLeastOne = mandatoryIds.some((id: string) => (detailRows[id]?.length || 0) >= 1);
+                if (!hasAtLeastOne) {
+                    const folders = mandatoryIds.map((id: string) => workflowDetails.find(d => d.id === id)?.name).filter(Boolean);
+                    errors.push(`Regla OR: Al menos una de las siguientes carpetas debe tener contenido: ${folders.join(', ')}.`);
+                }
+            }
         }
 
         return errors;
@@ -479,6 +503,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         setSavingDraft(false);
         if (result.success) {
             setDraftSaved(true);
+            setHasSavedOnce(true);
             setTimeout(() => setDraftSaved(false), 3000);
         } else {
             alert('❌ Error al guardar: ' + result.error);
@@ -884,8 +909,6 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                     <input
                                                                         type="text"
                                                                         value={formData[field.name] ? new Intl.NumberFormat('es-CO').format(Number(formData[field.name])) : ''}
-                                                                        onFocus={() => setFocusedField(field.id)}
-                                                                        onBlur={() => setFocusedField(null)}
                                                                         onChange={(e) => {
                                                                             const val = e.target.value.replace(/\D/g, '');
                                                                             setFormData({ ...formData, [field.name]: val });
@@ -1127,6 +1150,10 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                         const detail = workflowDetails.find(d => d.id === activeTab);
                                         if (!detail) return null;
                                         const rows = detailRows[activeTab] || [];
+                                        const isReadOnly = instance?.activities?.detail_cardinalities?.[activeTab]?.read_only;
+                                        const isProtectionEnabled = instance?.activities?.require_save_before_folders;
+                                        const isLockedBySave = isProtectionEnabled && !hasSavedOnce;
+
                                         return (
                                             <div className="space-y-6">
                                                 <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
@@ -1137,16 +1164,21 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                         <div>
                                                             <h3 className="text-lg font-black text-slate-800 dark:text-white leading-none mb-1">
                                                                 {detail.name}
-                                                                {instance?.activities?.detail_cardinalities?.[activeTab]?.read_only && (
+                                                                {isReadOnly && (
                                                                     <span className="ml-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">
                                                                         <Lock className="w-3 h-3" /> Solo Lectura
+                                                                    </span>
+                                                                )}
+                                                                {isLockedBySave && (
+                                                                    <span className="ml-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-500/10 text-rose-600 text-[10px] font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-500/20">
+                                                                        <AlertCircle className="w-3 h-3" /> Bloqueado: Guarde el Formulario Principal
                                                                     </span>
                                                                 )}
                                                             </h3>
                                                             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{detail.description || 'Registros del detalle'}</p>
                                                         </div>
                                                     </div>
-                                                    {!instance?.activities?.detail_cardinalities?.[activeTab]?.read_only && (
+                                                    {!isReadOnly && !isLockedBySave && (
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 title="Descargar Plantilla Excel"
@@ -1185,7 +1217,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                         </div>
                                                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No hay registros</p>
                                                         <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-1">
-                                                            {instance?.activities?.detail_cardinalities?.[activeTab]?.read_only ? 'No hay información en esta carpeta.' : 'Haz clic en Añadir Registro para comenzar'}
+                                                            {isReadOnly ? 'No hay información en esta carpeta.' : 'Haz clic en Añadir Registro para comenzar'}
                                                         </p>
                                                     </div>
                                                 ) : (
@@ -1196,7 +1228,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                     {detail.fields?.map((f: any) => (
                                                                         <th key={f.id} className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">{f.label || f.name}</th>
                                                                     ))}
-                                                                    {!instance?.activities?.detail_cardinalities?.[activeTab]?.read_only && (
+                                                                    {!isReadOnly && !isLockedBySave && (
                                                                         <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right w-32">Opciones</th>
                                                                     )}
                                                                 </tr>
@@ -1215,7 +1247,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                                 <td key={f.id} className="px-6 py-5 text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{displayVal || '-'}</td>
                                                                             );
                                                                         })}
-                                                                        {!instance?.activities?.detail_cardinalities?.[activeTab]?.read_only && (
+                                                                        {!isReadOnly && !isLockedBySave && (
                                                                             <td className="px-6 py-3 text-right">
                                                                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                                     <button onClick={() => { setActiveDetailForm(activeTab); setDetailFormData(row.data || {}); setEditingRowId(row.id); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all shadow-sm" title="Editar"><Edit2 className="w-4 h-4" /></button>

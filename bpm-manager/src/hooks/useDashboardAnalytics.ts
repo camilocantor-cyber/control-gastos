@@ -62,7 +62,7 @@ export function useDashboardAnalytics() {
                 .from('process_instances')
                 .select('id, current_activity_id, activities(name)')
                 .eq('organization_id', user.organization_id)
-                .eq('status', 'active');
+                .in('status', ['active', 'waiting', 'waiting_subprocess']);
 
             if (activeErr) throw activeErr;
 
