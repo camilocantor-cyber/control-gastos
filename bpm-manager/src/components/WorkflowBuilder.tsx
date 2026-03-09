@@ -62,8 +62,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
     const { user } = useAuth();
     const currentRole = user?.organization_id ? user?.available_organizations?.find((o: any) => o.id === user.organization_id)?.role : user?.role || 'viewer';
     const isViewer = currentRole === 'viewer';
-    const isAdmin = currentRole === 'admin' || currentRole === 'super_admin';
-    const isReadOnly = (workflow.organization_id !== user?.organization_id && currentRole !== 'super_admin') || isViewer;
+    const isReadOnly = (workflow.organization_id !== user?.organization_id && (currentRole as string) !== 'super_admin') || isViewer;
     const { avgResolutionTimeByWorkflow } = useDashboardAnalytics();
 
     // Filter stats for this specific workflow

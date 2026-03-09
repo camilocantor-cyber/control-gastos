@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wand2, Database, Hash, ShieldCheck, Zap, X, Settings2, Trash2, Plus, ChevronRight, Eye, Info, CheckCircle2, Save, Layout } from 'lucide-react';
+import { Wand2, Database, Hash, ShieldCheck, Zap, X, Settings2, Trash2, Plus, ChevronRight, Eye, Info, CheckCircle2, Save, Layout, AlertCircle } from 'lucide-react';
 import type { FieldDefinition, FieldType } from '../types';
 import { evaluateCondition } from '../utils/conditions';
 import { GeoSelector } from './GeoSelector';

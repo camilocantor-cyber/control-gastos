@@ -557,7 +557,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         for (const field of fields) {
             console.log(`[SYNC] Field: ${field.name}, db_column: ${field.db_column}, db_is_primary_key: ${field.db_is_primary_key}`);
             if (field.db_column) {
-                let value = formData[field.name];
+                let value: any = formData[field.name];
 
                 if (value !== undefined && value !== null && value !== '') {
                     if (field.db_type === 'integer' || field.db_type === 'numeric' || field.db_type === 'real' || field.db_type === 'double precision') {
