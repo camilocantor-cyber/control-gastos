@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIMind - Tu modelo BIM con cerebro</title>
+    <style>
+        :root {
+            --primary: #2d89ef;
+            --secondary: #2b5797;
+            --dark: #1e1e1e;
+            --light: #f4f6f9;
+            --success: #00a300;
+            --danger: #b91d47;
+            --warning: #ffc40d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light);
+            margin: 0;
+            padding: 0;
+            color: var(--dark);
+        }
+
+        header {
+            background: var(--dark);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--secondary);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary);
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 0.8rem;
+            margin: 1rem 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .results {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .result-card {
+            background: #fff;
+            padding: 1.5rem;
+            border-left: 5px solid var(--primary);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .status-pass {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .status-fail {
+            color: var(--danger);
+            font-weight: bold;
+        }
+
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .suggestion {
+            background: #fff4ce;
+            border-left: 5px solid var(--warning);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div>
+            <h2 style="margin:0;">BIMind</h2>
+            <small>Tu modelo BIM... con cerebro</small>
+        </div>
+        <div>
+            <span id="currentProject" style="font-style: italic; opacity: 0.8;">Sin proyecto</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card" id="setupSection">
+            <h2>1. Iniciar Proyecto</h2>
+            <p>Crea un nuevo proyecto para comenzar el análisis de tu modelo BIM.</p>
+            <input type="text" id="projectName" placeholder="Nombre del Proyecto (ej. Edificio Omega)">
+            <button class="btn btn-primary" onclick="createProject()">Crear Proyecto</button>
+        </div>
+
+        <div class="card" id="uploadSection" style="display:none;">
+            <h2>2. Subir Modelo BIM</h2>
+            <p>Sube tu archivo IFC para que los agentes de IA inicien el análisis.</p>
+            <input type="file" id="fileInput" accept=".ifc">
+            <button class="btn btn-primary" onclick="uploadFile()">Analizar Modelo</button>
+        </div>
+
+        <div id="loader" class="loader">
+            <h3>🧠 Los agentes de IA están pensando...</h3>
+            <p>Analizando ciclo de vida, costos y cumplimiento normativo.</p>
+        </div>
+
+        <div id="resultsSection" style="display:none;">
+            <div class="card">
+                <h2>3. Resultados del Análisis</h2>
+                <div id="summary"></div>
+
+                <div class="results" id="agentResults">
+                    <!-- Aquí se cargarán los resultados de los agentes -->
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>4. Optimización IA</h2>
+                <div id="optimizationResults">
+                    <!-- Sugerencias de optimización -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let projectId = null;
+
+        async function createProject() {
+            const name = document.getElementById("projectName").value;
+            if (!name) return alert("Por favor ingresa un nombre");
+
+            try {
+                const res = await fetch(`/project?name=${encodeURIComponent(name)}`, { method: "POST" });
+                const data = await res.json();
+                projectId = data.id;
+                document.getElementById("currentProject").textContent = "Proyecto: " + data.name;
+                document.getElementById("setupSection").style.display = "none";
+                document.getElementById("uploadSection").style.display = "block";
+                alert("Proyecto creado con éxito");
+            } catch (err) {
+                console.error(err);
+                alert("Error al crear el proyecto");
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById("fileInput");
+            if (!fileInput.files[0]) return alert("Por favor selecciona un archivo .ifc");
+
+            document.getElementById("uploadSection").style.display = "none";
+            document.getElementById("loader").style.display = "block";
+            document.getElementById("resultsSection").style.display = "none";
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                const res = await fetch(`/upload/${projectId}`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await res.json();
+                displayResults(data.analysis);
+            } catch (err) {
+                console.error(err);
+                alert("Error al analizar el archivo");
+                document.getElementById("uploadSection").style.display = "block";
+            } finally {
+                document.getElementById("loader").style.display = "none";
+            }
+        }
+
+        function displayResults(analysis) {
+            document.getElementById("resultsSection").style.display = "block";
+            const agentResults = document.getElementById("agentResults");
+            const optimizationResults = document.getElementById("optimizationResults");
+            agentResults.innerHTML = "";
+            optimizationResults.innerHTML = "";
+
+            analysis.forEach(res => {
+                if (res.type === "LCA") {
+                    agentResults.innerHTML += `
+                    <div class="result-card">
+                        <h3>🌍 Impacto Ambiental (LCA)</h3>
+                        <p><strong>Total CO₂:</strong> ${res.total_co2_kg.toLocaleString()} kg</p>
+                        <p>Elementos analizados: ${res.total_elements || 'N/A'}</p>
+                    </div>
+                `;
+                } else if (res.type === "LifeCycleCost") {
+                    agentResults.innerHTML += `
+                    <div class="result-card" style="border-left-color: var(--success);">
+                        <h3>💰 Costo Ciclo de Vida (LCC)</h3>
+                        <p><strong>Costo Total (${res.years} años):</strong> $${res.total_cost.toLocaleString()}</p>
+                        <p>Incluye inversión inicial y mantenimiento.</p>
+                    </div>
+                `;
+                } else if (res.type === "NormativeCheck") {
+                    const statusClass = res.global_status === "PASS" ? "status-pass" : "status-fail";
+                    let rulesHtml = res.rules.map(r => `
+                    <li>${r.rule}: <span class="${r.status === 'PASS' ? 'status-pass' : 'status-fail'}">${r.status}</span><br><small>${r.message}</small></li>
+                `).join("");
+
+                    agentResults.innerHTML += `
+                    <div class="result-card" style="border-left-color: ${res.global_status === 'PASS' ? 'var(--success)' : 'var(--danger)'};">
+                        <h3>📜 Cumplimiento Normativo</h3>
+                        <p>Estado Global: <span class="${statusClass}">${res.global_status}</span></p>
+                        <ul>${rulesHtml}</ul>
+                    </div>
+                `;
+                } else if (res.type === "Optimization") {
+                    res.suggestions.forEach(s => {
+                        optimizationResults.innerHTML += `
+                        <div class="suggestion">
+                            <p><strong>Problema:</strong> ${s.problem}</p>
+                            <p><strong>IA sugiere:</strong> ${s.suggestion}</p>
+                            <p style="color: var(--success);"><strong>Impacto esperado:</strong> ${s.impact}</p>
+                        </div>
+                    `;
+                    });
+                } else {
+                    // Agua y Energía
+                    const typeName = res.type === "Water" ? "💧 Gestión Hídrica" : "⚡ Eficiencia Energética";
+                    const icon = res.type === "Water" ? "m³" : "kWh/año";
+                    const value = res.type === "Water" ? res.daily_consumption_m3 : res.annual_kwh;
+
+                    agentResults.innerHTML += `
+                    <div class="result-card">
+                        <h3>${typeName}</h3>
+                        <p><strong>Consumo estimado:</strong> ${value.toLocaleString()} ${icon}</p>
+                    </div>
+                `;
+                }
+            });
+        }
+    </script>
+
+</body>
+
+</html>

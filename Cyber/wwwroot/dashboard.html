@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberAccount | Next Gen</title>
+    <!-- Modern Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css?v=2.0">
+    <link rel="stylesheet" href="css/puc-tabs.css?v=2.0">
+    <link rel="stylesheet" href="css/mac-dock.css?v=2.0">
+</head>
+
+<body>
+
+    <!-- Mac Dock Navigation -->
+    <nav class="mac-dock">
+        <div class="nav-item active" onclick="showSection('overview')" data-tooltip="Dashboard">
+            <i class="fa-solid fa-grid-2"></i>
+        </div>
+        <div class="nav-item" onclick="showSection('puc')" data-tooltip="Plan de Cuentas">
+            <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div class="nav-item" onclick="showSection('terceros')" data-tooltip="Terceros">
+            <i class="fa-solid fa-users-viewfinder"></i>
+        </div>
+        <div class="nav-item" onclick="showSection('conceptos')" data-tooltip="Conceptos">
+            <i class="fa-solid fa-tags"></i>
+        </div>
+        <div class="nav-item" onclick="showSection('journal')" data-tooltip="Asientos">
+            <i class="fa-solid fa-money-bill-transfer"></i>
+        </div>
+        <div class="nav-item" onclick="showSection('reportes')" data-tooltip="Reportes">
+            <i class="fa-solid fa-chart-pie"></i>
+        </div>
+
+        <!-- Separator logic in CSS -->
+        <div class="user-pill" onclick="logout()" data-tooltip="Salir">
+            <i class="fa-solid fa-power-off"></i>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+
+        <header class="header">
+            <div style="display:flex; align-items:center;">
+                <div>
+                    <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -1px; color: var(--text-main);"
+                        id="pageTitle">
+                        Bienvenido, <span style="color: var(--primary);">Admin</span>
+                    </h1>
+                    <p style="color: var(--text-muted); font-weight: 600;">Sistema Contable Inteligente v2.1</p>
+                </div>
+            </div>
+            <div class="user-pill">
+                <div class="avatar"><i class="fa-solid fa-user-astronaut"></i></div>
+                <span>ADMINISTRADOR</span>
+            </div>
+        </header>
+
+        <!-- DASHBOARD HOME -->
+        <section id="overview" class="section active">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div
+                        style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.8rem;">
+                        Total Activos</div>
+                    <div class="stat-val">$ 12.4M</div>
+                    <div class="badge"
+                        style="background: rgba(0, 230, 118, 0.1); color: var(--accent); display: inline-block;">
+                        <i class="fa-solid fa-arrow-up"></i> +24% este mes
+                    </div>
+                </div>
+                <div class="card">
+                    <div
+                        style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.8rem;">
+                        Pasivos</div>
+                    <div class="stat-val" style="color: #EF4444;">$ 4.2M</div>
+                    <div class="badge"
+                        style="background: rgba(239, 68, 68, 0.1); color: #EF4444; display: inline-block;">
+                        <i class="fa-solid fa-arrow-down"></i> -5% deuda
+                    </div>
+                </div>
+                <div class="card" style="background: linear-gradient(135deg, var(--primary), #FF9F1C); color: white;">
+                    <div
+                        style="color: rgba(255,255,255,0.8); font-weight: 700; text-transform: uppercase; font-size: 0.8rem;">
+                        Patrimonio</div>
+                    <div class="stat-val" style="color: white;">$ 8.2M</div>
+                    <div style="margin-top: 0.5rem; opacity: 0.9;">Tu empresa está saludable</div>
+                    <i class="fa-solid fa-rocket"
+                        style="position: absolute; right: -20px; bottom: -20px; font-size: 8rem; opacity: 0.2; transform: rotate(-15deg);"></i>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 1.5rem; font-weight: 800;">Actividad Reciente</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Estado</th>
+                                <th>Usuario</th>
+                                <th>Actividad</th>
+                                <th>Tiempo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge"
+                                        style="background: #ecfdf5; color: var(--accent);">EXITOSO</span></td>
+                                <td>Sistema</td>
+                                <td>Respaldo Automático de Base de Datos</td>
+                                <td>Hace 2 min</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge"
+                                        style="background: #fff7ed; color: var(--primary);">PENDIENTE</span></td>
+                                <td>Admin</td>
+                                <td>Cierre Mensual de Caja</td>
+                                <td>Hace 1h</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- PUC SECTION -->
+        <section id="puc" class="section">
+            <div class="card"
+                style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-weight: 800; font-size: 1.5rem;">Plan de Cuentas</h2>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn-primary"
+                        style="background: white; color: var(--text-main); box-shadow: 0 4px 15px rgba(0,0,0,0.05);"
+                        onclick="loadPuc()">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                    <button class="btn-primary" onclick="openPucModal()">
+                        <i class="fa-solid fa-plus"></i> NUEVA CUENTA
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="pucTable">
+                    <thead>
+                        <tr>
+                            <th>CÓDIGO ÚNICO</th>
+                            <th>NOMBRE DE CUENTA</th>
+                            <th>NIVEL</th>
+                            <th>NATURALEZA</th>
+                            <th>MOV</th>
+                            <th style="text-align: right;">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pucBody"> <!-- JS Load --> </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- TERCEROS SECTION -->
+        <section id="terceros" class="section">
+            <div class="card"
+                style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-weight: 800; font-size: 1.5rem;">Directorio de Terceros</h2>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="text" placeholder="Buscar..." class="input-glow" style="width: 250px;">
+                    <button class="btn-primary" onclick="openTerceroModal()">
+                        <i class="fa-solid fa-user-plus"></i> NUEVO
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IDENTIFICACIÓN</th>
+                            <th>NOMBRE COMPLETO / RAZÓN SOCIAL</th>
+                            <th>CONTACTO</th>
+                            <th style="text-align: right;">GESTIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tercerosBody"> <!-- JS Load --> </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- JOURNAL SECTION: HIGH TECH FORM -->
+        <section id="journal" class="section">
+            <div class="card" style="margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 style="font-weight: 800; font-size: 1.5rem;">Nuevo Asiento Contable</h2>
+                    <div class="badge" id="journalStatus"
+                        style="background: #fee2e2; color: #ef4444; font-size: 0.9rem;">
+                        <i class="fa-solid fa-scale-unbalanced"></i> DESCUADRADO
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+                    <div>
+                        <label class="stat-label">Fecha</label>
+                        <input type="date" id="asiFecha" class="input-glow">
+                    </div>
+                    <div>
+                        <label class="stat-label">Tipo Comprobante</label>
+                        <select id="asiTipo" class="input-glow">
+                            <option value="DIARIO">Nota de Contabilidad</option>
+                            <option value="EGRESO">Comprobante de Egreso</option>
+                            <option value="INGRESO">Recibo de Caja</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="stat-label">Descripción General</label>
+                        <input type="text" id="asiDesc" class="input-glow" placeholder="Ej: Pago de nómina...">
+                    </div>
+                </div>
+
+                <!-- LINES GRID -->
+                <div class="table-wrapper" style="overflow: visible; margin-bottom: 1.5rem;">
+                    <table id="journalTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">CUENTA</th>
+                                <th style="width: 25%;">TERCERO</th>
+                                <th>DETALLE</th>
+                                <th style="width: 10%; text-align: right;">BASE</th>
+                                <th style="width: 12%; text-align: right;">DÉBITO</th>
+                                <th style="width: 12%; text-align: right;">CRÉDITO</th>
+                                <th style="width: 5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="journalBody">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #F8FAFC; font-weight: 700;">
+                                <td colspan="4" style="text-align: right;">TOTALES</td>
+                                <td style="text-align: right;" id="totalDebito">0.00</td>
+                                <td style="text-align: right;" id="totalCredito">0.00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div style="display: flex; justify-content: space-between;">
+                    <button class="btn-primary" onclick="addJournalRow()"
+                        style="background: white; color: var(--primary); box-shadow: none; border: 1px solid var(--border-color);">
+                        <i class="fa-solid fa-plus"></i> AGREGAR LÍNEA
+                    </button>
+                    <button class="btn-primary" onclick="saveJournal()" id="btnSaveJournal" disabled
+                        style="opacity: 0.5; cursor: not-allowed;">
+                        <i class="fa-solid fa-floppy-disk"></i> GUARDAR ASIENTO
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONCEPTOS SECTION -->
+        <section id="conceptos" class="section">
+            <div class="card" style="text-align: center; padding: 4rem;">
+                <div
+                    style="background: rgba(var(--primary-rgb), 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="fa-solid fa-tags" style="font-size: 2.5rem; color: var(--primary);"></i>
+                </div>
+                <h2 style="margin-bottom: 0.5rem;">Plantillas de Asientos</h2>
+                <p style="color: var(--text-muted); max-width: 400px; margin: 0 auto 2rem;">
+                    Define conceptos predeterminados (como Nómina, Arriendo) para agilizar la digitación contable.
+                </p>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="btn-primary" onclick="alert('Funcionalidad en desarrollo')">
+                        <i class="fa-solid fa-plus"></i> NUEVA PLANTILLA
+                    </button>
+                    <button class="btn-primary"
+                        style="background: white; color: var(--text-main); box-shadow: none; border: 1px solid #e1e1e1;">
+                        VER LISTADO
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- REPORTES SECTION (Implemented) -->
+        <section id="reportes" class="section">
+            <div class="card"
+                style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-weight: 800; font-size: 1.5rem;">Balance de Prueba</h2>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn-primary"
+                        style="background: white; color: var(--text-main); box-shadow: 0 4px 15px rgba(0,0,0,0.05);"
+                        onclick="loadBalance()">
+                        <i class="fa-solid fa-rotate-right"></i> REFRESCAR
+                    </button>
+                    <button class="btn-primary" onclick="alert('Próximamente: Exportar PDF')">
+                        <i class="fa-solid fa-file-pdf"></i> EXPORTAR
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="reportesTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">CUENTA</th>
+                            <th>NOMBRE</th>
+                            <th style="width: 20%; text-align: right;">DÉBITO TOTAL</th>
+                            <th style="width: 20%; text-align: right;">CRÉDITO TOTAL</th>
+                            <th style="width: 20%; text-align: right;">SALDO NETO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportesBody">
+                        <!-- Filled via JS -->
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #F8FAFC; font-weight: 700;">
+                            <td colspan="2" style="text-align: right;">TOTALES</td>
+                            <td style="text-align: right;" id="repTotalDebito">0.00</td>
+                            <td style="text-align: right;" id="repTotalCredito">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODALS (High Tech) -->
+
+    <!-- PUC Modal -->
+    <div id="pucModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem;">Detalle de Cuenta</h2>
+
+            <!-- Tabs Navigation -->
+            <div class="tabs-nav"
+                style="display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid #ddd;">
+                <button type="button" class="tab-btn active" onclick="switchTab('tab-general')">General</button>
+                <button type="button" class="tab-btn" onclick="switchTab('tab-controls')">Controles</button>
+                <button type="button" class="tab-btn" onclick="switchTab('tab-fiscal')">Fiscal / NIF</button>
+                <button type="button" class="tab-btn" onclick="switchTab('tab-hml')">Homologaciones</button>
+            </div>
+
+            <form id="pucForm">
+                <input type="hidden" id="pucIdEdit"> <!-- Maps to CUENCOR -->
+
+                <!-- TAB: GENERAL -->
+                <div id="tab-general" class="tab-content active">
+                    <div style="background:#f8fafc; padding:1rem; border-radius:8px; margin-bottom:1rem;">
+                        <label class="stat-label">CÓDIGO CONTABLE (Jerarquía)</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="number" id="cuencla" class="input-glow" placeholder="C"
+                                style="width:40px; text-align:center;" title="Clase">
+                            <input type="number" id="cuengru" class="input-glow" placeholder="GR"
+                                style="width:40px; text-align:center;" title="Grupo">
+                            <input type="number" id="cuencue" class="input-glow" placeholder="CT"
+                                style="width:40px; text-align:center;" title="Cuenta">
+                            <input type="number" id="cuensub" class="input-glow" placeholder="SB"
+                                style="width:40px; text-align:center;" title="Subcuenta">
+                            <span style="color:#ccc;">|</span>
+                            <input type="number" id="cuenax1" class="input-glow" placeholder="A1"
+                                style="width:50px; text-align:center;" title="Aux 1">
+                            <input type="number" id="cuenax2" class="input-glow" placeholder="A2"
+                                style="width:50px; text-align:center;" title="Aux 2">
+                            <input type="number" id="cuenax3" class="input-glow" placeholder="A3"
+                                style="width:50px; text-align:center;" title="Aux 3">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label class="stat-label">Nombre de la Cuenta aka CUENNOM</label>
+                        <input type="text" id="cuennom" class="input-glow" required style="font-weight: 700;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="stat-label">Naturaleza (CUENSIG)</label>
+                            <select id="cuensig" class="input-glow">
+                                <option value="D">Débito</option>
+                                <option value="C">Crédito</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="stat-label">Tipo PUC</label>
+                            <input type="number" id="cdTpoPuc" class="input-glow" value="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: CONTROLES -->
+                <div id="tab-controls" class="tab-content" style="display:none;">
+                    <p style="font-size:0.8rem; color:gray; margin-bottom:1rem;">Seleccione las características
+                        obligatorias para esta cuenta.</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <label class="checkbox-wrapper"><input type="checkbox" id="cAfctble"> <span>Afectable
+                                (Movimiento)</span></label>
+                        <label class="checkbox-wrapper"><input type="checkbox" id="cTrcro"> <span>Exige
+                                Tercero</span></label>
+                        <label class="checkbox-wrapper"><input type="checkbox" id="cBase"> <span>Exige
+                                Base</span></label>
+                        <label class="checkbox-wrapper"><input type="checkbox" id="cCntroCsto"> <span>Exige Centro
+                                Costo</span></label>
+                        <label class="checkbox-wrapper"><input type="checkbox" id="cDcmnto"> <span>Exige
+                                Documento</span></label>
+                        <label class="checkbox-wrapper"><input type="checkbox" id="cFcha"> <span>Exige Fecha
+                                Vence</span></label>
+                        <label class="checkbox-wrapper"><input type="checkbox" id="cChque"> <span>Control
+                                Cheque</span></label>
+                    </div>
+                </div>
+
+                <!-- TAB: FISCAL -->
+                <div id="tab-fiscal" class="tab-content" style="display:none;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom:1rem;">
+                        <div>
+                            <label class="stat-label">Cód. Formulario (CUENFCOD)</label>
+                            <input type="number" id="cuenfcod" class="input-glow">
+                        </div>
+                        <div>
+                            <label class="stat-label">Tipo Formulario (TIPFCOD)</label>
+                            <input type="number" id="tipfcod" class="input-glow">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom:1rem;">
+                        <div>
+                            <label class="stat-label">Ajuste Inflación (S/N)</label>
+                            <select id="ajstbleInflcion" class="input-glow">
+                                <option value="N">No</option>
+                                <option value="S">Sí</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="stat-label">Comport. Fiscal %</label>
+                            <input type="number" id="cmprtmntoFscal" class="input-glow" step="0.01">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:1rem;">
+                        <label class="stat-label">Nro Cuenta NIF</label>
+                        <input type="text" id="nroCuentaNif" class="input-glow">
+                    </div>
+                    <div>
+                        <label class="stat-label">Nombre Cuenta NIF</label>
+                        <input type="text" id="nmbreCtaNif" class="input-glow">
+                    </div>
+                </div>
+
+                <!-- TAB: HOMOLOGACIONES -->
+                <div id="tab-hml" class="tab-content" style="display:none;">
+                    <div style="margin-bottom:1rem; border-bottom:1px dashed #eee; padding-bottom:0.5rem;">
+                        <label class="stat-label">Homologación 1</label>
+                        <div style="display:grid; grid-template-columns: 1fr 2fr; gap:0.5rem;">
+                            <input type="text" id="hmlgcion1" class="input-glow" placeholder="Código">
+                            <input type="text" id="nmbreHmlgcion1" class="input-glow"
+                                placeholder="Nombre sistema externo">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:1rem; border-bottom:1px dashed #eee; padding-bottom:0.5rem;">
+                        <label class="stat-label">Homologación 2</label>
+                        <div style="display:grid; grid-template-columns: 1fr 2fr; gap:0.5rem;">
+                            <input type="text" id="hmlgcion2" class="input-glow" placeholder="Código">
+                            <input type="text" id="nmbreHmlgcion2" class="input-glow" placeholder="Nombre">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="stat-label">Homologación 3</label>
+                        <div style="display:grid; grid-template-columns: 1fr 2fr; gap:0.5rem;">
+                            <input type="text" id="hmlgcion3" class="input-glow" placeholder="Código">
+                            <input type="text" id="nmbreHmlgcion3" class="input-glow" placeholder="Nombre">
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                    <button type="button" class="btn-primary"
+                        style="background: #F1F5F9; color: var(--text-main); box-shadow: none;"
+                        onclick="closePucModal()">CANCELAR</button>
+                    <button type="submit" class="btn-primary">GUARDAR DATOS</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tercero Modal Compact -->
+    <div id="terceroModal" class="modal-overlay">
+        <div class="modal-content" style="width: 500px; padding: 1.5rem; max-height: 90vh; overflow-y: auto;">
+            <h2
+                style="font-size: 1.2rem; font-weight: 800; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">
+                <i class="fa-solid fa-user-pen"></i> Datos del Tercero
+            </h2>
+            <form id="terceroForm">
+                <input type="hidden" id="terceroIdEdit">
+
+                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 0.8rem; margin-bottom: 0.8rem;">
+                    <div>
+                        <label class="stat-label" style="font-size: 0.7rem;">Identificación (NIT/CC)</label>
+                        <input type="text" id="tercCod" class="input-glow" required
+                            style="font-family: monospace; padding: 0.6rem;">
+                    </div>
+                    <div>
+                        <label class="stat-label" style="font-size: 0.7rem;">Email</label>
+                        <input type="email" id="mail" class="input-glow" style="padding: 0.6rem;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 0.8rem;">
+                    <div>
+                        <label class="stat-label" style="font-size: 0.7rem;">Primer Nombre</label>
+                        <input type="text" id="tercNom" class="input-glow" required style="padding: 0.6rem;">
+                    </div>
+                    <div>
+                        <label class="stat-label" style="font-size: 0.7rem;">Segundo Nombre</label>
+                        <input type="text" id="tercNom2" class="input-glow" style="padding: 0.6rem;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 0.8rem;">
+                    <div>
+                        <label class="stat-label" style="font-size: 0.7rem;">Primer Apellido</label>
+                        <input type="text" id="tercApel" class="input-glow" style="padding: 0.6rem;">
+                    </div>
+                    <div>
+                        <label class="stat-label" style="font-size: 0.7rem;">Segundo Apellido</label>
+                        <input type="text" id="tercApel2" class="input-glow" style="padding: 0.6rem;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 0.8rem;">
+                    <label class="stat-label" style="font-size: 0.7rem;">Dirección</label>
+                    <input type="text" id="dirccion" class="input-glow" style="padding: 0.6rem;">
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label class="stat-label" style="font-size: 0.7rem;">Teléfono</label>
+                    <input type="text" id="tlfno" class="input-glow" style="padding: 0.6rem;">
+                </div>
+
+                <div
+                    style="display: flex; gap: 0.8rem; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 1rem;">
+                    <button type="button" class="btn-primary"
+                        style="background: #F1F5F9; color: var(--text-main); box-shadow: none; padding: 0.6rem 1rem;"
+                        onclick="document.getElementById('terceroModal').classList.remove('active')">Cancelar</button>
+                    <button type="submit" class="btn-primary" style="padding: 0.6rem 1.5rem;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/puc.js"></script>
+    <script src="js/journal.js"></script>
+    <script src="js/reportes.js"></script>
+    <script>
+        // Check Auth
+        const token = localStorage.getItem('cyber_token');
+        if (!token) window.location.href = 'index.html';
+
+        // Toggle Sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        // Nav Logic
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById(id).classList.add('active');
+
+            // Update Title
+            const titles = {
+                'overview': 'Resumen General',
+                'puc': 'Plan Único de Cuentas',
+                'terceros': 'Directorio de Terceros',
+                'conceptos': 'Conceptos Contables',
+                'journal': 'Asientos Contables',
+                'reportes': 'Reportes Financieros'
+            };
+            document.getElementById('pageTitle').innerHTML = titles[id] || 'Dashboard';
+
+            // Highlight nav
+            const items = document.querySelectorAll('.nav-item');
+            if (id === 'overview') items[0].classList.add('active');
+            if (id === 'puc') { items[1].classList.add('active'); loadPuc(); }
+            if (id === 'terceros') { items[2].classList.add('active'); loadTerceros(); }
+            if (id === 'conceptos') items[3].classList.add('active');
+            if (id === 'journal') {
+                items[4].classList.add('active');
+                if (window.initJournal) window.initJournal();
+            }
+            if (id === 'reportes') {
+                items[5].classList.add('active');
+                if (window.loadBalance) window.loadBalance();
+            }
+        }
+
+        // Terceros Logic (Inline for simplicity or move to js file)
+        function openTerceroModal() {
+            document.getElementById('terceroForm').reset();
+            document.getElementById('terceroIdEdit').value = '';
+            document.getElementById('tercCod').disabled = false;
+            document.getElementById('terceroModal').classList.add('active');
+        }
+
+        async function loadTerceros() {
+            const res = await fetch('/api/terceros', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.ok) {
+                const data = await res.json();
+                const tbody = document.getElementById('tercerosBody');
+                tbody.innerHTML = '';
+                data.forEach(t => {
+                    const name = [t.tercNom, t.tercNom2, t.tercApel, t.tercApel2].filter(Boolean).join(' ');
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                                                    <td><span style="font-family:'Outfit',sans-serif; font-weight:700;">${t.tercCod}</span></td>
+                                                    <td><div style="font-weight:700; color:var(--text-main); font-size:1rem;">${name}</div></td>
+                                                    <td>${t.tlfno || '-'}</td>
+                                                    <td style="text-align:right;">
+                                                        <button class="btn-primary" style="padding:0.4rem 0.8rem; font-size:0.8rem;" onclick="editTercero('${t.tercCod}')">EDITAR</button>
+                                                        <button class="btn-primary" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#fee2e2; color:#ef4444; box-shadow:none;" onclick="deleteTercero('${t.tercCod}')">X</button>
+                                                    </td>
+                                                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        async function editTercero(id) {
+            const res = await fetch(`/api/terceros/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const t = await res.json();
+            document.getElementById('terceroIdEdit').value = t.tercCod;
+            document.getElementById('tercCod').value = t.tercCod;
+            document.getElementById('tercCod').disabled = true;
+            document.getElementById('tercNom').value = t.tercNom;
+            document.getElementById('tercNom2').value = t.tercNom2 || '';
+            document.getElementById('tercApel').value = t.tercApel || '';
+            document.getElementById('dirccion').value = t.dirccion || '';
+            document.getElementById('mail').value = t.mail || '';
+            document.getElementById('terceroModal').classList.add('active');
+        }
+
+        document.getElementById('terceroForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                tercCod: document.getElementById('tercCod').value,
+                tercNom: document.getElementById('tercNom').value,
+                tercNom2: document.getElementById('tercNom2').value,
+                tercApel: document.getElementById('tercApel').value,
+                dirccion: document.getElementById('dirccion').value,
+                mail: document.getElementById('mail').value,
+                tiptCod: 1, regiCod: 1, tpoTrcro: 1
+            };
+            const id = document.getElementById('terceroIdEdit').value;
+            const url = id ? `/api/terceros/${id}` : '/api/terceros';
+            const method = id ? 'PUT' : 'POST';
+
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(data) });
+            document.getElementById('terceroModal').classList.remove('active');
+            loadTerceros();
+        });
+
+        async function deleteTercero(id) {
+            if (confirm('¿Eliminar?')) {
+                await fetch(`/api/terceros/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                loadTerceros();
+            }
+        }
+    </script>
+    <!-- External Scripts -->
+    <script src="js/app.js?v=2.0"></script>
+    <script src="js/puc.js?v=2.0"></script>
+    <script src="js/journal.js?v=2.0"></script>
+    <script src="js/reportes.js?v=2.0"></script>
+</body>
+
+</html>

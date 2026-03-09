@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, X, Check } from 'lucide-react';
+import { Search, Loader2, X, Check, MapPin, Database, ChevronLeft, ChevronRight as ChevronRightIcon, LayoutList } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { FieldDefinition } from '../types';
 import { supabase } from '../lib/supabase';
@@ -22,6 +22,10 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
     const [isOpen, setIsOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
     const [fetchError, setFetchError] = useState<string | null>(null);
+    const [displayLabel, setDisplayLabel] = useState<string>('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isForcedSearch, setIsForcedSearch] = useState(false);
+    const PAGE_SIZE = 15;
 
     const wrapperRef = useRef<HTMLDivElement>(null);
     const config = field.lookup_config;
@@ -31,11 +35,12 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
     // Cargar registro seleccionado inicial si hay value
     useEffect(() => {
         if (value && !selectedRecord && (config?.url || config?.type === 'database')) {
-            // En un entorno real, aquí podríamos hacer un GET por ID para popular selectedRecord
-            // Por ahora, solo mostraremos el ID
-            setSearchTerm(String(value));
+            // Si el valor ya es el label o un string descriptivo (por el mapeo o carga inicial)
+            if (!displayLabel) {
+                setDisplayLabel(String(value));
+            }
         }
-    }, [value, config, selectedRecord]);
+    }, [value, config, selectedRecord, displayLabel]);
 
     // Debounce de búsqueda
     useEffect(() => {
@@ -44,10 +49,11 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
         if (config.type === 'database' && !config.table_name) return;
 
         const delayDebounceFn = setTimeout(async () => {
-            if (searchTerm.length < 2 && (!config.search_param && !config.search_column)) return;
+            if (searchTerm.length < 2 && !isForcedSearch) return;
 
             setIsLoading(true);
             setFetchError(null);
+            setIsForcedSearch(false);
 
             try {
                 if (config.type === 'database') {
@@ -141,6 +147,15 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm, isOpen, config]);
 
+    // Reset page on search
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    // Pagination logic
+    const totalPages = Math.ceil(results.length / PAGE_SIZE);
+    const paginatedResults = results.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
     // Cerrar popover al clickear afuera
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -153,41 +168,72 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
     }, []);
 
     const handleSelect = (row: any) => {
-        if (!config || !config.value_field) return;
+        if (!config) return;
 
-        const selectedValue = row[config.value_field];
-        setSelectedRecord(row);
+        // 1. Determinar el valor base
+        let finalMainValue = config.value_field ? row[config.value_field] : row.id;
+        let mappedValueForMainField = null;
 
-        // Formatear término de búsqueda para mostrar algo lindo (ej: concatenar display_fields)
-        const displayData = config.display_fields?.map(df => row[df]).filter(Boolean).join(' - ');
-        setSearchTerm(displayData || String(selectedValue));
-
-        onChange(selectedValue);
-        setIsOpen(false);
-
-        // Aplicar mapeos extra
+        // 2. Procesar mapeos. 
+        const mappedUpdates: Record<string, any> = {};
         if (config.mapping) {
-            const mappedUpdates: Record<string, any> = {};
-            for (const [resKey, formKey] of Object.entries(config.mapping)) {
+            for (const [resKey, targetFieldName] of Object.entries(config.mapping)) {
                 if (row[resKey] !== undefined) {
-                    mappedUpdates[formKey] = row[resKey];
+                    // Comparación insensible a mayúsculas para el campo actual
+                    if (targetFieldName.toLowerCase() === field.name.toLowerCase()) {
+                        finalMainValue = row[resKey];
+                        mappedValueForMainField = row[resKey];
+                    } else {
+                        mappedUpdates[targetFieldName] = row[resKey];
+                    }
                 }
             }
-            if (Object.keys(mappedUpdates).length > 0) {
-                setFormData(prev => ({ ...prev, ...mappedUpdates }));
-            }
+        }
+
+        setSelectedRecord(row);
+
+        // 3. Formatear etiqueta de visualización
+        // PRIORIDAD ABSOLUTA: Si el usuario mapeó algo a este campo, eso es lo que debe verse.
+        let label = '';
+        if (mappedValueForMainField !== null) {
+            label = String(mappedValueForMainField);
+        } else if (config.display_fields && config.display_fields.length > 0) {
+            label = config.display_fields.map(df => row[df]).filter(Boolean).join(' - ');
+        } else {
+            label = (row.name || row.label || row.title || row.full_name || String(finalMainValue));
+        }
+
+
+        setDisplayLabel(label);
+        setSearchTerm('');
+
+        // 4. Actualizar el estado del formulario
+        onChange(finalMainValue);
+        setIsOpen(false);
+
+        if (Object.keys(mappedUpdates).length > 0) {
+            setFormData(prev => ({ ...prev, ...mappedUpdates }));
         }
     };
 
     const handleClear = (e: React.MouseEvent) => {
         e.stopPropagation();
         setSearchTerm('');
+        setDisplayLabel('');
         setSelectedRecord(null);
         onChange('');
         setResults([]);
+    };
 
-        // Limpiar mapeos si es necesario - Podría ser destructivo, depende del req negocio.
-        // Por ahora solo limpiamos el campo principal.
+    const handleShowAll = () => {
+        setIsForcedSearch(true);
+        // Force trigger effect if searchTerm is already empty
+        if (searchTerm === '') {
+            setSearchTerm(' '); // Temporary trigger
+            setTimeout(() => setSearchTerm(''), 10);
+        } else {
+            setSearchTerm('');
+        }
     };
 
     return (
@@ -195,7 +241,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
             {/* Form Input Trigger */}
             <div
                 className={cn(
-                    "flex items-center gap-2 w-full p-2.5 rounded-2xl border-2 bg-white dark:bg-slate-900 transition-all cursor-pointer",
+                    "flex items-center gap-3 w-full h-11 px-3.5 rounded-xl border-2 bg-white dark:bg-slate-900 transition-all cursor-pointer shadow-sm hover:shadow-md",
                     error ? "border-rose-400" : "border-slate-200 dark:border-slate-800 hover:border-indigo-400",
                     disabled && "opacity-60 cursor-not-allowed bg-slate-50 dark:bg-slate-800/50"
                 )}
@@ -206,7 +252,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                 </div>
 
                 <div className="flex-1 min-w-0 text-sm font-bold text-slate-700 dark:text-slate-200 text-left truncate select-none">
-                    {value ? (searchTerm || value) : <span className="text-slate-400 font-medium">{field.placeholder || `Seleccionar ${config?.table_name || 'registro'}...`}</span>}
+                    {value ? (displayLabel || value) : <span className="text-slate-400 font-medium">{field.placeholder || `Seleccionar ${config?.table_name || 'registro'}...`}</span>}
                 </div>
 
                 {value && !disabled && (
@@ -222,11 +268,11 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
             {/* Emergent Modal Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[100] flex items-start justify-center p-4 sm:p-6 pt-16 sm:pt-24 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
                     onClick={() => setIsOpen(false)} // clicking outside closes it
                 >
                     <div
-                        className="bg-white dark:bg-slate-900 w-full max-w-5xl max-h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300 relative"
+                        className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[70vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300 relative"
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Header & Search Bar */}
@@ -237,12 +283,9 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                         <Search className="w-3.5 h-3.5" />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                                        <h3 className="text-[11px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-wider">
                                             Búsqueda: {config?.table_name || 'Catálogo'}
                                         </h3>
-                                        <p className="text-[10px] font-medium text-slate-400">
-                                            Escribe al menos 2 letras para buscar.
-                                        </p>
                                     </div>
                                 </div>
                                 <button
@@ -253,23 +296,32 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                 </button>
                             </div>
 
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
-                                    <Search className="w-4 h-4" />
-                                </div>
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Buscar por nombre, código, etc..."
-                                    className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-indigo-100 dark:border-indigo-900/30 rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                                />
-                                {isLoading && (
-                                    <div className="absolute inset-y-0 right-3 flex items-center">
-                                        <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+                                        <Search className="w-4 h-4" />
                                     </div>
-                                )}
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="Buscar por nombre, código, etc..."
+                                        className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-indigo-100 dark:border-indigo-900/30 rounded-xl text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                    />
+                                    {isLoading && (
+                                        <div className="absolute inset-y-0 right-3 flex items-center">
+                                            <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={handleShowAll}
+                                    title="Mostrar Todos"
+                                    className="px-4 py-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl border-2 border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all flex items-center justify-center shadow-sm active:scale-95 group"
+                                >
+                                    <LayoutList className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
 
@@ -311,14 +363,14 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                     <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 z-20 shadow-sm">
                                         <tr>
                                             {config?.display_fields?.map((df, i) => (
-                                                <th key={i} className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                                                <th key={i} className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-r border-slate-200 dark:border-slate-800 last:border-r-0">
                                                     {df}
                                                 </th>
                                             ))}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {results.map((row, i) => {
+                                        {paginatedResults.map((row, i) => {
                                             const isSelected = value === row[config?.value_field || ''];
                                             return (
                                                 <tr
@@ -334,20 +386,24 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                                     )}
                                                 >
                                                     {config?.display_fields?.map((df, j) => (
-                                                        <td key={j} className="px-4 py-2.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                                                        <td key={j} className="px-4 py-1.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px] border-r border-slate-100 dark:border-slate-800 last:border-r-0">
                                                             <div className="flex items-center gap-2">
                                                                 {j === 0 && (
-                                                                    <div className="w-4 flex justify-center flex-shrink-0">
+                                                                    <div className="w-5 flex justify-center flex-shrink-0">
                                                                         {isSelected ? (
-                                                                            <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                                                            <Check className="w-4 h-4 text-emerald-500" />
                                                                         ) : (
-                                                                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                                                                            config?.table_name?.toLowerCase().includes('ciudad') ? (
+                                                                                <MapPin className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
+                                                                            ) : (
+                                                                                <Database className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
+                                                                            )
                                                                         )}
                                                                     </div>
                                                                 )}
                                                                 <span className={cn(
-                                                                    "truncate text-xs",
-                                                                    isSelected ? "text-indigo-900 dark:text-indigo-200 font-semibold" : "text-slate-600 dark:text-slate-300 font-medium"
+                                                                    "truncate text-[10px]",
+                                                                    isSelected ? "text-indigo-900 dark:text-indigo-200 font-bold" : "text-slate-600 dark:text-slate-300 font-medium"
                                                                 )}>
                                                                     {String(row[df])}
                                                                 </span>
@@ -359,6 +415,33 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                         })}
                                     </tbody>
                                 </table>
+                            </div>
+                        )}
+
+                        {/* Pagination Footer */}
+                        {results.length > PAGE_SIZE && (
+                            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    Página {currentPage} de {totalPages} ({results.length} resultados)
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 disabled:opacity-30 enabled:hover:bg-indigo-50 dark:enabled:hover:bg-indigo-900/30 enabled:hover:text-indigo-600 transition-all active:scale-95"
+                                        title="Página anterior"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 disabled:opacity-30 enabled:hover:bg-indigo-50 dark:enabled:hover:bg-indigo-900/30 enabled:hover:text-indigo-600 transition-all active:scale-95"
+                                        title="Siguiente página"
+                                    >
+                                        <ChevronRightIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

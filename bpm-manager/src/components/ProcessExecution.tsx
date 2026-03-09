@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useExecution } from '../hooks/useExecution';
-import { X, Save, Plus, Trash2, Clock, GitBranch, Download, AlertCircle, Maximize2, Minimize2, CheckCircle2, DollarSign, Layers, ChevronRight, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Clock, GitBranch, Download, AlertCircle, Maximize2, Minimize2, CheckCircle2, DollarSign, Layers, ChevronRight, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2, Loader2 } from 'lucide-react';
 import type { Transition, Provider } from '../types';
 import { evaluateCondition, translateCondition } from '../utils/conditions';
 import { FileAttachments } from './FileAttachments';
@@ -20,6 +21,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         getProcessData,
         saveProcessData,
         completeProcess,
+        getGlobalHeaderData,
         getBimStates,
         saveBimState,
         loading: hookLoading
@@ -28,6 +30,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     const [instance, setInstance] = useState<any>(null);
     const [transitions, setTransitions] = useState<Transition[]>([]);
     const [fields, setFields] = useState<any[]>([]);
+    const [globalHeaders, setGlobalHeaders] = useState<any[]>([]);
     const [savingDraft, setSavingDraft] = useState(false);
     const [draftSaved, setDraftSaved] = useState(false);
     const [formData, setFormData] = useState<Record<string, string>>({});
@@ -40,6 +43,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
     const [hasSavedOnce, setHasSavedOnce] = useState(false);
+    const [initialPkValues, setInitialPkValues] = useState<Record<string, any>>({});
 
     const toggleAccordion = (id: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -98,6 +102,9 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                 if (historyError) throw historyError;
                 setHistory(histData || []);
 
+                const gHeaders = await getGlobalHeaderData(processId);
+                setGlobalHeaders(gHeaders || []);
+
                 const fieldDefs = await getFieldDefinitions(ins.current_activity_id);
                 setFields(fieldDefs || []);
 
@@ -117,7 +124,13 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                     initialData[d.field_name] = d.value;
                 });
 
+                const pkVals: Record<string, any> = {};
+
                 for (const field of (fieldDefs || [])) {
+                    if (field.db_is_primary_key && field.db_column) {
+                        pkVals[field.db_column] = initialData[field.name];
+                    }
+
                     if (!initialData[field.name]) {
                         if (field.source_activity_id && field.source_field_name) {
                             try {
@@ -162,6 +175,8 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                     }
                 }
                 setFormData(initialData);
+                setInitialPkValues(pkVals);
+
                 if (existingData && existingData.length > 0) {
                     setHasSavedOnce(true);
                 }
@@ -500,14 +515,19 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     async function handleSave() {
         setSavingDraft(true);
         const result = await saveProcessData(processId, instance.current_activity_id, formData);
-        setSavingDraft(false);
         if (result.success) {
+            // Also sync to linked DB table on every save
+            const syncResult = await syncFormDataToTable();
+            if (!syncResult.success) {
+                toast.error('❌ Error sincronizando con BD: ' + syncResult.error);
+            }
             setDraftSaved(true);
             setHasSavedOnce(true);
             setTimeout(() => setDraftSaved(false), 3000);
         } else {
-            alert('❌ Error al guardar: ' + result.error);
+            toast.error('❌ Error al guardar: ' + result.error);
         }
+        setSavingDraft(false);
     }
 
     function isFieldVisible(field: any): boolean {
@@ -523,6 +543,92 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         return evaluateCondition(field.visibility_condition || '', formData);
     }
 
+    async function syncFormDataToTable(): Promise<{ success: boolean; error?: string }> {
+        if (!instance?.activities?.sync_table) {
+            console.log('[SYNC] No sync_table defined for this activity. Skipping.');
+            return { success: true };
+        }
+        const syncTable = instance.activities.sync_table;
+        console.log('[SYNC] Syncing form data to table:', syncTable);
+
+        const payload: Record<string, any> = {};
+        const pkFields: { name: string; value: any }[] = [];
+
+        for (const field of fields) {
+            console.log(`[SYNC] Field: ${field.name}, db_column: ${field.db_column}, db_is_primary_key: ${field.db_is_primary_key}`);
+            if (field.db_column) {
+                let value = formData[field.name];
+
+                if (value !== undefined && value !== null && value !== '') {
+                    if (field.db_type === 'integer' || field.db_type === 'numeric' || field.db_type === 'real' || field.db_type === 'double precision') {
+                        value = Number(value);
+                    } else if (field.db_type === 'boolean') {
+                        value = value === 'true' || value === true;
+                    }
+                } else {
+                    value = null;
+                }
+
+                payload[field.db_column] = value;
+
+                if (field.db_is_primary_key) {
+                    pkFields.push({ name: field.db_column, value });
+                }
+            }
+        }
+
+        console.log('[SYNC] Payload to save:', payload);
+        console.log('[SYNC] PK Fields:', pkFields);
+
+        if (Object.keys(payload).length === 0) {
+            toast.warning(`⚠️ Tabla "${syncTable}" vinculada pero ningún campo tiene columna BD mapeada (db_column). Reimporta el esquema en el constructor.`);
+            console.warn('[SYNC] ⚠️ Payload is empty — no fields have db_column set. Was the schema imported and workflow saved?');
+            return { success: true };
+        }
+
+        if (pkFields.length > 0) {
+            const isUpdate = pkFields.every(pk => initialPkValues[pk.name] === pk.value && pk.value != null);
+
+            if (!isUpdate) {
+                let query = supabase.from(syncTable).select('*', { count: 'exact', head: true });
+                let hasAllPks = true;
+                for (const pk of pkFields) {
+                    if (pk.value === null || pk.value === undefined || pk.value === '') {
+                        hasAllPks = false;
+                    } else {
+                        query = query.eq(pk.name, pk.value);
+                    }
+                }
+
+                if (hasAllPks) {
+                    const { count, error: countError } = await query;
+                    if (countError) return { success: false, error: countError.message };
+                    if (count && count > 0) {
+                        return { success: false, error: `Ya existe un registro con la llave primaria proporcionada en la base de datos.` };
+                    }
+                } else {
+                    return { success: false, error: `Los campos marcados como llave primaria no pueden estar vacíos.` };
+                }
+            }
+        }
+
+        console.log('[SYNC] Executing upsert to', syncTable, 'with', Object.keys(payload).length, 'fields...');
+        const { error } = await supabase.from(syncTable).upsert(payload);
+        if (error) {
+            console.error('[SYNC] ❌ Upsert failed:', error);
+            return { success: false, error: error.message };
+        }
+
+        console.log('[SYNC] ✅ Sync successful!');
+        toast.success(`✅ Registro sincronizado en "${syncTable}"`);
+
+        const newPkVals = { ...initialPkValues };
+        for (const pk of pkFields) newPkVals[pk.name] = pk.value;
+        setInitialPkValues(newPkVals);
+
+        return { success: true };
+    }
+
     async function handleAdvance(transitionId: string) {
         const errors = validateForm();
         if (errors.length > 0) {
@@ -533,6 +639,12 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         const dataSave = await saveProcessData(processId, instance.current_activity_id, formData);
         if (!dataSave.success) {
             alert('Error al guardar datos: ' + dataSave.error);
+            return;
+        }
+
+        const syncResult = await syncFormDataToTable();
+        if (!syncResult.success) {
+            alert('Error sincronizando con base de datos: ' + syncResult.error);
             return;
         }
 
@@ -558,6 +670,12 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
             return;
         }
 
+        const syncResult = await syncFormDataToTable();
+        if (!syncResult.success) {
+            alert('Error sincronizando con base de datos: ' + syncResult.error);
+            return;
+        }
+
         const result = await completeProcess(processId, comment);
         if (result.success) {
             onComplete();
@@ -568,6 +686,12 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     }
 
     async function handleAttendAll() {
+        const errors = validateForm();
+        if (errors.length > 0) {
+            alert('No se puede atender masivamente porque hay errores o carpetas incompletas:\n\n' + errors.join('\n'));
+            return;
+        }
+
         const activeTransitions = transitions.filter(t => evaluateCondition(t.condition, formData));
         if (activeTransitions.length === 0) {
             alert('No hay caminos activos para atender.');
@@ -579,6 +703,12 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         const dataSave = await saveProcessData(processId, instance.current_activity_id, formData);
         if (!dataSave.success) {
             alert('Error al guardar datos: ' + dataSave.error);
+            return;
+        }
+
+        const syncResult = await syncFormDataToTable();
+        if (!syncResult.success) {
+            alert('Error sincronizando con base de datos: ' + syncResult.error);
             return;
         }
 
@@ -622,14 +752,14 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         <div className="fixed inset-0 z-[60] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300">
             <div className="bg-white dark:bg-slate-950 rounded-[2.5rem] w-full max-w-7xl h-[90vh] flex flex-col shadow-2xl border border-white/10 dark:border-slate-800 overflow-hidden relative">
                 {/* Header */}
-                <div className="px-10 py-8 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-white dark:bg-slate-950/80 backdrop-blur-xl z-20">
+                <div className="px-8 py-2.5 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-white dark:bg-slate-950/80 backdrop-blur-xl z-20">
                     <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-200 dark:shadow-blue-900/20">
-                            <GitBranch className="w-7 h-7 text-white" />
+                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-blue-200 dark:shadow-blue-900/20">
+                            <GitBranch className="w-5 h-5 text-white" />
                         </div>
                         <div>
                             <div className="flex items-center gap-3 mb-1">
-                                <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-none">{instance.workflows?.name}</h2>
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white leading-none">{instance.workflows?.name}</h2>
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full border border-blue-100 dark:border-blue-800">
@@ -688,8 +818,24 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                     </div>
 
 
-                    <div className="flex-1 px-8 min-w-0">
-                        <div className="flex items-center justify-end gap-3 ml-auto">
+                    <div className="flex-1 px-4 min-w-0">
+                        <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-1">
+                            {globalHeaders.map((header) => (
+                                <div key={header.id} className="flex flex-col min-w-fit border-l-2 border-slate-100 dark:border-slate-800 pl-4">
+                                    <span className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">
+                                        {header.label || header.name}
+                                    </span>
+                                    <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 truncate max-w-[150px]">
+                                        {header.value || '---'}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-1.5 ml-auto px-2">
+                        {/* Grupo 1: Herramientas de Visualización/Consulta */}
+                        <div className="flex items-center gap-1.5 mr-2">
                             <button
                                 onClick={() => setShowProcessViewer(true)}
                                 className="p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 border-slate-100 dark:border-white/5 hover:border-transparent"
@@ -697,8 +843,6 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                             >
                                 <Eye className="w-5 h-5" />
                             </button>
-
-                            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
 
                             <button
                                 onClick={() => setActiveTab('history')}
@@ -714,21 +858,61 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                             </button>
 
                             {ifcFile && (
-                                <>
-                                    <button
-                                        onClick={() => setActiveTab('bim')}
-                                        className={clsx(
-                                            "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
-                                            activeTab === 'bim'
-                                                ? "bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900 border-transparent scale-110"
-                                                : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 border-slate-100 dark:border-white/5 hover:border-transparent"
-                                        )}
-                                        title="Modelo BIM"
-                                    >
-                                        <Box className="w-5 h-5" />
-                                    </button>
-                                    <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
-                                </>
+                                <button
+                                    onClick={() => setActiveTab('bim')}
+                                    className={clsx(
+                                        "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0",
+                                        activeTab === 'bim'
+                                            ? "bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900 border-transparent scale-110"
+                                            : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 border-slate-100 dark:border-white/5 hover:border-transparent"
+                                    )}
+                                    title="Modelo BIM"
+                                >
+                                    <Box className="w-5 h-5" />
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
+
+                        {/* Grupo 2: Acciones de Gestión (Guardar y Avanzar) */}
+                        <div className="flex items-center gap-1.5 ml-2">
+                            <button
+                                onClick={handleSave}
+                                disabled={hookLoading || savingDraft}
+                                className={clsx(
+                                    "p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0 active:scale-95",
+                                    savingDraft
+                                        ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 border-blue-200 dark:border-blue-800 animate-pulse"
+                                        : draftSaved
+                                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-none border-transparent"
+                                            : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 border-slate-100 dark:border-white/5 hover:border-transparent"
+                                )}
+                                title={draftSaved ? '¡Cambios guardados!' : 'Guardar Progreso'}
+                            >
+                                {savingDraft ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            </button>
+
+                            {transitions.length > 1 && (
+                                <button
+                                    onClick={handleAttendAll}
+                                    disabled={hookLoading}
+                                    className="p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 border-slate-100 dark:border-white/5 hover:border-transparent active:scale-95"
+                                    title="Atender Todas las Transiciones Activas"
+                                >
+                                    {hookLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <GitBranch className="w-5 h-5" />}
+                                </button>
+                            )}
+
+                            {(instance?.activities?.type === 'end' || transitions.length === 0) && (
+                                <button
+                                    onClick={handleFinalize}
+                                    disabled={hookLoading}
+                                    className="p-2.5 rounded-xl transition-all border flex items-center justify-center flex-shrink-0 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 border-slate-100 dark:border-white/5 hover:border-transparent active:scale-95"
+                                    title="Finalizar Gestión"
+                                >
+                                    {hookLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                                </button>
                             )}
 
                             <FileAttachments processInstanceId={processId} />
@@ -756,7 +940,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
 
                 <div className="flex-1 flex overflow-hidden bg-slate-200/50 dark:bg-[#020408]">
                     {/* Main Form Area */}
-                    <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                         <div className={clsx(
                             "mx-auto space-y-8 transition-all duration-500",
                             isFocusMode ? "max-w-3xl" : "max-w-5xl"
@@ -863,7 +1047,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                 return (
                                                     <div key={field.id} className={clsx(
                                                         "space-y-2",
-                                                        field.type === 'textarea' ? "col-span-full" : ""
+                                                        (field.type === 'textarea' || field.type === 'location') ? "col-span-full" : ""
                                                     )}>
                                                         <div className="flex items-center px-1 min-h-[1.25rem] h-auto mb-1">
                                                             <label className="block text-[10px] font-black text-[#0f172a] dark:text-slate-300 uppercase tracking-[0.15em] leading-none">
@@ -872,18 +1056,23 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             </label>
                                                         </div>
                                                         <div className={clsx(
-                                                            field.type === 'textarea' ? "h-auto" : "h-10"
+                                                            (field.type === 'textarea' || field.type === 'location') ? "h-auto" : "h-10"
                                                         )}>
                                                             {field.type === 'textarea' ? (
                                                                 <textarea
                                                                     value={formData[field.name] || ''}
-                                                                    onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        setFormData({ ...formData, [field.name]: (field.max_length && val.length > field.max_length) ? val.slice(0, field.max_length) : val });
+                                                                    }}
+                                                                    style={{ minHeight: field.rows ? `${field.rows * 24}px` : '120px' }}
                                                                     className={clsx(
-                                                                        "w-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-blue-100/50 dark:border-slate-700/60 rounded-xl p-3 text-xs text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 outline-none min-h-[120px] transition-all resize-none shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600/50",
+                                                                        "w-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-blue-100/50 dark:border-slate-700/60 rounded-xl p-3 text-xs text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 outline-none transition-all resize-none shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600/50",
                                                                         field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none grayscale-[0.3]"
                                                                     )}
                                                                     placeholder={field.placeholder || `Ingrese ${field.label || field.name}...`}
                                                                     readOnly={field.is_readonly}
+                                                                    maxLength={field.max_length}
                                                                 />
                                                             ) : field.type === 'select' ? (
                                                                 <div className="relative group w-full h-full">
@@ -943,7 +1132,10 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                 <input
                                                                     type="date"
                                                                     value={formData[field.name] || ''}
-                                                                    onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        setFormData({ ...formData, [field.name]: (field.max_length && val.length > field.max_length) ? val.slice(0, field.max_length) : val });
+                                                                    }}
                                                                     readOnly={field.is_readonly}
                                                                     className={clsx(
                                                                         "w-full h-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-4 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all shadow-xl font-bold hover:shadow-2xl hover:scale-[1.01]",
@@ -1003,13 +1195,17 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                 <input
                                                                     type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
                                                                     value={formData[field.name] || ''}
-                                                                    onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        setFormData({ ...formData, [field.name]: (field.max_length && val.length > field.max_length) ? val.slice(0, field.max_length) : val });
+                                                                    }}
                                                                     readOnly={field.is_readonly}
                                                                     className={clsx(
                                                                         "w-full h-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-slate-300 dark:border-slate-700 rounded-2xl px-4 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all shadow-xl font-bold placeholder:font-normal placeholder:text-slate-400 hover:shadow-2xl hover:scale-[1.01]",
                                                                         field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
                                                                     )}
                                                                     placeholder={field.placeholder || `Completar ${field.label || field.name}...`}
+                                                                    maxLength={field.max_length}
                                                                 />
                                                             )}
                                                         </div>
@@ -1291,29 +1487,50 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                             <h4 className="text-[10px] font-black text-[#0f172a] dark:text-blue-400 uppercase tracking-[0.2em]">Acciones Disponibles</h4>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {transitions.map((t) => {
                                                 const isActive = evaluateCondition(t.condition, formData);
+
                                                 return (
                                                     <div key={t.id} className="relative group/action">
                                                         <button
                                                             disabled={hookLoading || !isActive}
                                                             onClick={() => handleAdvance(t.id)}
                                                             className={clsx(
-                                                                "w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all group/btn outline-none",
+                                                                "w-full flex items-center justify-between p-2.5 rounded-2xl border transition-all duration-300 group/btn outline-none relative overflow-hidden",
                                                                 isActive
-                                                                    ? "border-blue-100 bg-blue-50/50 text-blue-700 hover:border-blue-600 hover:bg-white dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-400 dark:hover:bg-slate-800/50 dark:hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-900/10 dark:hover:shadow-blue-950 hover:-translate-y-0.5"
-                                                                    : "border-slate-50 bg-slate-50/30 text-slate-300 dark:border-slate-800/50 dark:bg-slate-800/20 dark:text-slate-600 opacity-40 cursor-not-allowed"
+                                                                    ? "bg-[#0f172a] border-slate-800 text-white shadow-lg hover:bg-slate-800 active:scale-95 cursor-pointer"
+                                                                    : "bg-slate-50/50 dark:bg-slate-900/30 border-slate-100 dark:border-slate-800/80 grayscale opacity-60 cursor-not-allowed"
                                                             )}
                                                         >
-                                                            <div className="text-left">
-                                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Pasar a:</p>
-                                                                <p className="text-xs font-extrabold">{t.target_name}</p>
+                                                            {/* Background Glow Effect on Hover */}
+                                                            {isActive && (
+                                                                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                                                            )}
+
+                                                            <div className="flex flex-col items-start gap-0 relative z-10 text-left">
+                                                                <span className={clsx(
+                                                                    "text-[7px] font-black uppercase tracking-[0.2em] transition-colors duration-300",
+                                                                    isActive ? "text-slate-400" : "text-slate-500"
+                                                                )}>
+                                                                    Pasar a:
+                                                                </span>
+                                                                <span className={clsx(
+                                                                    "text-xs font-black transition-all duration-300 truncate max-w-[160px]",
+                                                                    isActive ? "text-white group-hover/btn:translate-x-1" : "text-slate-500"
+                                                                )}>
+                                                                    {t.target_name}
+                                                                </span>
                                                             </div>
-                                                            <ChevronRight className={clsx(
-                                                                "w-4 h-4 transition-transform group-hover/btn:translate-x-1",
-                                                                isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-300 dark:text-slate-700"
-                                                            )} />
+
+                                                            <div className={clsx(
+                                                                "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-500 relative z-10",
+                                                                isActive
+                                                                    ? "bg-white/10 text-white group-hover/btn:bg-white group-hover/btn:text-slate-900 group-hover/btn:rotate-[-45deg] group-hover/btn:scale-110"
+                                                                    : "bg-slate-100 dark:bg-slate-800 text-slate-300"
+                                                            )}>
+                                                                {hookLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+                                                            </div>
                                                         </button>
 
                                                         {!isActive && t.condition && (
@@ -1335,41 +1552,8 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                             })}
                                         </div>
 
-                                        <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-                                            <div className="flex-1 flex gap-3">
-                                                <button
-                                                    onClick={handleSave}
-                                                    disabled={hookLoading || savingDraft}
-                                                    className={clsx(
-                                                        "flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-lg",
-                                                        draftSaved
-                                                            ? "bg-emerald-600 text-white shadow-emerald-200 dark:shadow-none"
-                                                            : "!bg-blue-600 text-white shadow-blue-200 dark:shadow-none hover:bg-blue-700 hover:shadow-blue-300/50 dark:hover:shadow-none"
-                                                    )}
-                                                >
-                                                    {savingDraft ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-                                                    {draftSaved ? '¡Guardado!' : 'Guardar'}
-                                                </button>
-                                                {transitions.length > 1 && (
-                                                    <button
-                                                        onClick={handleAttendAll}
-                                                        disabled={hookLoading}
-                                                        className="flex-1 bg-blue-600 text-white py-3.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-none transition-all active:scale-95"
-                                                        title="Atender todas las transiciones activas"
-                                                    >
-                                                        <GitBranch className="w-4 h-4" /> Atender Todos
-                                                    </button>
-                                                )}
-                                            </div>
-                                            {(instance.activities?.type === 'end' || transitions.length === 0) && (
-                                                <button
-                                                    onClick={handleFinalize}
-                                                    disabled={hookLoading}
-                                                    className="flex-1 bg-emerald-600 text-white font-black py-3.5 rounded-xl flex items-center justify-center gap-3 hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-900/20 transition-all active:scale-95 disabled:opacity-50 text-xs uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-none"
-                                                >
-                                                    <CheckCircle2 className="w-4 h-4" /> Completar Gestión
-                                                </button>
-                                            )}
+                                        <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                                            {/* Los botones han sido movidos a la cabecera superior */}
                                         </div>
                                     </div>
                                 </div>
@@ -1440,7 +1624,10 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             <div className="relative group">
                                                                 <select
                                                                     value={detailFormData[field.name] || ''}
-                                                                    onChange={(e) => setDetailFormData({ ...detailFormData, [field.name]: e.target.value })}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        setDetailFormData({ ...detailFormData, [field.name]: (field.max_length && val.length > field.max_length) ? val.slice(0, field.max_length) : val });
+                                                                    }}
                                                                     className="w-full h-12 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl px-4 text-xs text-slate-700 dark:text-slate-200 font-bold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none hover:shadow-sm transition-all appearance-none cursor-pointer pr-10"
                                                                 >
                                                                     <option value="">Seleccione...</option>

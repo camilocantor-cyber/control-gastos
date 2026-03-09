@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entorno | BIMind</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .filter-chip {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .filter-chip:hover {
+            background: rgba(0, 242, 254, 0.1);
+            color: var(--primary);
+        }
+
+        .filter-chip input {
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .report-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .report-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .report-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="brand" style="text-align: left; margin-bottom: 40px;">
+                <h1 style="font-size: 1.8rem;">BIMind</h1>
+            </div>
+
+            <nav>
+                <div class="card-title" style="color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase;">
+                    Mis Proyectos</div>
+                <ul style="list-style: none; margin-bottom: 30px;" id="projectList">
+                    <!-- Dinámico -->
+                </ul>
+
+                <button class="btn-primary" style="margin-bottom: 30px;" onclick="createNewProject()">+ Nuevo
+                    Proyecto</button>
+            </nav>
+
+            <div style="margin-top: auto; padding-top: 20px;">
+                <button onclick="logout()"
+                    style="background: none; border: none; color: var(--accent); cursor: pointer; font-weight: 600;">Cerrar
+                    Sesión</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 id="currentProjectName" style="font-size: 1.5rem;">Selecciona un Proyecto</h2>
+                    <p id="currentProjectStatus" style="color: var(--text-dim);">Esperando acción...</p>
+                </div>
+                <div class="glass" style="padding: 10px 20px; border-radius: 30px; display: flex; gap: 10px;">
+                    <input type="file" id="ifcInput" accept=".ifc" style="display: none;" onchange="uploadIFC()">
+                    <button class="btn-primary" id="analyzeBtn" style="padding: 5px 12px; font-size: 0.75rem;"
+                        onclick="document.getElementById('ifcInput').click()">Subir Propio</button>
+                    <button class="glass"
+                        style="padding: 5px 12px; font-size: 0.75rem; color: #00f2fe; border: 1px solid var(--primary);"
+                        onclick="loadSampleModel()">Cargar Dúplex</button>
+                </div>
+            </header>
+
+            <!-- 3D Viewer Section -->
+            <div id="viewer3d" class="glass viewer-container"
+                style="position: relative; min-height: 500px; background: #0f172a; overflow: hidden; margin-bottom: 24px;">
+                <!-- El engine de Three.js inyectará aquí su canvas -->
+                <div id="three-container" style="width: 100%; height: 100%; position: absolute; top:0; left:0;"></div>
+
+                <!-- Navegación Mode Selector (Aparece sobre el 3D) -->
+                <div
+                    style="position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100;">
+                    <div id="ifcFilterPanel" class="glass"
+                        style="padding: 10px; border-radius: 15px; display: flex; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; max-width: 400px;">
+                        <span
+                            style="font-size: 0.7rem; color: var(--text-dim); align-self: center; margin-right: 5px;">FILTROS:</span>
+                        <!-- Generado Dinámicamente -->
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="glass" id="orbitModeBtn"
+                            style="padding: 8px 15px; background: var(--primary); color: #000; border-radius: 20px; cursor: pointer;"
+                            onclick="setNavMode('orbit')">Órbita (Aéreo)</button>
+                        <button class="glass" id="fpModeBtn"
+                            style="padding: 8px 15px; border-radius: 20px; color: var(--primary); border: 1px solid var(--primary); cursor: pointer;"
+                            onclick="setNavMode('fp')">Street View (Interior)</button>
+                        <button class="glass" id="invertAxesBtn"
+                            style="padding: 8px 15px; border-radius: 20px; color: #fbbf24; border: 1px solid #fbbf24; cursor: pointer;"
+                            onclick="toggleAxes()">Invertir Ejes (X/Z)</button>
+                    </div>
+
+                    <!-- Tutorial de Navegación Street View -->
+                    <div id="stViewTutorial" class="glass"
+                        style="padding: 12px 18px; border-radius: 15px; display: flex; flex-direction: column; gap: 5px; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--primary); pointer-events: none; display: none;">
+                        <div style="font-size: 0.75rem; font-weight: 800; color: var(--primary); margin-bottom: 2px;">🚶
+                            MODO STREET VIEW</div>
+                        <ul style="list-style: none; font-size: 0.65rem; color: white; line-height: 1.4; padding: 0;">
+                            <li>• <b>WASD</b>: Caminar</li>
+                            <li>• <b>MOUSE</b>: Mirar</li>
+                            <li>• <b>Q / E</b>: Subir / Bajar Pisos</li>
+                            <li>• <b>CLIC</b>: Ver Propiedades</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Labels de Estado (Aparecen sobre el 3D) -->
+                <div id="viewerStatus"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(10, 15, 28, 0.7); z-index: 10; pointer-events: none;">
+                    <div style="text-align: center;">
+                        <h3 style="margin-bottom: 10px;">BIMind Visor 3D</h3>
+                        <p style="color: var(--text-dim);">Selecciona un proyecto para cargar el modelo</p>
+                    </div>
+                </div>
+
+                <!-- Panel de Propiedades del Objeto -->
+                <div id="propertiesPanel" class="glass"
+                    style="position: absolute; top: 20px; right: 20px; width: 220px; padding: 15px; border-radius: 12px; z-index: 200; display: none; pointer-events: auto; backdrop-filter: blur(15px); background: rgba(15, 23, 42, 0.82); border: 1px solid rgba(255,255,255,0.15);">
+                    <div
+                        style="font-size: 0.7rem; color: var(--primary); font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                        <span>PROPIEDADES IFC</span>
+                        <span style="cursor:pointer;" onclick="closePropPanel()">×</span>
+                    </div>
+                    <div id="prop-family"
+                        style="font-size: 0.9rem; font-weight: 600; margin-bottom: 5px; color: var(--primary);">--</div>
+                    <div id="prop-id"
+                        style="font-size: 0.55rem; color: var(--text-dim); margin-bottom: 15px; word-break: break-all;">
+                        ID: --</div>
+
+                    <div style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 4px;">Costo Estimado ($):
+                    </div>
+                    <input type="number" id="prop-cost" class="glass"
+                        style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px; font-size: 0.8rem; border-radius: 6px; margin-bottom: 15px;"
+                        placeholder="0.00" onchange="saveElementCost()">
+
+                    <div
+                        style="font-size: 0.7rem; color: var(--primary); font-weight: 800; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; margin-bottom: 10px;">
+                        ESTILO POR TIPO</div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 0.65rem; color: var(--text-dim);">Color:</span>
+                        <input type="color" id="type-color"
+                            style="border:none; width: 30px; height: 20px; background: none; cursor:pointer;"
+                            onchange="applyTypeStyle()">
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-dim); margin-bottom: 4px;">
+                            <span>Opacidad:</span>
+                            <span id="opacity-val">0.8</span>
+                        </div>
+                        <input type="range" id="type-opacity" min="0" max="1" step="0.1" value="0.8"
+                            style="width: 100%; cursor:pointer;" onchange="applyTypeStyle()">
+                    </div>
+
+                    <button onclick="show2DPlanFromSelection()"
+                        style="width: 100%; margin-top: 10px; background: transparent; border: 1px solid var(--primary); color: var(--primary); font-size: 0.7rem; font-weight: 700; cursor: pointer; padding: 8px; border-radius: 6px;">VER
+                        EN PLANO 2D</button>
+
+                    <button onclick="closePropPanel()"
+                        style="width: 100%; margin-top: 10px; background: rgba(244, 63, 94, 0.2); border: 1px solid #f43f5e; color: #f43f5e; font-size: 0.7rem; font-weight: 700; cursor: pointer; padding: 8px; border-radius: 6px;">CERRAR</button>
+                </div>
+            </div>
+
+            <!-- Modal para Plano 2D -->
+            <div id="floorPlanModal" class="glass"
+                style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 80%; z-index: 1000; display: none; padding: 30px; border-radius: 24px; box-shadow: 0 0 50px rgba(0,0,0,0.5); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 id="floorPlanTitle" style="color: var(--primary);">Plano de Planta - Nivel --</h2>
+                    <button onclick="closeFloorPlan()" class="glass"
+                        style="padding: 10px 20px; color: var(--accent); border: 1px solid var(--accent); border-radius: 30px; cursor: pointer;">Cerrar
+                        Vista</button>
+                </div>
+                <div id="plan-container"
+                    style="width: 100%; height: calc(100% - 60px); background: #f8fafc; border-radius: 12px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <canvas id="planCanvas" style="max-width: 100%; max-height: 100%;"></canvas>
+                </div>
+            </div>
+
+            <div class="glass" style="padding: 24px; border-radius: 20px; margin-bottom: 24px;">
+                <div class="card-title">Análisis de Resultados de IA</div>
+                <div id="resultsGrid"
+                    style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+                    <div style="text-align: center;">
+                        <div id="val-energy" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">--
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-dim);">Eficiencia</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div id="val-sustain" style="font-size: 1.5rem; font-weight: 800; color: #4ade80;">
+                            --</div>
+                        <div style="font-size: 0.8rem; color: var(--text-dim);">Sostenibilidad</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div id="val-carbon" style="font-size: 1.5rem; font-weight: 800; color: var(--accent);">--</div>
+                        <div style="font-size: 0.8rem; color: var(--text-dim);">Huella CO2</div>
+                    </div>
+                </div>
+
+                <div id="detailedReports"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <div class="report-card">
+                        <div class="report-label">Costos de Ciclo de Vida (30 años)</div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                            <div>
+                                <div style="font-size: 0.6rem; color: var(--text-dim);">Total Estimado</div>
+                                <div id="report-total-cost" class="report-value">$--</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.6rem; color: var(--text-dim);">Mantenimiento</div>
+                                <div id="report-maint-cost" style="color: var(--accent); font-weight: 600;">$--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="report-card">
+                        <div class="report-label">Análisis de Energía y Agua</div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                            <div>
+                                <div style="font-size: 0.6rem; color: var(--text-dim);">E: <span
+                                        id="report-energy-kwh">-- kWh</span></div>
+                                <div id="report-energy-cost" class="report-value">$--</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.6rem; color: var(--text-dim);">Agua (m3/día)</div>
+                                <div id="report-water-m3" style="color: #4ade80; font-weight: 600;">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel (Vision 100) -->
+        <aside class="right-panel glass">
+            <div class="card-title">Visión 100 <span class="badge badge-vision">Futuro</span></div>
+            <div class="roadmap-item">
+                <div class="roadmap-header"><span>Tour VR/AR</span><span>80%</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 80%;"></div>
+                </div>
+            </div>
+            <div class="roadmap-item">
+                <div class="roadmap-header"><span>Plugins BIM</span><span>45%</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 45%; background: var(--secondary);"></div>
+                </div>
+            </div>
+            <div class="roadmap-item">
+                <div class="roadmap-header"><span>IA Generativa</span><span>15%</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 15%; background: var(--accent);"></div>
+                </div>
+            </div>
+            <!-- Environmental Simulation (Sun & Map) -->
+            <div class="glass" style="margin-top: 20px; padding: 20px; border-radius: 20px;">
+                <div class="card-title">Simulación Ambiental</div>
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 0.75rem; color: var(--text-dim); display: block; margin-bottom: 10px;">Hora
+                        del Día: <span id="timeDisplay" style="color: var(--primary);">12:00</span></label>
+                    <input type="range" id="sunSlider" min="0" max="2400" value="1200" style="width: 100%;"
+                        oninput="updateSun()">
+                </div>
+                <div
+                    style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px;">
+                    <label
+                        style="display: block; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase;">Geo-Referenciación:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <div>
+                            <span style="font-size: 0.6rem; color: var(--primary);">Lat:</span>
+                            <input type="number" id="manualLat" step="0.0001" value="4.6097" class="glass"
+                                style="width: 100%; font-size: 0.7rem; padding: 4px; border: 1px solid rgba(255,255,255,0.1); color: white;"
+                                onchange="updateProjectGeo()">
+                        </div>
+                        <div>
+                            <span style="font-size: 0.6rem; color: var(--primary);">Lng:</span>
+                            <input type="number" id="manualLng" step="0.0001" value="-74.0817" class="glass"
+                                style="width: 100%; font-size: 0.7rem; padding: 4px; border: 1px solid rgba(255,255,255,0.1); color: white;"
+                                onchange="updateProjectGeo()">
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <span style="font-size: 0.6rem; color: var(--text-dim);">Google Maps API Key (opcional):</span>
+                        <input type="password" id="gmapsKey" class="glass"
+                            style="width: 100%; font-size: 0.65rem; padding: 4px; border: 1px solid rgba(255,255,255,0.1); color: var(--primary); background: rgba(255,255,255,0.02);"
+                            placeholder="Pega tu Key aquí" onchange="updateStreetViewBackground()">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="enableEnv" onchange="updateStreetViewBackground()"
+                            style="cursor: pointer;">
+                        <label for="enableEnv" style="font-size: 0.7rem; color: var(--primary); cursor: pointer;">Ver
+                            Entorno Real (Street View)</label>
+                    </div>
+                </div>
+
+                <div id="map"
+                    style="height: 150px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: #000; position: relative; z-index: 50;">
+                    <!-- Mapa Leaflet aquí -->
+                </div>
+            </div>
+
+            <div class="glass"
+                style="margin-top: 20px; padding: 15px; border-radius: 12px; height: 120px; display: flex; flex-direction: column;">
+                <div
+                    style="font-size: 0.7rem; font-weight: 800; color: var(--text-dim); margin-bottom: 5px; text-transform: uppercase;">
+                    Logs de Sistema:</div>
+                <div id="debugLog"
+                    style="flex-grow: 1; overflow-y: auto; font-family: monospace; line-height: 1.2; font-size: 0.65rem;">
+                    <!-- Logs aquí -->
+                </div>
+                <button onclick="init3D()" class="glass"
+                    style="margin-top: 10px; padding: 5px; font-size: 0.7rem; color: var(--primary); width: 100%; border: 1px dashed var(--primary); cursor: pointer;">🔄
+                    REINICIAR VISOR</button>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        let currentProjectId = null;
+        const token = localStorage.getItem('token');
+
+        // Diagnóstico en pantalla
+        function debugLog(msg, color = "var(--text-dim)") {
+            const log = document.getElementById('debugLog');
+            if (log) {
+                const item = document.createElement('div');
+                item.style.color = color;
+                item.style.fontSize = "0.7rem";
+                item.style.marginBottom = "2px";
+                item.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                log.prepend(item);
+                if (log.children.length > 20) log.lastChild.remove();
+            }
+            console.log("BIMind DEBUG:", msg);
+        }
+
+        window.onerror = function (msg, url, line) {
+            debugLog(`CRITICAL ERROR: ${msg} (Line ${line})`, "#f43f5e");
+        };
+
+        if (!token) {
+            window.location.href = 'login.html';
+        } else {
+            debugLog("Token encontrado. Sesión activa.");
+            listProjects();
+        }
+
+        async function listProjects() {
+            try {
+                const res = await fetch('/projects', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const projects = await res.json();
+                    const list = document.getElementById('projectList');
+                    list.innerHTML = '';
+                    projects.forEach(project => addProjectToList(project));
+
+                    // Auto-seleccionar primer proyecto si existe
+                    if (projects.length > 0) {
+                        selectProject(projects[0]);
+                        console.log("BIMind: Proyectos cargados y primero seleccionado:", projects.length);
+                    } else {
+                        console.log("BIMind: No hay proyectos para este usuario. Crea uno nuevo.");
+                    }
+                } else {
+                    console.error("Error listando proyectos:", res.status);
+                }
+            } catch (err) {
+                console.error("Error de conexión:", err);
+            }
+        }
+
+        async function createNewProject() {
+            const name = prompt("Nombre del Proyecto:");
+            if (!name) return;
+
+            try {
+                const res = await fetch(`/project?name=${encodeURIComponent(name)}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const project = await res.json();
+                    currentProjectId = project.id;
+                    document.getElementById('currentProjectName').innerText = project.name;
+                    addProjectToList(project);
+                    alert("Proyecto creado y seleccionado.");
+                } else {
+                    const errorText = await res.text();
+                    let errorMessage = "Error desconocido";
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMessage = errorJson.detail || errorMessage;
+                    } catch (e) {
+                        errorMessage = errorText;
+                    }
+                    alert("Error " + res.status + ": " + errorMessage);
+                }
+            } catch (err) {
+                alert("Error de red/conexión: " + err.message);
+            }
+        }
+
+        function addProjectToList(project) {
+            const li = document.createElement('li');
+            li.style.cssText = "padding: 10px; border-radius: 8px; background: rgba(0, 242, 254, 0.1); color: var(--primary); cursor: pointer; margin-bottom: 8px;";
+            li.innerHTML = `<span>${project.name}</span>`;
+            li.onclick = () => selectProject(project);
+            document.getElementById('projectList').appendChild(li);
+        }
+
+        async function selectProject(project) {
+            currentProjectId = project.id;
+            document.getElementById('currentProjectName').innerText = project.name;
+            document.getElementById('currentProjectStatus').innerText = "Cargando datos...";
+
+            // Highlight
+            const items = document.querySelectorAll('#projectList li');
+            items.forEach(li => {
+                if (li.innerText === project.name) {
+                    li.style.border = "1px solid var(--primary)";
+                    li.style.background = "rgba(0, 242, 254, 0.2)";
+                } else {
+                    li.style.border = "none";
+                    li.style.background = "rgba(0, 242, 254, 0.1)";
+                }
+            });
+
+            // Limpiar resultados previos
+            document.getElementById('val-energy').innerText = "--";
+            document.getElementById('val-sustain').innerText = "--";
+            document.getElementById('val-carbon').innerText = "--";
+
+            // Cargar análisis previo si existe
+            try {
+                const res = await fetch(`/analysis/status/${project.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'COMPLETED') {
+                        debugLog(`Cargando análisis persistido para proyecto ${project.id}`);
+                        showResults(data.results);
+                        document.getElementById('currentProjectStatus').innerText = "Modelo Cargado (Base de Datos)";
+                    } else if (data.status === 'PROCESSING') {
+                        document.getElementById('currentProjectStatus').innerText = "Análisis en Progreso...";
+                        startStatusPolling(project.id);
+                    } else {
+                        document.getElementById('currentProjectStatus').innerText = "Sin análisis previo";
+                        document.getElementById('viewerStatus').style.display = 'flex';
+                        document.getElementById('viewerStatus').innerHTML = "<h3>Modelo Listo</h3><p>Sube un archivo IFC para comenzar</p>";
+                    }
+                }
+            } catch (err) {
+                console.error("Error al cargar persistencia:", err);
+            }
+        }
+
+        async function loadSampleModel() {
+            console.log("BIMind: Iniciando carga de Dúplex. ProjectID:", currentProjectId);
+            if (!currentProjectId) {
+                alert("❌ ERROR: No has seleccionado un proyecto.\nHaz clic en 'apt' o 'kmilo' en la lista de la izquierda primero.");
+                return;
+            }
+
+            console.log("BIMind: Token detectado:", token ? "SÍ" : "NO");
+            if (!token) {
+                alert("❌ SESIÓN EXPIRADA: Por favor, cierra sesión y vuelve a entrar.");
+                return;
+            }
+            const viewerStatus = document.getElementById('viewerStatus');
+            viewerStatus.style.display = 'flex';
+            viewerStatus.innerHTML = `
+                <div class="progress-container">
+                    <div class="spinner"></div>
+                    <h3>Procesando Dúplex...</h3>
+                    <p>La IA está analizando miles de elementos (15-30s)</p>
+                </div>`;
+
+            try {
+                const res = await fetch(`/load-sample/${currentProjectId}?filename=Duplex_Apartment.ifc`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log("BIMind: Backend aceptó la carga. ID:", data.analysis_id);
+                    startStatusPolling(currentProjectId, data.analysis_id);
+                } else {
+                    const error = await res.json();
+                    alert("Error servidor: " + (error.detail || "Consulta logs"));
+                    resetViewerStatus();
+                }
+            } catch (e) {
+                console.error("BIMind CRITICAL:", e);
+                alert("Error de conexión con el servidor. Verifica que uvicorn esté corriendo.");
+                resetViewerStatus();
+            }
+        }
+
+        async function uploadIFC() {
+            console.log("BIMind: Iniciando uploadIFC. ProjectID:", currentProjectId);
+            if (!currentProjectId) {
+                alert("⚠️ Primero selecciona un proyecto de la barra lateral");
+                return;
+            }
+
+            const input = document.getElementById('ifcInput');
+            const file = input.files[0];
+            if (!file) {
+                console.log("BIMind: No hay archivo seleccionado");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            document.getElementById('viewerStatus').innerHTML = `
+                <div class="progress-container">
+                    <div class="spinner"></div>
+                    <h3>Subiendo Modelo...</h3>
+                    <p>Iniciando análisis de IA en segundo plano</p>
+                </div>`;
+
+            try {
+                const res = await fetch(`/upload/${currentProjectId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    startStatusPolling(currentProjectId);
+                } else {
+                    const error = await res.json();
+                    alert("Error al subir: " + (error.detail || "Error desconocido"));
+                    resetViewerStatus();
+                }
+            } catch (err) {
+                alert("Error de conexión");
+                resetViewerStatus();
+            } finally {
+                input.value = ''; // Reset para permitir subir el mismo archivo
+            }
+        }
+
+        let pollingInterval = null;
+
+        function startStatusPolling(projectId, analysisId = null) {
+            if (pollingInterval) clearInterval(pollingInterval);
+            console.log("BIMind: Iniciando polling para Proyecto:", projectId, "AnalysisID:", analysisId);
+
+            pollingInterval = setInterval(async () => {
+                try {
+                    const url = analysisId ? `/analysis/status/${projectId}?analysis_id=${analysisId}` : `/analysis/status/${projectId}`;
+                    const res = await fetch(url, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        updatePollingUI(data);
+
+                        if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+                            clearInterval(pollingInterval);
+                            if (data.status === 'COMPLETED') {
+                                console.log("BIMind: Polling COMPLETED. Mostrando resultados.");
+                                showResults(data.results);
+                            } else {
+                                alert("El análisis falló: " + (data.error || "Error desconocido"));
+                                resetViewerStatus();
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error en polling:", err);
+                }
+            }, 2500);
+        }
+
+        function updatePollingUI(data) {
+            const statusDiv = document.getElementById('viewerStatus');
+            switch (data.status) {
+                case 'PENDING':
+                    statusDiv.innerHTML = `<h3>En Cola...</h3><p>Esperando recursos de IA</p>`;
+                    break;
+                case 'PROCESSING':
+                    statusDiv.innerHTML = `
+                        <div class="progress-container">
+                            <div class="spinner"></div>
+                            <h3 style="color: var(--primary);">Analizando...</h3>
+                            <p>Procesando geometría y datos normativos</p>
+                        </div>`;
+                    break;
+            }
+        }
+
+        function resetViewerStatus() {
+            document.getElementById('viewerStatus').style.display = 'flex';
+            document.getElementById('viewerStatus').innerHTML = `
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+                <h3>Listo</h3>
+                <p>Sube un archivo .ifc para analizar</p>`;
+        }
+
+        let renderer, scene, camera, controls;
+        let modelObject = null;
+        let collidableObjects = []; // Para colisiones (ahora usado para límites de predio)
+        let modelMinBound = null, modelMaxBound = null; // Límites del predio
+
+        let navMode = 'orbit';
+        let ghostMode = true; // Activo por defecto: permite atravesar paredes
+        let isMouseDown = false;
+        let yaw = 0, pitch = 0; // Rotación para mouse-look
+        let sunLight; // Referencia global al sol
+        let axesInverted = false;
+        let map, projectMarker;
+        let projectBaseLat = 4.6097; // Bogotá
+        let projectBaseLng = -74.0817;
+
+        function setNavMode(mode) {
+            navMode = mode;
+            const orbitBtn = document.getElementById('orbitModeBtn');
+            const fpBtn = document.getElementById('fpModeBtn');
+
+            if (mode === 'orbit') {
+                orbitBtn.style.background = 'var(--primary)';
+                orbitBtn.style.color = '#000';
+                fpBtn.style.background = 'transparent';
+                fpBtn.style.color = 'var(--primary)';
+                if (controls) controls.enabled = true;
+                document.getElementById('stViewTutorial').style.display = 'none';
+            } else {
+                fpBtn.style.background = 'var(--primary)';
+                fpBtn.style.color = '#000';
+                orbitBtn.style.background = 'transparent';
+                orbitBtn.style.color = 'var(--primary)';
+                if (controls) controls.enabled = false;
+                // Posicionar cámara y resetear rotación
+                camera.position.set(1, 1.6, 1);
+                yaw = 0; pitch = 0;
+                camera.rotation.set(0, 0, 0);
+                document.getElementById('stViewTutorial').style.display = 'block';
+            }
+        }
+
+        function init3D() {
+            debugLog("Iniciando Visor 3D...");
+            const container = document.getElementById('three-container');
+            if (!container) {
+                debugLog("ERROR: No se encontró three-container", "#f43f5e");
+                return;
+            }
+
+            // Verificar WebGL
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) throw new Error("WebGL no soportado");
+                debugLog("WebGL detectado con éxito.");
+            } catch (e) {
+                debugLog("ERROR CRÍTICO: Tu navegador no soporta WebGL.", "#f43f5e");
+                alert("Tu navegador no soporta aceleración 3D (WebGL). Por favor usa Chrome o Edge moderno.");
+                return;
+            }
+
+            const w = container.clientWidth || 800;
+            const h = container.clientHeight || 500;
+            debugLog(`Resolución 3D: ${w}x${h}px`);
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0f1c); // Fondo inicial limpio requested
+
+            // No cargar entorno automáticamente al inicio
+
+            camera = new THREE.PerspectiveCamera(70, w / h, 0.1, 2000);
+
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: false,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(window.devicePixelRatio > 2 ? 2 : window.devicePixelRatio);
+
+            container.innerHTML = "";
+            container.appendChild(renderer.domElement);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+
+            sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight.position.set(20, 40, 20);
+            sunLight.castShadow = true;
+
+            // Configuración de sombras
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 500;
+            sunLight.shadow.camera.left = -50;
+            sunLight.shadow.camera.right = 50;
+            sunLight.shadow.camera.top = 50;
+            sunLight.shadow.camera.bottom = -50;
+
+            scene.add(sunLight);
+
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            updateSun(); // Posicionar sol inicial
+
+            const grid = new THREE.GridHelper(50, 50, 0x00f2fe, 0x1e293b);
+            scene.add(grid);
+
+            // Piso físico para realismo
+            const floorGeom = new THREE.PlaneGeometry(100, 100);
+            const floorMat = new THREE.MeshPhongMaterial({ color: 0x1e293b, shininess: 10 });
+            const floor = new THREE.Mesh(floorGeom, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.05;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            if (typeof THREE.OrbitControls !== 'undefined') {
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                debugLog("OrbitControls cargado.");
+            } else {
+                debugLog("ERROR: OrbitControls no cargado.", "#f43f5e");
+            }
+
+            resetCamera();
+            animate();
+            debugLog("Bucle de renderizado activo.");
+
+            window.addEventListener('resize', onWindowResize);
+
+            // Mouse-look y Decoración
+            let mouseDragged = false;
+            renderer.domElement.addEventListener('mousedown', () => {
+                isMouseDown = true;
+                mouseDragged = false;
+            });
+            window.addEventListener('mouseup', () => isMouseDown = false);
+            window.addEventListener('mousemove', (e) => {
+                if (isMouseDown) {
+                    if (Math.abs(e.movementX) > 2 || Math.abs(e.movementY) > 2) mouseDragged = true;
+
+                    if (navMode === 'fp') {
+                        // Estilo "Paneo": Arrastrar el mundo (Invertido respecto al movimiento directo)
+                        yaw += e.movementX * 0.003;
+                        pitch -= e.movementY * 0.003;
+                        pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+                        camera.rotation.set(pitch, yaw, 0, 'YXZ');
+                    }
+                }
+            });
+
+            renderer.domElement.addEventListener('click', (e) => {
+                // Solo picar si no hubo arrastre significativo (funciona en cualquier modo)
+                if (!mouseDragged) tryPlaceFrame(e);
+            });
+
+            // Zoom con rueda estilo Google Street View
+            renderer.domElement.addEventListener('wheel', (e) => {
+                if (navMode === 'fp') {
+                    e.preventDefault();
+                    camera.fov += e.deltaY * 0.05;
+                    camera.fov = Math.max(30, Math.min(100, camera.fov));
+                    camera.updateProjectionMatrix();
+                }
+            }, { passive: false });
+
+            initMap();
+        }
+
+        function initMap() {
+            if (map) return;
+            map = L.map('map').setView([projectBaseLat, projectBaseLng], 15);
+
+            const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OSM'
+            });
+            const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri Satellite'
+            });
+
+            satellite.addTo(map); // Iniciar con satélite por realismo solicitado
+            L.control.layers({ "Satélite": satellite, "Calles": streets }).addTo(map);
+            projectMarker = L.marker([projectBaseLat, projectBaseLng]).addTo(map).bindPopup('Tú estás aquí').openPopup();
+
+            // Sincronización manual de coordenadas desde el mapa (clic)
+            map.on('click', (e) => {
+                document.getElementById('manualLat').value = e.latlng.lat.toFixed(6);
+                document.getElementById('manualLng').value = e.latlng.lng.toFixed(6);
+                updateProjectGeo();
+            });
+
+            // Detectar ubicación real al cargar
+            requestUserLocation();
+        }
+
+        function requestUserLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('manualLat').value = lat.toFixed(6);
+                    document.getElementById('manualLng').value = lng.toFixed(6);
+                    updateProjectGeo();
+                    debugLog("📍 Ubicación detectada automáticamente.");
+                }, () => {
+                    debugLog("No se pudo obtener ubicación GPS.", "#eab308");
+                });
+            }
+        }
+
+        function updateProjectGeo() {
+            const latStr = document.getElementById('manualLat').value;
+            const lngStr = document.getElementById('manualLng').value;
+            if (!latStr || !lngStr) return;
+            projectBaseLat = parseFloat(latStr);
+            projectBaseLng = parseFloat(lngStr);
+            if (map && projectMarker) {
+                map.setView([projectBaseLat, projectBaseLng]);
+                projectMarker.setLatLng([projectBaseLat, projectBaseLng]);
+                debugLog(`Geo-referencia proyectada: ${projectBaseLat}, ${projectBaseLng}`);
+                updateStreetViewBackground(); // Actualizar entorno 3D
+            }
+        }
+
+        function updateStreetViewBackground() {
+            if (!scene) return;
+            const enabled = document.getElementById('enableEnv').checked;
+
+            if (!enabled) {
+                scene.background = new THREE.Color(0x0a0f1c);
+                scene.environment = null;
+                debugLog("Entorno real desactivado.");
+                return;
+            }
+
+            const key = document.getElementById('gmapsKey').value;
+            let url;
+
+            if (key) {
+                // Usar Street View Static API para panorama equirectangular 
+                // Nota: Requiere API Key con permisos de Street View
+                url = `https://maps.googleapis.com/maps/api/streetview?size=2048x1024&location=${projectBaseLat},${projectBaseLng}&fov=120&key=${key}`;
+                debugLog("Intentando cargar Street View real...");
+            } else {
+                // Fallback: Imagen urbana genérica de alta calidad (Bogotá/Street context)
+                url = 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=1600&q=80';
+                debugLog("Usando entorno urbano genérico (Falta API Key)");
+            }
+
+            const loader = new THREE.TextureLoader();
+            loader.setCrossOrigin('anonymous');
+            loader.load(url, (texture) => {
+                texture.mapping = THREE.EquirectangularReflectionMapping;
+                scene.background = texture;
+                scene.environment = texture;
+                debugLog("Entorno 3D actualizado correctamente.");
+            }, undefined, (err) => {
+                debugLog("Error cargando panorama. Verifica tu API Key.", "#f43f5e");
+            });
+        }
+
+        function updateMapContext() {
+            if (!map || !projectMarker || navMode !== 'fp') return;
+
+            // Escala simple: 1 unidad THREE.js = ~0.000009 grados (aprox 1 metro)
+            const latOffset = camera.position.z * 0.000009;
+            const lngOffset = camera.position.x * 0.000009;
+
+            const newLat = projectBaseLat - latOffset;
+            const newLng = projectBaseLng + lngOffset;
+
+            projectMarker.setLatLng([newLat, newLng]);
+            if (!map.getBounds().contains(projectMarker.getLatLng())) {
+                map.panTo([newLat, newLng]);
+            }
+        }
+
+        function toggleAxes() {
+            axesInverted = !axesInverted;
+            debugLog(`Ejes invertidos: ${axesInverted}`);
+            // Recargar el modelo actual con el nuevo mapeo
+            if (currentAnalysisData) {
+                const geo = currentAnalysisData.find(a => a.type === 'GEOMETRY');
+                if (geo) showVisualModel(geo);
+            }
+        }
+
+        let currentAnalysisData = null; // Guardar para re-renderizado
+
+        function onWindowResize() {
+            const container = document.getElementById('three-container');
+            if (!container || !renderer || !camera) return;
+            const nw = container.clientWidth;
+            const nh = container.clientHeight;
+            if (nw && nh) {
+                camera.aspect = nw / nh;
+                camera.updateProjectionMatrix();
+                renderer.setSize(nw, nh);
+            }
+        }
+
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let moveUp = false, moveDown = false;
+
+        document.addEventListener('keydown', (e) => {
+            if (navMode !== 'fp') return;
+            switch (e.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = true; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = true; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
+                case 'KeyD': case 'ArrowRight': moveRight = true; break;
+                case 'KeyE': moveUp = true; break;
+                case 'KeyQ': moveDown = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = false; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = false; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
+                case 'KeyD': case 'ArrowRight': moveRight = false; break;
+                case 'KeyE': moveUp = false; break;
+                case 'KeyQ': moveDown = false; break;
+            }
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (navMode === 'fp') {
+                const speed = 0.12;
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+
+                // Vector de movimiento deseado
+                const moveVec = new THREE.Vector3(0, 0, 0);
+                if (moveForward) moveVec.add(direction);
+                if (moveBackward) moveVec.sub(direction);
+
+                const sideDir = new THREE.Vector3();
+                sideDir.crossVectors(camera.up, direction).normalize();
+                if (moveLeft) moveVec.add(sideDir);
+                if (moveRight) moveVec.sub(sideDir);
+
+                if (moveVec.length() > 0) {
+                    moveVec.y = 0; // Bloqueo horizontal estricto
+                    moveVec.normalize().multiplyScalar(speed);
+
+                    const nextPos = camera.position.clone().add(moveVec);
+
+                    // Verificación de límites (Relajado para permitir alejarse hasta 500m)
+                    if (modelMinBound && modelMaxBound) {
+                        const buffer = 500; // Permitir alejarse 500 metros
+                        if (nextPos.x >= modelMinBound.x - buffer && nextPos.x <= modelMaxBound.x + buffer &&
+                            nextPos.z >= modelMinBound.z - buffer && nextPos.z <= modelMaxBound.z + buffer) {
+                            camera.position.add(moveVec);
+                        }
+                    } else {
+                        camera.position.add(moveVec);
+                    }
+                }
+
+                // Movimiento vertical (Q/E)
+                if (moveUp) camera.position.y += speed;
+                if (moveDown) camera.position.y -= speed;
+
+                updateMapContext(); // Sincronizar mapa real-time
+            } else if (controls) {
+                controls.update();
+            }
+
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        function showResults(analysis) {
+            currentAnalysisData = analysis;
+            const geoData = analysis.find(a => a.type === 'GEOMETRY') || { height: 3, width: 2, depth: 2 };
+            showVisualModel(geoData);
+
+            const statusDiv = document.getElementById('viewerStatus');
+            statusDiv.style.display = 'flex'; // Asegurar que sea visible
+            statusDiv.innerHTML = `
+                <div style="background: rgba(74, 222, 128, 0.2); padding: 15px 30px; border-radius: 40px; border: 1px solid #4ade80;">
+                    <h3 style="color: #4ade80; margin: 0;">Análisis Exitoso</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.8rem;">Modelo proporcional renderizado</p>
+                </div>`;
+
+            // Auto-ocultar mensaje tras 5 segundos
+            setTimeout(() => {
+                const badge = statusDiv.querySelector('div');
+                if (badge) badge.style.opacity = '0';
+                setTimeout(() => { statusDiv.style.display = 'none'; }, 500);
+            }, 5000);
+
+            const lca = analysis.find(a => a.type === 'LCA');
+            if (lca) {
+                document.getElementById('val-carbon').innerText = `${Math.round(lca.total_co2_kg / 1000)} t`;
+                document.getElementById('val-sustain').innerText = lca.total_co2_kg < 50000 ? "A+" : (lca.total_co2_kg < 100000 ? "A" : "B");
+            }
+
+            const cost = analysis.find(a => a.type === 'LifeCycleCost');
+            if (cost) {
+                document.getElementById('report-total-cost').innerText = `$${cost.total_cost.toLocaleString()}`;
+                // Sumar mantenimiento del detalle
+                let totalMaint = 0;
+                Object.values(cost.detail).forEach(d => totalMaint += d.maintenance_cost);
+                document.getElementById('report-maint-cost').innerText = `$${Math.round(totalMaint).toLocaleString()}`;
+            }
+
+            const energy = analysis.find(a => a.type === 'Energy');
+            if (energy) {
+                document.getElementById('val-energy').innerText = energy.efficiency_rating;
+                document.getElementById('report-energy-kwh').innerText = `${energy.annual_kwh.toLocaleString()} kWh`;
+                document.getElementById('report-energy-cost').innerText = `$${energy.estimated_cost.toLocaleString()}`;
+            }
+
+            const water = analysis.find(a => a.type === 'Water');
+            if (water) {
+                document.getElementById('report-water-m3').innerText = water.daily_consumption_m3;
+            }
+
+            document.getElementById('aiInsightText').innerText = `Geometría analizada: ${geoData.height}m de altura, ${geoData.stories} niveles.`;
+        }
+
+        function toggleFamilyVisibility(type, isVisible) {
+            if (!modelObject) return;
+            debugLog(`${isVisible ? 'Mostrando' : 'Ocultando'} familia: ${type}`);
+            modelObject.traverse(child => {
+                if (child.isMesh && child.userData && child.userData.type === type) {
+                    child.visible = isVisible;
+                }
+            });
+        }
+
+        function updateSun() {
+            const val = parseInt(document.getElementById('sunSlider').value);
+            const hour = Math.floor(val / 100);
+            const min = val % 100;
+            document.getElementById('timeDisplay').innerText = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+
+            if (!sunLight) return;
+
+            // Mapeo simple: 0 (00:00) -> -PI/2, 1200 (12:00) -> PI/2, 2400 (00:00) -> 3PI/2
+            constangle = ((val / 2400) * Math.PI * 2) - Math.PI / 2;
+
+            const radius = 100;
+            const x = radius * Math.cos(constangle);
+            const y = radius * Math.sin(constangle);
+            const z = 20; // Un poco de desvío lateral
+
+            sunLight.position.set(x, y, z);
+
+            // Cambiar intensidad y color según la hora
+            if (y < 0) {
+                sunLight.intensity = 0; // Noche
+                scene.background = new THREE.Color(0x050510);
+            } else {
+                sunLight.intensity = Math.min(y / 20, 1.2); // Atardecer/Amanecer suave
+
+                // Color cálido en amanecer/atardecer
+                const colorFactor = Math.min(y / 50, 1);
+                sunLight.color.setRGB(1.0, 0.8 + 0.2 * colorFactor, 0.6 + 0.4 * colorFactor);
+
+                // Fondo dinámico
+                const skyVal = 0.05 + 0.1 * colorFactor;
+                scene.background = new THREE.Color(skyVal * 0.5, skyVal, skyVal * 2);
+            }
+        }
+
+        function showVisualModel(geo) {
+            if (modelObject) scene.remove(modelObject);
+            modelObject = new THREE.Group();
+            collidableObjects = []; // Limpiar colisiones
+
+            document.getElementById('viewerStatus').style.display = 'none';
+            debugLog(`Renderizando ${geo.element_count || 0} elementos arquitectónicos.`);
+
+            if (!geo.elements || geo.elements.length === 0) {
+                debugLog("Aviso: No se encontraron elementos detallados. Mostrando bloque base.", "#f43f5e");
+                // Fallback a un bloque simple si no hay detalles
+                const fallbackGeom = new THREE.BoxGeometry(10, 3, 10);
+                const fallbackMat = new THREE.MeshPhongMaterial({ color: 0x00f2fe, transparent: true, opacity: 0.3 });
+                const mesh = new THREE.Mesh(fallbackGeom, fallbackMat);
+                mesh.position.y = 1.5;
+                modelObject.add(mesh);
+            } else {
+                let minBound = [Infinity, Infinity, Infinity];
+                let maxBound = [-Infinity, -Infinity, -Infinity];
+
+                geo.elements.forEach(el => {
+                    const b = el.box;
+                    // En Three.js Y es vertical, IfcOpenShell suele usar Z como vertical
+                    // Usamos las dimensiones tal cual y rotamos si es necesario, pero aquí
+                    // el GeometryAgent ya da dims [x, y, z]. Mapearemos Z de IFC a Y de Three.
+                    const geom = new THREE.BoxGeometry(b.dims[0], b.dims[2], b.dims[1]);
+
+                    // Aplicar overrides de material si existen
+                    const styleOverrides = JSON.parse(localStorage.getItem('bim_styles') || '{}');
+                    const override = styleOverrides[el.type];
+
+                    const mat = new THREE.MeshPhongMaterial({
+                        color: override ? override.color : (el.color || 0xcccccc),
+                        transparent: true,
+                        opacity: override ? override.opacity : (el.type === 'IfcWindow' ? 0.4 : 0.8),
+                        shininess: 60,
+                        side: THREE.DoubleSide // Asegurar visibilidad desde ambos lados (crítico para placas)
+                    });
+
+                    const mesh = new THREE.Mesh(geom, mat);
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    mesh.userData = { id: el.id, type: el.type }; // Importante para colisiones y picking
+                    if (el.type === 'IfcWall') collidableObjects.push(mesh);
+
+                    // Posicionamiento con inversión de ejes si es necesario
+                    const posX = axesInverted ? b.center[1] : b.center[0];
+                    const posZ = axesInverted ? b.center[0] : b.center[1];
+                    mesh.position.set(posX, b.center[2], posZ);
+
+                    // Bordes discretos
+                    const edges = new THREE.EdgesGeometry(geom);
+                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+                        color: 0x000000,
+                        opacity: 0.2,
+                        transparent: true
+                    }));
+                    mesh.add(line);
+
+                    modelObject.add(mesh);
+
+                    // Bounds para cámara (Límites del predio)
+                    minBound = minBound.map((v, i) => Math.min(v, b.min[i]));
+                    maxBound = maxBound.map((v, i) => Math.max(v, b.max[i]));
+                });
+
+                // Centrar automáticamente
+                const centerX = (minBound[0] + maxBound[0]) / 2;
+                const centerY = (minBound[2] + maxBound[2]) / 2;
+                const centerZ = (minBound[1] + maxBound[1]) / 2;
+
+                // Guardar límites globales para Ghost Mode (Ajustados al offset de centrado)
+                modelMinBound = { x: minBound[0] - centerX, y: minBound[2], z: minBound[1] - centerZ };
+                modelMaxBound = { x: maxBound[0] - centerX, y: maxBound[2], z: maxBound[1] - centerZ };
+
+                modelObject.position.set(-centerX, 0, -centerZ);
+            }
+
+            scene.add(modelObject);
+
+            // Generar filtros dinámicos
+            updateDynamicFilters(geo);
+
+            // Ajuste dinámico de cámara según el tamaño del modelo
+            const sizeX = maxBound[0] - minBound[0];
+            const sizeZ = maxBound[1] - minBound[1];
+            const maxD = Math.max(sizeX, sizeZ, 10);
+
+            camera.position.set(maxD * 1.2, maxD, maxD * 1.2);
+            camera.lookAt(0, 2, 0);
+            if (controls) {
+                controls.target.set(0, 2, 0);
+                controls.update();
+            }
+            debugLog("Detalles renderizados correctamente.");
+        }
+
+        function updateDynamicFilters(geo) {
+            const panel = document.getElementById('ifcFilterPanel');
+            if (!panel) return;
+
+            // Limpiar anteriores menos el label
+            panel.innerHTML = '<span style="font-size: 0.7rem; color: var(--text-dim); align-self: center; margin-right: 5px;">FILTROS:</span>';
+
+            const types = [...new Set(geo.elements.map(el => el.type))];
+            const labels = {
+                'IfcWall': 'Muros',
+                'IfcWindow': 'Ventanas',
+                'IfcDoor': 'Puertas',
+                'IfcSlab': 'Placas',
+                'IfcColumn': 'Columnas',
+                'IfcBeam': 'Vigas',
+                'IfcCurtainWall': 'Muros Cortina',
+                'IfcStair': 'Escaleras',
+                'IfcRailing': 'Barandas',
+                'IfcMember': 'Miembros'
+            };
+
+            types.forEach(type => {
+                const label = document.createElement('label');
+                label.className = 'filter-chip';
+                const displayName = labels[type] || type.replace('Ifc', '');
+                label.innerHTML = `<input type="checkbox" checked onchange="toggleFamilyVisibility('${type}', this.checked)">${displayName}`;
+                panel.appendChild(label);
+            });
+        }
+
+        let selectedElementId = null;
+        let selectedElementType = null;
+
+        function tryPlaceFrame(event) {
+            const mouse = new THREE.Vector2();
+            const container = document.getElementById('three-container');
+            const rect = container.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(modelObject.children, true);
+
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                const obj = hit.object;
+                debugLog(`Click en: ${obj.userData.type || 'Sin Tipo'} (ID: ${obj.userData.id || 'N/A'})`);
+
+                // Si es un objeto arquitectónico o sus bordes, lo seleccionamos
+                let target = obj;
+                if (!target.userData || !target.userData.id) {
+                    // Si el objeto no tiene ID, podría ser un LineSegment (bordes). Mirar en el padre.
+                    if (target.parent && target.parent.userData && target.parent.userData.id) {
+                        target = target.parent;
+                    }
+                }
+
+                if (target.userData && target.userData.id) {
+                    selectElement(target.userData);
+                    return;
+                }
+
+                // Si no, intentamos poner un cuadro decorativo con MARCO 3D
+                const frameGroup = new THREE.Group();
+
+                // El Lienzo (Imagen)
+                const canvasGeom = new THREE.PlaneGeometry(0.8, 0.6);
+                const canvasMat = new THREE.MeshPhongMaterial({
+                    color: 0xffffff,
+                    map: new THREE.TextureLoader().load('https://picsum.photos/400/300?random=' + Math.random())
+                });
+                const canvasMesh = new THREE.Mesh(canvasGeom, canvasMat);
+                canvasMesh.position.z = 0.01; // Un poco al frente del marco
+                frameGroup.add(canvasMesh);
+
+                // El Marco (Madera/Metal)
+                const borderGeom = new THREE.BoxGeometry(0.85, 0.65, 0.05);
+                const borderMat = new THREE.MeshPhongMaterial({ color: 0x3e2723, shininess: 30 });
+                const borderMesh = new THREE.Mesh(borderGeom, borderMat);
+                borderMesh.position.z = -0.015;
+                frameGroup.add(borderMesh);
+
+                frameGroup.position.copy(hit.point).add(hit.face.normal.clone().multiplyScalar(0.03));
+                frameGroup.lookAt(hit.point.clone().add(hit.face.normal));
+
+                scene.add(frameGroup);
+                debugLog("Cuadro con marco 3D instalado.");
+            }
+        }
+
+        function selectElement(data) {
+            selectedElementId = data.id;
+            selectedElementType = data.type;
+            const panel = document.getElementById('propertiesPanel');
+            panel.style.display = 'block';
+            document.getElementById('prop-family').innerText = data.type;
+            document.getElementById('prop-id').innerText = `ID: ${data.id.substring(0, 15)}...`;
+
+            // Simular carga de costos desde localStorage
+            const savedCosts = JSON.parse(localStorage.getItem('bim_costs') || '{}');
+            document.getElementById('prop-cost').value = savedCosts[data.id] || "";
+
+            // Cargar estilos por tipo
+            const styleOverrides = JSON.parse(localStorage.getItem('bim_styles') || '{}');
+            const override = styleOverrides[data.type];
+            if (override) {
+                document.getElementById('type-color').value = override.color;
+                document.getElementById('type-opacity').value = override.opacity;
+                document.getElementById('opacity-val').innerText = override.opacity;
+            } else {
+                // Valores por defecto
+                document.getElementById('type-opacity').value = data.type === 'IfcWindow' ? 0.4 : 0.8;
+                document.getElementById('opacity-val').innerText = document.getElementById('type-opacity').value;
+            }
+
+            debugLog(`Seleccionado: ${data.type}`);
+        }
+
+        function applyTypeStyle() {
+            if (!selectedElementType || !modelObject) return;
+
+            const color = document.getElementById('type-color').value;
+            const opacity = parseFloat(document.getElementById('type-opacity').value);
+            document.getElementById('opacity-val').innerText = opacity;
+
+            // Guardar override
+            const styleOverrides = JSON.parse(localStorage.getItem('bim_styles') || '{}');
+            styleOverrides[selectedElementType] = { color, opacity };
+            localStorage.setItem('bim_styles', JSON.stringify(styleOverrides));
+
+            // Aplicar en caliente al modelo actual
+            modelObject.traverse(child => {
+                if (child.isMesh && child.userData && child.userData.type === selectedElementType) {
+                    child.material.color.set(color);
+                    child.material.opacity = opacity;
+                    child.material.transparent = opacity < 1;
+                }
+            });
+
+            debugLog(`Estilo actualizado para todos los ${selectedElementType}.`);
+        }
+
+        function saveElementCost() {
+            if (!selectedElementId) return;
+            const cost = document.getElementById('prop-cost').value;
+            const savedCosts = JSON.parse(localStorage.getItem('bim_costs') || '{}');
+            savedCosts[selectedElementId] = cost;
+            localStorage.setItem('bim_costs', JSON.stringify(savedCosts));
+            debugLog(`Costo guardado para el elemento.`);
+        }
+
+        function closePropPanel() {
+            document.getElementById('propertiesPanel').style.display = 'none';
+            selectedElementId = null;
+        }
+
+        // Funciones para Plano 2D
+        function show2DPlanFromSelection() {
+            if (!selectedElementId || !currentAnalysisData) return;
+            const geo = currentAnalysisData.find(a => a.type === 'GEOMETRY');
+            if (!geo || !geo.elements) return;
+
+            const selectedEl = geo.elements.find(e => e.id === selectedElementId);
+            if (!selectedEl) return;
+
+            const modal = document.getElementById('floorPlanModal');
+            modal.style.display = 'block';
+
+            const canvas = document.getElementById('planCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Determinar el nivel (Z aproximado - eje vertical en IFC)
+            const targetZ = selectedEl.box.center[2];
+            const levelZ = Math.floor(targetZ / 3) * 3; // Asumimos 3m por piso
+            document.getElementById('floorPlanTitle').innerText = `Plano de Planta - Elevación ${levelZ}m`;
+
+            canvas.width = 1200;
+            canvas.height = 800;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Encontrar escala (considerando inversión de ejes)
+            let minA = Infinity, maxA = -Infinity, minB = Infinity, maxB = -Infinity;
+            geo.elements.forEach(e => {
+                const b = e.box;
+                const curA = axesInverted ? b.min[1] : b.min[0];
+                const curB = axesInverted ? b.min[0] : b.min[1];
+                const curDimA = axesInverted ? b.dims[1] : b.dims[0];
+                const curDimB = axesInverted ? b.dims[0] : b.dims[1];
+
+                minA = Math.min(minA, curA); maxA = Math.max(maxA, curA + curDimA);
+                minB = Math.min(minB, curB); maxB = Math.max(maxB, curB + curDimB);
+            });
+
+            const padding = 100;
+            const scaleA = (canvas.width - padding * 2) / (maxA - minA || 1);
+            const scaleB = (canvas.height - padding * 2) / (maxB - minB || 1);
+            const scale = Math.min(scaleA, scaleB);
+
+            const offA = padding - minA * scale;
+            const offB = padding - minB * scale;
+
+            // Dibujar elementos del mismo nivel
+            geo.elements.forEach(el => {
+                const b = el.box;
+                if (Math.abs(b.center[2] - targetZ) > 1.5) return;
+
+                const isSelected = el.id === selectedElementId;
+                ctx.fillStyle = isSelected ? '#f43f5e' : (el.type === 'IfcWindow' ? '#38bdf8' : '#e2e8f0');
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = isSelected ? 3 : 1;
+
+                const drawX = (axesInverted ? b.min[1] : b.min[0]) * scale + offA;
+                const drawY = (axesInverted ? b.min[0] : b.min[1]) * scale + offB;
+                const drawW = (axesInverted ? b.dims[1] : b.dims[0]) * scale;
+                const drawH = (axesInverted ? b.dims[0] : b.dims[1]) * scale;
+
+                ctx.fillRect(drawX, drawY, drawW, drawH);
+                ctx.strokeRect(drawX, drawY, drawW, drawH);
+
+                if (isSelected) {
+                    ctx.fillStyle = 'rgba(244, 63, 94, 0.2)';
+                    ctx.beginPath();
+                    ctx.arc(drawX + drawW / 2, drawY + drawH / 2, 40, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            debugLog(`Generado plano 2D para nivel ${levelZ}m.`);
+        }
+
+        function closeFloorPlan() {
+            document.getElementById('floorPlanModal').style.display = 'none';
+        }
+
+        function resetCamera() {
+            if (!camera) return;
+            camera.position.set(10, 10, 10);
+            camera.lookAt(0, 0, 0);
+            if (controls) {
+                controls.target.set(0, 0, 0);
+                controls.update();
+            }
+            debugLog("Cámara reseteada.");
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        // INICIALIZACIÓN GLOBAL
+        init3D();
+        listProjects();
+    </script>
+</body>
+
+</html>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge } from 'lucide-react';
+import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge, Database } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy, Department, Position } from '../types';
 import { exportToBPMN, importFromBPMN } from '../utils/bpmnConverter';
@@ -62,7 +62,8 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
     const { user } = useAuth();
     const currentRole = user?.organization_id ? user?.available_organizations?.find((o: any) => o.id === user.organization_id)?.role : user?.role || 'viewer';
     const isViewer = currentRole === 'viewer';
-    const isReadOnly = workflow.organization_id !== user?.organization_id || isViewer;
+    const isAdmin = currentRole === 'admin' || currentRole === 'super_admin';
+    const isReadOnly = (workflow.organization_id !== user?.organization_id && currentRole !== 'super_admin') || isViewer;
     const { avgResolutionTimeByWorkflow } = useDashboardAnalytics();
 
     // Filter stats for this specific workflow
@@ -255,6 +256,61 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
         setConnectionSourceId(null);
     };
 
+    const handleImportTableSchema = async () => {
+        if (!selectedActivityId) return;
+        const act = activities.find(a => a.id === selectedActivityId);
+        if (!act || !act.sync_table) {
+            alert("Por favor defina una tabla para sincronizar primero.");
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase.rpc('get_table_schema', { target_table: act.sync_table });
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                alert(`No se encontraron columnas para la tabla ${act.sync_table}`);
+                return;
+            }
+
+            const currentFields = act.fields || [];
+            let maxOrder = currentFields.length > 0 ? Math.max(...currentFields.map(f => Number(f.order_index) || 0)) : 0;
+
+            const newFields: FieldDefinition[] = data.map((col: any) => {
+                maxOrder++;
+                let fieldType: any = 'text';
+
+                // Map Postgres types to FieldType
+                const dt = col.data_type.toLowerCase();
+                if (dt.includes('int') || dt.includes('numeric') || dt.includes('decimal') || dt.includes('float') || dt.includes('double')) fieldType = 'number';
+                else if (dt.includes('bool')) fieldType = 'boolean';
+                else if (dt.includes('date') || dt.includes('time')) fieldType = 'date';
+
+                return {
+                    id: crypto.randomUUID(),
+                    activity_id: selectedActivityId,
+                    name: col.column_name,
+                    label: col.column_name.charAt(0).toUpperCase() + col.column_name.slice(1).replace(/_/g, ' '),
+                    type: fieldType,
+                    required: !col.is_nullable,
+                    order_index: maxOrder,
+                    db_column: col.column_name,
+                    db_type: col.data_type,
+                    db_nullable: col.is_nullable,
+                    db_is_primary_key: col.is_primary_key
+                };
+            });
+
+            if (confirm(`Se importarán ${newFields.length} campos de la tabla ${act.sync_table}. ¿Continuar?`)) {
+                setActivities(prev => prev.map(a =>
+                    a.id === selectedActivityId ? { ...a, fields: [...currentFields, ...newFields] } : a
+                ));
+            }
+
+        } catch (err: any) {
+            console.error('Error importing schema:', err);
+            alert('Error al importar el esquema de la tabla: ' + err.message);
+        }
+    };
 
 
     const handleAddField = () => {
@@ -1001,6 +1057,25 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <button
+                                                        onClick={() => {
+                                                            if (selectedActivityId) {
+                                                                deleteActivity(selectedActivityId);
+                                                                setShowPropertiesModal(false);
+                                                            } else if (selectedTransitionId) {
+                                                                if (confirm('¿Estás seguro de eliminar esta transición?')) {
+                                                                    setTransitions(prev => prev.filter(t => t.id !== selectedTransitionId));
+                                                                    setShowPropertiesModal(false);
+                                                                    handleSave(activities, transitions.filter(t => t.id !== selectedTransitionId));
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-2 px-4 py-3 bg-rose-50 dark:bg-rose-900/10 text-rose-600 rounded-xl font-black hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-all uppercase text-[10px] tracking-widest active:scale-95"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                        {selectedActivityId ? 'Eliminar Actividad' : 'Eliminar Transición'}
+                                                    </button>
+
+                                                    <button
                                                         onClick={() => handleSave()}
                                                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-black rounded-2xl hover:scale-105 transition-all shadow-xl shadow-blue-200 dark:shadow-none active:scale-95 text-sm uppercase tracking-widest"
                                                     >
@@ -1173,30 +1248,43 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                     <div className={`w-10 h-6 flex items-center bg-slate-200 dark:bg-slate-700 rounded-full p-1 transition-colors ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'bg-blue-600 dark:bg-blue-600' : ''}`}>
                                                                         <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'translate-x-4' : ''}`}></div>
                                                                     </div>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={activities.find(a => a.id === selectedActivityId)?.is_public || false}
-                                                                        onChange={(e) => {
-                                                                            const val = e.target.checked;
-                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, is_public: val } : a));
-                                                                        }}
-                                                                        className="hidden"
-                                                                    />
                                                                 </label>
 
-
-                                                                <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            if (confirm('¿Estás seguro de eliminar esta actividad? Se perderán sus campos y transiciones.')) {
-                                                                                deleteActivity(selectedActivityId);
-                                                                            }
-                                                                        }}
-                                                                        className="flex items-center gap-2 px-6 py-3 bg-rose-50 dark:bg-rose-900/10 text-rose-600 rounded-2xl font-black hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-all uppercase text-[10px] tracking-widest"
-                                                                    >
-                                                                        <Trash2 className="w-4 h-4" />
-                                                                        Eliminar Actividad
-                                                                    </button>
+                                                                {/* Sincronización de Base de Datos */}
+                                                                <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50 space-y-4">
+                                                                    <div>
+                                                                        <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1">Sincronización de Datos</h4>
+                                                                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">Vincula esta actividad con una tabla de la base de datos para recuperar o guardar los datos automáticamente.</p>
+                                                                    </div>
+                                                                    <div className="flex items-end gap-3">
+                                                                        <div className="flex-1">
+                                                                            <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 ml-1">Tabla Destino</label>
+                                                                            <div className="relative">
+                                                                                <select
+                                                                                    value={activities.find(a => a.id === selectedActivityId)?.sync_table || ''}
+                                                                                    onChange={(e) => {
+                                                                                        const table = e.target.value;
+                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, sync_table: table } : a));
+                                                                                    }}
+                                                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-white appearance-none"
+                                                                                >
+                                                                                    <option value="">Ninguna tabla vinculada</option>
+                                                                                    {lookupData.dbTables.map(t => (
+                                                                                        <option key={t} value={t}>{t}</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                                <Database className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={handleImportTableSchema}
+                                                                            disabled={!activities.find(a => a.id === selectedActivityId)?.sync_table}
+                                                                            className="px-6 py-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-[10px] uppercase tracking-widest h-[46px]"
+                                                                        >
+                                                                            <Download className="w-4 h-4" />
+                                                                            Importar Columnas
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1651,7 +1739,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                     </div>
                                                                 </div>
 
-                                                                <div className="bg-white dark:bg-slate-900/40 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                                                                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-x-auto shadow-sm">
                                                                     <table className="w-full text-left border-collapse">
                                                                         <thead>
                                                                             <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
@@ -1660,7 +1748,9 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                 <th className="px-3 py-3">Tipo de Dato</th>
                                                                                 <th className="px-3 py-3">Auto-llenar Desde</th>
                                                                                 <th className="px-3 py-3 text-center">Requerido</th>
-                                                                                <th className="px-3 py-3 text-center" title="Campo de solo lectura, el usuario ve el valor pero no puede modificarlo">Solo Lectura</th>
+                                                                                <th className="px-3 py-3 text-center" title="Solo lectura">Lectura</th>
+                                                                                <th className="px-3 py-3 text-center">Límite</th>
+                                                                                <th className="px-3 py-3 text-center">Altura</th>
                                                                                 <th className="px-3 py-3 text-center">Acciones</th>
                                                                             </tr>
                                                                         </thead>
@@ -1832,7 +1922,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                 <div className="flex items-center justify-center h-8">
                                                                                                     <input
                                                                                                         type="checkbox"
-                                                                                                        checked={field.is_readonly || false}
+                                                                                                        checked={!!field.is_readonly}
                                                                                                         onChange={(e) => {
                                                                                                             const isRO = e.target.checked;
                                                                                                             setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
@@ -1845,7 +1935,41 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                     />
                                                                                                 </div>
                                                                                             </td>
-                                                                                            <td className="px-3 py-2">
+                                                                                            <td className="px-2 py-2">
+                                                                                                <input
+                                                                                                    type="number"
+                                                                                                    value={field.max_length || ''}
+                                                                                                    onChange={(e) => {
+                                                                                                        const val = e.target.value ? Number(e.target.value) : undefined;
+                                                                                                        setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                            ...a,
+                                                                                                            fields: a.fields?.map(f => f.id === field.id ? { ...f, max_length: val } : f)
+                                                                                                        } : a));
+                                                                                                    }}
+                                                                                                    className="w-14 h-8 px-1 text-[10px] text-center bg-slate-50/50 dark:bg-slate-800/30 border border-slate-300 dark:border-slate-700/50 rounded-lg font-bold"
+                                                                                                    placeholder="∞"
+                                                                                                />
+                                                                                            </td>
+                                                                                            <td className="px-2 py-2">
+                                                                                                {field.type === 'textarea' ? (
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        min={1}
+                                                                                                        value={field.rows || 4}
+                                                                                                        onChange={(e) => {
+                                                                                                            const val = Number(e.target.value);
+                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                                ...a,
+                                                                                                                fields: a.fields?.map(f => f.id === field.id ? { ...f, rows: val } : f)
+                                                                                                            } : a));
+                                                                                                        }}
+                                                                                                        className="w-12 h-8 px-1 text-[10px] text-center bg-slate-50/50 dark:bg-slate-800/30 border border-slate-300 dark:border-slate-700/50 rounded-lg font-bold"
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    <div className="text-center text-slate-300">-</div>
+                                                                                                )}
+                                                                                            </td>
+                                                                                            <td className="px-3 py-2 text-center">
                                                                                                 <div className="flex items-center justify-center h-8">
                                                                                                     <button
                                                                                                         onClick={() => {
@@ -1861,14 +1985,12 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                 </div>
                                                                                             </td>
                                                                                         </tr>
-
-
                                                                                     </React.Fragment>
                                                                                 );
                                                                             })}
                                                                             {(!activities.find(a => a.id === selectedActivityId)?.fields || activities.find(a => a.id === selectedActivityId)?.fields?.length === 0) && (
                                                                                 <tr>
-                                                                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
+                                                                                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400 italic">
                                                                                         No hay campos definidos para esta actividad.
                                                                                     </td>
                                                                                 </tr>
@@ -2682,7 +2804,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                         </>
                     )}
                 </section>
-            </div>
+            </div >
 
 
             <SOPGenerator
@@ -2721,6 +2843,10 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                         onFetchColumns={fetchColumnsForTable}
                         initialSelectedFieldId={selectedPreviewFieldId}
                         initialShowAdvanced={!!selectedPreviewFieldId}
+                        isFirstActivity={
+                            activities.find(a => a.id === selectedActivityId)?.type === 'start' ||
+                            !transitions.some(t => t.target_id === selectedActivityId)
+                        }
                         previousActivities={activities.filter(a => {
                             const hasPath = transitions.some(t =>
                                 t.target_id === selectedActivityId &&

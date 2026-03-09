@@ -1,0 +1,14 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
+FILE_NAME('','2026-02-21T15:22:15',(''),(''),'IfcOpenShell 0.8.0','IfcOpenShell 0.8.0','');
+FILE_SCHEMA(('IFC2X3'));
+ENDSEC;
+DATA;
+#1=IFCPROJECT('0eB_VzWbXDFuU1K2geToXA',$,'Proyecto de Prueba BIMind',$,$,$,$,$,$);
+#2=IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.);
+#3=IFCUNITASSIGNMENT((#2));
+#4=IFCSITE('1_3M2092z0TwzKlUDIweVZ',$,'Sitio de Prueba',$,$,$,$,$,$,$,$,$,$,$);
+#5=IFCBUILDING('2P0$qHsWz3cOGJcHcPnCtm',$,'Edificio MVP',$,$,$,$,$,$,$,$,$);
+ENDSEC;
+END-ISO-10303-21;

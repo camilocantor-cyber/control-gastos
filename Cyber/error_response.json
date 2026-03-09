@@ -1,0 +1,1 @@
+﻿{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Fax":["The Fax field is required."],"CdIntrno":["The CdIntrno field is required."],"CntroCsto":["The CntroCsto field is required."]},"traceId":"00-d50f3d6dc26ab51a612485dfc06bdb52-52232697c6b6e631-00"}

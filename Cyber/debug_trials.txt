@@ -1,0 +1,10 @@
+--- Trial at 17/02/2026 5:42:12 a. m. ---
+TRYING: User Id=cyber;Password=teped123;Data Source=127.0.0.1:1521/orcl
+FAILED: ORA-50201: Oracle Communication: Failed to connect to server or failed to parse connect string
+TRYING: User Id=cyber;Password=teped123;Data Source=//127.0.0.1:1521/orcl
+FAILED: ORA-50201: Oracle Communication: Failed to connect to server or failed to parse connect string
+TRYING: User Id=cyber;Password=teped123;Data Source=127.0.0.1:1521:orcl
+FAILED: ORA-12154: TNS:no se ha podido resolver el identificador de conexión especificado
+https://docs.oracle.com/error-help/db/ora-12154/
+TRYING: User Id=cyber;Password=teped123;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=orcl)))
+FAILED: ORA-50201: Oracle Communication: Failed to connect to server or failed to parse connect string

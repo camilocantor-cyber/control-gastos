@@ -161,6 +161,11 @@ export interface FieldDefinition {
     visibility_condition?: string; // Logic to show/hide field based on other field values
     default_value?: string;
     is_readonly?: boolean;
+    // Database synchronization mapping
+    db_column?: string;
+    db_type?: string;
+    db_nullable?: boolean;
+    db_is_primary_key?: boolean;
     // For Grid type
     grid_columns?: GridColumn[]; // Columns for master-detail
     // For Lookup type
@@ -186,6 +191,8 @@ export interface FieldDefinition {
     };
     consecutive_mask?: string; // e.g. "CON-EH1-YYYY-MM-####" for consecutivo type
     parent_accordion_id?: string; // ID of the accordion field this field belongs to
+    is_global_header?: boolean; // If true, this field will be shown as context in all subsequent activities
+    rows?: number; // For textarea type, number of rows to display
 }
 
 export interface ActivityField {
@@ -279,6 +286,7 @@ export interface Activity {
     height?: number;
     x?: number;
     y?: number;
+    sync_table?: string;
     fields?: FieldDefinition[];
     associated_details?: string[]; // IDs of WorkflowDetails linked to this activity
     detail_cardinalities?: Record<string, { mode: 'none' | '1_to_many' | 'min_x', min_items?: number, read_only?: boolean }>;

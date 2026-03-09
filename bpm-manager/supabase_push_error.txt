@@ -1,0 +1,48 @@
+Initialising login role...
+Connecting to remote database...
+Do you want to push these migrations to the remote database?
+ • 20240210_multi_tenancy.sql
+ • 20240215_organizational_chart.sql
+ • 20240216_user_status.sql
+ • 20240217_activity_actions.sql
+ • 20240217_fix_assignment_check.sql
+ • 20240217_process_number.sql
+ • 20240217_reporting_and_logs.sql
+ • 20240224_sla_enhancements.sql
+ • 20240226_add_form_columns_to_details.sql
+ • 20240226_add_lookup_type_constraint.sql
+ • 20240226_dynamic_lookups_rpc.sql
+ • 20240227_add_location_type_constraint.sql
+ • 20240227_bim_object_states.sql
+ • 20240301_add_consecutivo_type_constraint.sql
+ • 20240301_add_detail_cardinalities.sql
+ • 20240301_add_multi_actions_column.sql
+ • 20240301_add_workflow_sequence_identity.sql
+ • 20240302_public_activity_forms.sql
+ • 20240302_public_forms.sql
+ • 20240302_total_cost_columns.sql
+ • 20240302_workflow_categories.sql
+ • 20240303_create_tenant_rpc.sql
+ • 20240303_workflow_templates.sql
+ • 20240304_add_org_logo.sql
+ • 20240306_add_readonly_to_fields.sql
+ • 20240308_add_db_mapping_columns.sql
+ • 20240308_add_rows_column.sql
+ • 20240308_add_sync_table.sql
+ • 20240308_add_waiting_statuses.sql
+ • 20240308_create_schema_rpc.sql
+ • 20240308_ensure_model_columns.sql
+ • 20240309_fix_workflow_categories_rls.sql
+
+ [Y/n] Y
+Applying migration 20240210_multi_tenancy.sql...
+ERROR: relation "organizations" already exists (SQLSTATE 42P07)                   
+At statement: 0                                                                   
+-- 1. Create table `organizations`                                                
+CREATE TABLE organizations (                                                      
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),                                  
+  name text NOT NULL,                                                             
+  plan text NOT NULL CHECK (plan IN ('free', 'pro', 'enterprise')) DEFAULT 'free',
+  created_at timestamptz DEFAULT now()                                            
+)                                                                                 
+Try rerunning the command with --debug to troubleshoot the error.

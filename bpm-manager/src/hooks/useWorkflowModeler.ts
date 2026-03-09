@@ -89,7 +89,7 @@ export function useWorkflowModeler(workflowId: string) {
                             'assignment_type', 'assignment_strategy', 'actions', 'associated_details',
                             'detail_cardinalities', 'form_columns', 'due_date_hours', 'sla_alert_hours',
                             'enable_supervisor_alerts', 'is_public', 'wait_config', 'subprocess_config',
-                            'sync_config', 'width', 'height', 'x_pos', 'y_pos',
+                            'sync_config', 'sync_table', 'width', 'height', 'x_pos', 'y_pos',
                             'folder_completion_rule', 'folder_completion_ids', 'require_save_before_folders'
                         ];
 
@@ -132,6 +132,11 @@ export function useWorkflowModeler(workflowId: string) {
                         source_activity_id: f.source_activity_id ?? null,
                         source_field_name: f.source_field_name ?? null,
                         parent_accordion_id: f.parent_accordion_id ?? null,
+                        rows: f.rows ?? null,
+                        db_column: f.db_column ?? null,
+                        db_type: f.db_type ?? null,
+                        db_nullable: f.db_nullable ?? null,
+                        db_is_primary_key: f.db_is_primary_key ?? null,
                     };
 
                     // Solo incluir order_index si f lo tiene, para evitar errores si la columna no existe
@@ -166,7 +171,9 @@ export function useWorkflowModeler(workflowId: string) {
                             const optionalColumns = [
                                 'order_index', 'consecutive_mask', 'default_value', 'grid_columns',
                                 'source_activity_id', 'source_field_name', 'parent_accordion_id',
-                                'regex_pattern', 'visibility_condition', 'max_length'
+                                'regex_pattern', 'visibility_condition',
+                                'db_column', 'db_type', 'db_nullable', 'db_is_primary_key',
+                                'rows', 'is_global_header'
                             ];
 
                             const fieldsResilient = cleanedFields.map(f => {
@@ -215,7 +222,7 @@ export function useWorkflowModeler(workflowId: string) {
                 const { error: delTransError } = await supabase.from('transitions')
                     .delete()
                     .eq('workflow_id', workflowId)
-                    .not('id', 'in', transitionIds);
+                    .not('id', 'in', `(${transitionIds.join(',')})`);
                 if (delTransError) throw new Error('Error al borrar transiciones: ' + delTransError.message);
             } else {
                 const { error: delTransError } = await supabase.from('transitions').delete().eq('workflow_id', workflowId);
@@ -228,7 +235,7 @@ export function useWorkflowModeler(workflowId: string) {
                     const { error: delFieldsError } = await supabase.from('activity_field_definitions')
                         .delete()
                         .in('activity_id', activityIds)
-                        .not('id', 'in', fieldIds);
+                        .not('id', 'in', `(${fieldIds.join(',')})`);
                     if (delFieldsError) throw new Error('Error al borrar campos: ' + delFieldsError.message);
                 } else {
                     const { error: delFieldsError } = await supabase.from('activity_field_definitions')
@@ -244,7 +251,7 @@ export function useWorkflowModeler(workflowId: string) {
                 const { error: delActError } = await supabase.from('activities')
                     .delete()
                     .eq('workflow_id', workflowId)
-                    .not('id', 'in', activityIds);
+                    .not('id', 'in', `(${activityIds.join(',')})`);
 
                 if (delActError) {
                     if (delActError.message?.includes('foreign key constraint') || delActError.code === '23503') {
@@ -267,7 +274,7 @@ export function useWorkflowModeler(workflowId: string) {
                 const { error: delDetailsError } = await supabase.from('workflow_details')
                     .delete()
                     .eq('workflow_id', workflowId)
-                    .not('id', 'in', detailIds);
+                    .not('id', 'in', `(${detailIds.join(',')})`);
                 if (delDetailsError) throw new Error('Error al borrar detalles: ' + delDetailsError.message);
             } else {
                 const { error: delDetailsError } = await supabase.from('workflow_details').delete().eq('workflow_id', workflowId);

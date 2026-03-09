@@ -46,7 +46,7 @@ export function useWorkflowCategories() {
             const { error } = await supabase
                 .from('workflow_categories')
                 .insert({ organization_id: user.organization_id, name, color });
-            return { error };
+            return { error: error?.message || null };
         } catch (error: any) {
             return { error: error.message };
         }
@@ -58,7 +58,7 @@ export function useWorkflowCategories() {
                 .from('workflow_categories')
                 .update({ name, color })
                 .eq('id', id);
-            return { error };
+            return { error: error?.message || null };
         } catch (error: any) {
             return { error: error.message };
         }
@@ -70,7 +70,7 @@ export function useWorkflowCategories() {
                 .from('workflow_categories')
                 .delete()
                 .eq('id', id);
-            return { error };
+            return { error: error?.message || null };
         } catch (error: any) {
             return { error: error.message };
         }

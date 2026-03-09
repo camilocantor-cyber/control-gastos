@@ -65,7 +65,7 @@ export function GeoSelector({ value, onChange }: GeoSelectorProps) {
 
     return (
         <div className="space-y-3">
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1 grid grid-cols-2 gap-2">
                     <div className="relative">
                         <label className="absolute -top-1.5 left-2 bg-white dark:bg-slate-900 px-1 text-[8px] font-black text-slate-400 uppercase tracking-widest z-10">Latitud</label>
@@ -89,36 +89,38 @@ export function GeoSelector({ value, onChange }: GeoSelectorProps) {
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={handleGetLocation}
-                    disabled={isLocating}
-                    className={clsx(
-                        "w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all shrink-0 active:scale-90",
-                        isLocating
-                            ? "bg-blue-100 border-blue-200 text-blue-600 animate-pulse"
-                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:text-blue-500 hover:border-blue-500/50 shadow-sm"
-                    )}
-                    title="Obtener ubicación actual"
-                >
-                    <Locate className={clsx("w-5 h-5", isLocating && "animate-spin")} />
-                </button>
-
-                {lat && lng && (
+                <div className="flex gap-2">
                     <button
                         type="button"
-                        onClick={() => setShowMapPreview(!showMapPreview)}
+                        onClick={handleGetLocation}
+                        disabled={isLocating}
                         className={clsx(
-                            "w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all shrink-0",
-                            showMapPreview
-                                ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
-                                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:text-indigo-600 hover:border-indigo-500/50 shadow-sm"
+                            "flex-1 sm:w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all shrink-0 active:scale-90",
+                            isLocating
+                                ? "bg-blue-100 border-blue-200 text-blue-600 animate-pulse"
+                                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:text-blue-500 hover:border-blue-500/50 shadow-sm"
                         )}
-                        title="Previsualizar Mapa"
+                        title="Obtener ubicación actual"
                     >
-                        <MapIcon className="w-5 h-5" />
+                        <Locate className={clsx("w-5 h-5", isLocating && "animate-spin")} />
                     </button>
-                )}
+
+                    {lat && lng && (
+                        <button
+                            type="button"
+                            onClick={() => setShowMapPreview(!showMapPreview)}
+                            className={clsx(
+                                "flex-1 sm:w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all shrink-0",
+                                showMapPreview
+                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
+                                    : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:text-indigo-600 hover:border-indigo-500/50 shadow-sm"
+                            )}
+                            title="Previsualizar Mapa"
+                        >
+                            <MapIcon className="w-5 h-5" />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {showMapPreview && lat && lng && (

@@ -1,0 +1,16 @@
+Oracle.ManagedDataAccess.Client.OracleException (0x80004005): ORA-50201: Oracle Communication: Failed to connect to server or failed to parse connect string
+ ---> OracleInternal.Network.NetworkException (0x80004005): ORA-50201: Oracle Communication: Failed to connect to server or failed to parse connect string
+ ---> OracleInternal.Network.NetworkException (0x000030E6): ORA-12518: TNS:el listener no ha podido transferir la conexión del cliente
+https://docs.oracle.com/error-help/db/ora-12518/
+   at OracleInternal.Network.OracleCommunication.SendConnectPacketAndProcessResponse(AddressResolution addrRes, Boolean bAsync)
+   at OracleInternal.Network.OracleCommunication.ConnectViaCO(ConnectionOption connOption, AddressResolution addrRes, Boolean bAsync)
+   at OracleInternal.Network.OracleCommunication.DoConnect(String tnsDescriptor, Boolean bAsync)
+   at OracleInternal.Network.OracleCommunication.Connect(String tnsDescriptor, Boolean doNAHandshake, String IName, ConnectionOption CO, Boolean bAsync)
+   at OracleInternal.ServiceObjects.OracleConnectionImpl.Connect(ConnectionString cs, Boolean bOpenEndUserSession, OracleConnection connRefForCriteria, String instanceName, Boolean bAsync)
+   at OracleInternal.ConnectionPool.PoolManager`3.Get(ConnectionString csWithDiffOrNewPassw, Boolean bGetForApp, OracleConnection connRefForCriteria, String affinityInstanceName, Boolean bForceMatch, Boolean bAsync)
+   at OracleInternal.ConnectionPool.OraclePoolManager.Get(ConnectionString csWithNewPassw, Boolean bGetForApp, OracleConnection connRefForCriteria, String affinityInstanceName, Boolean bForceMatch, Boolean bAsync)
+   at OracleInternal.ConnectionPool.OracleConnectionDispenser`3.Get(ConnectionString cs, PM conPM, ConnectionString pmCS, OracleOpaqueString opaquePassw, OracleOpaqueString securedProxyPassw, OracleConnection connRefForCriteria, Boolean bAsync)
+   at OracleInternal.ServiceObjects.OracleConnectionInternal.OpenInternal(Boolean bAsync)
+   at OracleInternal.ServiceObjects.OracleConnectionInternal.Open()
+   at Oracle.ManagedDataAccess.Client.OracleConnection.Open()
+   at Cyber.Services.DatabaseService.CheckConnection() in C:\Proyecto\OneDrive\Documentos\Cyber\Services\DatabaseService.cs:line 25

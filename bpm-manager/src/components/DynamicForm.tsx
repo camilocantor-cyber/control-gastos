@@ -38,20 +38,30 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                     {field.type === 'textarea' ? (
                         <textarea
                             value={data[field.name] || ''}
-                            onChange={(e) => onChange(field.name, e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                const finalVal = (field.max_length && val.length > field.max_length) ? val.slice(0, field.max_length) : val;
+                                onChange(field.name, finalVal);
+                            }}
+                            style={{ minHeight: field.rows ? `${field.rows * 24}px` : '120px' }}
                             className={clsx(
-                                "w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl p-3 text-[13px] text-slate-700 dark:text-slate-200 outline-none min-h-[120px] transition-all resize-none focus:border-blue-500/50",
+                                "w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl p-3 text-[13px] text-slate-700 dark:text-slate-200 outline-none transition-all resize-none focus:border-blue-500/50",
                                 field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none grayscale-[0.3]"
                             )}
                             placeholder={field.placeholder || `Ingrese ${field.label || field.name}...`}
                             required={field.required}
                             readOnly={field.is_readonly}
+                            maxLength={field.max_length}
                         />
                     ) : field.type === 'select' ? (
                         <div className="relative group w-full h-full">
                             <select
                                 value={data[field.name] || ''}
-                                onChange={(e) => onChange(field.name, e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const finalVal = (field.max_length && val.length > field.max_length) ? val.slice(0, field.max_length) : val;
+                                    onChange(field.name, finalVal);
+                                }}
                                 className={clsx(
                                     "w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer font-bold",
                                     field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none"
@@ -171,7 +181,11 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                         <input
                             type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'email' ? 'email' : 'text'}
                             value={data[field.name] || ''}
-                            onChange={(e) => onChange(field.name, e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                const finalVal = (field.max_length && val.length > field.max_length) ? val.slice(0, field.max_length) : val;
+                                onChange(field.name, finalVal);
+                            }}
                             className={clsx(
                                 "w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all font-bold",
                                 field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none"
@@ -179,6 +193,7 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                             placeholder={field.placeholder || `Completar...`}
                             required={field.required}
                             readOnly={field.is_readonly}
+                            maxLength={field.max_length}
                         />
                     )}
                 </div>

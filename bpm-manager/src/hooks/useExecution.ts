@@ -527,6 +527,44 @@ export function useExecution() {
         return data;
     }
 
+    async function getGlobalHeaderData(processId: string) {
+        try {
+            // 1. Get process instance and its workflow
+            const { data: instance } = await supabase
+                .from('process_instances')
+                .select('workflow_id')
+                .eq('id', processId)
+                .single();
+
+            if (!instance) return [];
+
+            // 2. Fetch all fields of the workflow that are marked as global headers
+            const { data: globalFields } = await supabase
+                .from('activity_field_definitions')
+                .select('*, activities!inner(workflow_id)')
+                .eq('activities.workflow_id', instance.workflow_id)
+                .eq('is_global_header', true);
+
+            if (!globalFields || globalFields.length === 0) return [];
+
+            // 3. Fetch values for these fields in this process
+            const { data: values } = await supabase
+                .from('process_data')
+                .select('*')
+                .eq('process_id', processId)
+                .in('field_name', globalFields.map(f => f.name));
+
+            // 4. Map values to field definitions
+            return globalFields.map(f => ({
+                ...f,
+                value: values?.find(v => v.field_name === f.name)?.value || ''
+            }));
+        } catch (err) {
+            console.error('Error fetching global header data:', err);
+            return [];
+        }
+    }
+
     async function getProcessData(processId: string, activityId: string) {
         const { data, error } = await supabase
             .from('process_data')
@@ -949,6 +987,7 @@ export function useExecution() {
         getProcessData,
         saveProcessData,
         completeProcess,
+        getGlobalHeaderData,
         getBimStates: async (processId: string) => {
             const { data, error } = await supabase
                 .from('process_bim_states')

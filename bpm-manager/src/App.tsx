@@ -227,7 +227,7 @@ function AppContent() {
           </div>
 
           {/* Scrolling Content Area */}
-          <div className="h-full overflow-y-auto custom-scrollbar bg-slate-100/95 dark:bg-slate-950/95 backdrop-blur-3xl pt-24 pb-20 p-4 md:p-8">
+          <div className="h-full overflow-y-auto custom-scrollbar bg-slate-100/95 dark:bg-slate-950/95 backdrop-blur-3xl pt-8 pb-20 p-4 md:p-8">
             <div className="relative">
               {/* Decorative background elements inside scrolling area */}
               <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] -translate-y-1/2" />

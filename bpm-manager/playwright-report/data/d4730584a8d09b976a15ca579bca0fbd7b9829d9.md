@@ -1,0 +1,58 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e3]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e10]:
+          - generic [ref=e11]:
+            - img [ref=e13]
+            - generic [ref=e15]: BPM FLOW
+          - generic [ref=e16]:
+            - heading "El futuro del modelado de negocios." [level=2] [ref=e17]:
+              - text: El futuro del
+              - text: modelado de negocios.
+            - paragraph [ref=e18]: Construye, automatiza y escala tus flujos de trabajo con una interfaz diseñada para la excelencia.
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - img [ref=e21]
+            - generic [ref=e25]: Data Persistente
+          - generic [ref=e26]:
+            - img [ref=e27]
+            - generic [ref=e32]: Dashboard Real-time
+          - generic [ref=e33]:
+            - img [ref=e34]
+            - generic [ref=e37]: Seguridad Bancaria
+          - generic [ref=e38]:
+            - img [ref=e39]
+            - generic [ref=e41]: Desempeño Ultra-Rápido
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - heading "Acceder" [level=3] [ref=e44]
+          - paragraph [ref=e45]: Continúa optimizando tu empresa.
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - text: Email Profesional
+            - generic [ref=e48]:
+              - img [ref=e49]
+              - textbox "correo@empresa.com" [ref=e52]
+          - generic [ref=e53]:
+            - text: Contraseña
+            - generic [ref=e54]:
+              - img [ref=e55]
+              - textbox "••••••••" [ref=e58]
+          - generic [ref=e59]:
+            - button "Usar código de verificación (sin contraseña)" [ref=e60]:
+              - img [ref=e61]
+              - text: Usar código de verificación (sin contraseña)
+            - button "¿Olvidaste tu contraseña?" [ref=e64]:
+              - img [ref=e65]
+              - text: ¿Olvidaste tu contraseña?
+          - button "Entrar al Dashboard" [ref=e68]:
+            - text: Entrar al Dashboard
+            - img [ref=e69]
+        - button "¿Aún no tienes acceso? Regístrate aquí" [ref=e72]
+    - paragraph [ref=e73]: © 2026 BPM Manager • High Productivity Platform
+```

@@ -1,0 +1,15 @@
+FAILED
+Date: 17/02/2026 5:39:20 a. m.
+ConnStr: User Id=cyber;Password=teped123;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=orcl)(SERVER=DEDICATED)));
+Error: ORA-50201: Oracle Communication: Failed to connect to server or failed to parse connect string
+Stack:    at OracleInternal.ConnectionPool.PoolManager`3.Get(ConnectionString csWithDiffOrNewPassw, Boolean bGetForApp, OracleConnection connRefForCriteria, String affinityInstanceName, Boolean bForceMatch, Boolean bAsync)
+   at OracleInternal.ConnectionPool.OraclePoolManager.Get(ConnectionString csWithNewPassw, Boolean bGetForApp, OracleConnection connRefForCriteria, String affinityInstanceName, Boolean bForceMatch, Boolean bAsync)
+   at OracleInternal.ConnectionPool.OracleConnectionDispenser`3.Get(ConnectionString cs, PM conPM, ConnectionString pmCS, OracleOpaqueString opaquePassw, OracleOpaqueString securedProxyPassw, OracleConnection connRefForCriteria, Boolean bAsync)
+   at OracleInternal.ServiceObjects.OracleConnectionInternal.OpenInternal(Boolean bAsync)
+   at OracleInternal.ServiceObjects.OracleConnectionInternal.Open()
+   at Oracle.ManagedDataAccess.Client.OracleConnection.Open()
+   at Cyber.Services.DatabaseService.CheckConnection() in C:\Proyecto\OneDrive\Documentos\Cyber\Services\DatabaseService.cs:line 23
+Inner: ORA-50201: Oracle Communication: Failed to connect to server or failed to parse connect string
+
+Fallback 1522 FAILED: ORA-12154: TNS:no se ha podido resolver el identificador de conexión especificado
+https://docs.oracle.com/error-help/db/ora-12154/
