@@ -17,7 +17,7 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
     const isTurista = currentRole === 'turista';
 
     const { instancesActive, instancesCompleted, historyCount, loading, refresh: statsRefresh } = useDashboardStats();
-    const { userEfficiency, topActivities, refresh: analyticsRefresh } = useDashboardAnalytics();
+    const { userEfficiency, refresh: analyticsRefresh } = useDashboardAnalytics();
 
     const refreshAll = () => {
         statsRefresh();
@@ -147,14 +147,14 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                                         </div>
                                     )}
                                 </div>
-                                {user?.dashboard_widgets?.includes('workload') && !isViewer && <WorkloadMap key="workload" data={topActivities} />}
+                                {user?.dashboard_widgets?.includes('workload') && !isViewer && <WorkloadMap key="workload" />}
                             </div>
                         );
 
                     case 'workload':
                         // Handled inside efficiency container if combined, or separately here if efficiency not present
                         if (user?.dashboard_widgets?.includes('efficiency')) return null;
-                        return !isViewer && <WorkloadMap key="workload" data={topActivities} />;
+                        return !isViewer && <WorkloadMap key="workload" />;
 
                     case 'ai':
                         return <DashboardAIWidget key="ai" />;
