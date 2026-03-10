@@ -1016,13 +1016,22 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                 isOpen={showAIGenerator}
                                 onClose={() => setShowAIGenerator(false)}
                                 onGenerate={(generatedData, method) => {
+                                    // Replace 'temp' workflow_id with the real workflow ID
+                                    const fixedActivities = generatedData.activities.map(a => ({
+                                        ...a,
+                                        workflow_id: workflow.id
+                                    }));
+                                    const fixedTransitions = generatedData.transitions.map(t => ({
+                                        ...t,
+                                        workflow_id: workflow.id
+                                    }));
                                     if (method === 'replace') {
-                                        setActivities(generatedData.activities);
-                                        setTransitions(generatedData.transitions);
+                                        setActivities(fixedActivities);
+                                        setTransitions(fixedTransitions);
                                     } else {
                                         // Append
-                                        setActivities(prev => [...prev, ...generatedData.activities]);
-                                        setTransitions(prev => [...prev, ...generatedData.transitions]);
+                                        setActivities(prev => [...prev, ...fixedActivities]);
+                                        setTransitions(prev => [...prev, ...fixedTransitions]);
                                     }
                                     // Auto layout to organize the newly generated flow
                                     setTimeout(() => handleAutoLayout(), 100);

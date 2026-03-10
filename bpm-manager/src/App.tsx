@@ -26,6 +26,9 @@ import { PublicForm } from './components/PublicForm';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { HelpCenter } from './components/HelpCenter';
 import { DashboardV2 } from './components/DashboardV2';
+import { KanbanBoard } from './components/KanbanBoard';
+import { WorkloadMap } from './components/WorkloadMap';
+import { AdvancedReports } from './components/AdvancedReports';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -179,6 +182,21 @@ function AppContent() {
       {activeSection === 'search' && (
         <div className="h-[calc(100vh-7rem)]">
           <ProcessSearch onAttendTask={(id) => setExecutingProcessId(id)} />
+        </div>
+      )}
+      {activeSection === 'kanban' && (
+        <div className="h-[calc(100vh-7rem)] overflow-hidden">
+          <KanbanBoard onOpenProcess={(id) => setExecutingProcessId(id)} />
+        </div>
+      )}
+      {activeSection === 'workload' && (
+        <div className="h-[calc(100vh-7rem)] overflow-y-auto custom-scrollbar pr-2">
+          <WorkloadMap />
+        </div>
+      )}
+      {activeSection === 'advanced-reports' && (
+        <div className="h-[calc(100vh-7rem)] overflow-y-auto custom-scrollbar pr-2">
+          <AdvancedReports />
         </div>
       )}
       {activeSection === 'providers' && <Providers />}

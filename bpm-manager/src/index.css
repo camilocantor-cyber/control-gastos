@@ -33,23 +33,64 @@ body {
     radial-gradient(at 100% 100%, rgba(126, 34, 206, 0.05) 0px, transparent 50%);
 }
 
-/* Custom Scrollbar for Dark Mode */
-.dark ::-webkit-scrollbar {
-  width: 10px;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  background-clip: content-box;
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: #02040a;
+  background: transparent;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #111827;
-  border-radius: 5px;
-  border: 2px solid #02040a;
+  background: #1e293b;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #334155;
+  background-clip: content-box;
+}
+
+.custom-scrollbar-horizontal {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.dark .custom-scrollbar-horizontal {
+  scrollbar-color: #1e293b transparent;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.dark .custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+  background: #1e293b;
 }
 
 /* Custom animations for the "WOW" effect */

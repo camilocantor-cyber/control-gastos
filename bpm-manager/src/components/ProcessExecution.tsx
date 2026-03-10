@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useExecution } from '../hooks/useExecution';
-import { X, Save, Plus, Trash2, Clock, GitBranch, Download, AlertCircle, Maximize2, Minimize2, CheckCircle2, DollarSign, Layers, ChevronRight, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2, Loader2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Clock, GitBranch, Download, AlertCircle, Maximize2, Minimize2, CheckCircle2, DollarSign, Layers, ChevronRight, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2, Loader2, Paperclip } from 'lucide-react';
 import type { Transition, Provider } from '../types';
 import { evaluateCondition, translateCondition } from '../utils/conditions';
 import { FileAttachments } from './FileAttachments';
@@ -58,11 +58,59 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     const [detailFormData, setDetailFormData] = useState<Record<string, any>>({});
     const [editingRowId, setEditingRowId] = useState<string | null>(null);
     const [history, setHistory] = useState<any[]>([]);
+    const [fieldUploading, setFieldUploading] = useState<Record<string, boolean>>({});
 
     // BIM State
     const [ifcFile, setIfcFile] = useState<any>(null);
     const [bimStates, setBimStates] = useState<Record<number, 'completed' | 'processing' | 'delayed' | 'pending'>>({});
     const [selectedBimObject, setSelectedBimObject] = useState<any>(null);
+
+    const handleFieldFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string, accept?: string) => {
+        const file = e.target.files?.[0];
+        if (!file || !instance) return;
+
+        try {
+            setFieldUploading(prev => ({ ...prev, [fieldName]: true }));
+
+            // Validate extension if accept is provided
+            if (accept) {
+                const ext = file.name.split('.').pop()?.toLowerCase();
+                const allowed = accept.split(',').map(a => a.trim().replace('.', '').toLowerCase());
+                if (ext && !allowed.includes(ext) && !accept.includes('*')) {
+                    toast.error(`Formato no permitido. Use: ${accept}`);
+                    return;
+                }
+            }
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${instance.id}/${fieldName}_${Date.now()}.${fileExt}`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('process-files')
+                .upload(fileName, file);
+
+            if (uploadError) throw uploadError;
+
+            // Get public URL or signed URL. For simplicity, we'll store the path
+            // and use a helper to get the URL when rendering.
+            setFormData(prev => ({ ...prev, [fieldName]: uploadData.path }));
+            toast.success('Archivo cargado correctamente');
+        } catch (err: any) {
+            console.error('Error uploading field file:', err);
+            toast.error('Error al subir el archivo');
+        } finally {
+            setFieldUploading(prev => ({ ...prev, [fieldName]: false }));
+            e.target.value = '';
+        }
+    };
+
+    const getFieldFileUrl = async (path: string) => {
+        if (!path) return null;
+        const { data } = await supabase.storage
+            .from('process-files')
+            .createSignedUrl(path, 3600);
+        return data?.signedUrl;
+    };
 
 
     useEffect(() => {
@@ -1047,7 +1095,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                 return (
                                                     <div key={field.id} className={clsx(
                                                         "space-y-2",
-                                                        (field.type === 'textarea' || field.type === 'location') ? "col-span-full" : ""
+                                                        (field.type === 'textarea' || field.type === 'location' || field.type === 'attachment') ? "col-span-full" : ""
                                                     )}>
                                                         <div className="flex items-center px-1 min-h-[1.25rem] h-auto mb-1">
                                                             <label className="block text-[10px] font-black text-[#0f172a] dark:text-slate-300 uppercase tracking-[0.15em] leading-none">
@@ -1056,7 +1104,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             </label>
                                                         </div>
                                                         <div className={clsx(
-                                                            (field.type === 'textarea' || field.type === 'location') ? "h-auto" : "h-10"
+                                                            (field.type === 'textarea' || field.type === 'location' || field.type === 'attachment') ? "h-auto" : "h-10"
                                                         )}>
                                                             {field.type === 'textarea' ? (
                                                                 <textarea
@@ -1182,6 +1230,74 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                         value={formData[field.name]}
                                                                         onChange={(val: string) => setFormData(prev => ({ ...prev, [field.name]: val }))}
                                                                     />
+                                                                </div>
+                                                            ) : field.type === 'attachment' ? (
+                                                                <div className="space-y-2">
+                                                                    {formData[field.name] ? (
+                                                                        <div className="flex items-center justify-between p-3 bg-blue-50/50 dark:bg-blue-500/5 border-2 border-blue-100 dark:border-blue-900/30 rounded-xl animate-in zoom-in-95 duration-300">
+                                                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                                                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+                                                                                    <Paperclip className="w-4 h-4 text-white" />
+                                                                                </div>
+                                                                                <div className="flex flex-col min-w-0">
+                                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 truncate uppercase tracking-tight">Archivo Cargado</span>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={async () => {
+                                                                                            const url = await getFieldFileUrl(formData[field.name]);
+                                                                                            if (url) window.open(url, '_blank');
+                                                                                        }}
+                                                                                        className="text-[9px] text-blue-600 dark:text-blue-400 font-bold hover:underline text-left truncate"
+                                                                                    >
+                                                                                        Ver Documento
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                            {!field.is_readonly && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setFormData(prev => ({ ...prev, [field.name]: '' }))}
+                                                                                    className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                                                                                >
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <label className={clsx(
+                                                                            "flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer group/upload",
+                                                                            fieldUploading[field.name] ? "border-blue-400 bg-blue-50/10" : "border-slate-300 dark:border-slate-700 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                                                                            field.is_readonly && "opacity-50 cursor-not-allowed pointer-events-none"
+                                                                        )}>
+                                                                            <input
+                                                                                type="file"
+                                                                                className="hidden"
+                                                                                onChange={(e) => handleFieldFileSelect(e, field.name, field.attachment_accept)}
+                                                                                disabled={fieldUploading[field.name] || field.is_readonly}
+                                                                                accept={field.attachment_accept}
+                                                                            />
+                                                                            {fieldUploading[field.name] ? (
+                                                                                <div className="flex flex-col items-center gap-2">
+                                                                                    <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                                                                                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Subiendo...</span>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 group-hover/upload:scale-110 transition-transform">
+                                                                                        <Upload className="w-5 h-5 text-slate-400 group-hover/upload:text-blue-500" />
+                                                                                    </div>
+                                                                                    <div className="mt-3 text-center">
+                                                                                        <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                                                                                            Adjuntar {field.label || field.name}
+                                                                                        </p>
+                                                                                        <p className="text-[9px] text-slate-400 font-bold mt-1">
+                                                                                            {field.attachment_accept ? `Permitidos: ${field.attachment_accept}` : 'Haz clic para explorar'}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                </>
+                                                                            )}
+                                                                        </label>
+                                                                    )}
                                                                 </div>
                                                             ) : field.type === 'consecutivo' ? (
                                                                 <input
@@ -1703,7 +1819,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                     </div>
                 )
             }
-        </div>
+        </div >
     );
 }
 

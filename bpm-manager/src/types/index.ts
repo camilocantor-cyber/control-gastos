@@ -129,7 +129,7 @@ export interface ProcessHistory {
     user_id: string;
 }
 
-export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup' | 'location' | 'consecutivo' | 'label' | 'accordion';
+export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup' | 'location' | 'consecutivo' | 'label' | 'accordion' | 'attachment';
 
 export interface GridColumn {
     id: string;
@@ -193,6 +193,7 @@ export interface FieldDefinition {
     parent_accordion_id?: string; // ID of the accordion field this field belongs to
     is_global_header?: boolean; // If true, this field will be shown as context in all subsequent activities
     rows?: number; // For textarea type, number of rows to display
+    attachment_accept?: string; // For attachment type, e.g. ".pdf,.docx" or "image/*"
 }
 
 export interface ActivityField {

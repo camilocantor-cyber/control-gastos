@@ -191,7 +191,7 @@ export function AIWorkflowGeneratorModal({ isOpen, onClose, onGenerate }: AIWork
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder="Ejemplo: Necesito un flujo para solicitud de vacaciones. El primer paso es que el empleado llene sus datos y fechas. El segundo paso es que su jefe lo apruebe o rechace. Si se aprueba, el tercer paso es que RRHH lo registre en el sistema."
-                            className="w-full h-40 px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all dark:text-white resize-none text-sm leading-relaxed"
+                            className="w-full h-40 px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 dark:text-white dark:placeholder-gray-500 resize-none text-sm leading-relaxed"
                         />
                     </div>
 

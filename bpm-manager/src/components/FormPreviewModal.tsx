@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wand2, Database, Hash, ShieldCheck, Zap, X, Settings2, Trash2, Plus, ChevronRight, Eye, Info, CheckCircle2, Save, Layout, AlertCircle } from 'lucide-react';
+import { Wand2, Database, Hash, ShieldCheck, Zap, X, Settings2, Trash2, Plus, ChevronRight, Eye, Info, CheckCircle2, Save, Layout, AlertCircle, Paperclip } from 'lucide-react';
 import type { FieldDefinition, FieldType } from '../types';
 import { evaluateCondition } from '../utils/conditions';
 import { GeoSelector } from './GeoSelector';
@@ -42,6 +42,7 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
     { value: 'consecutivo', label: 'Consecutivo (Autogenerado)' },
     { value: 'label', label: 'Información / Mensaje' },
     { value: 'accordion', label: 'Contenedor / Acordeón' },
+    { value: 'attachment', label: 'Adjunto de Formulario (Archivo)' },
 ];
 
 export function FormPreviewModal({
@@ -195,7 +196,7 @@ export function FormPreviewModal({
                 className={clsx(
                     "p-2 rounded-xl transition-all relative border-2 flex flex-col group",
                     !isReadOnly && "cursor-grab active:cursor-grabbing",
-                    (field.type === 'textarea' || field.type === 'label' || field.type === 'accordion' || field.type === 'location') ? "col-span-full" : "",
+                    (field.type === 'textarea' || field.type === 'label' || field.type === 'accordion' || field.type === 'location' || field.type === 'attachment') ? "col-span-full" : "",
                     selectedFieldId === field.id
                         ? "border-blue-500 bg-blue-50/30 dark:bg-blue-500/5 shadow-inner"
                         : "border-transparent hover:border-slate-200 dark:hover:border-slate-800",
@@ -343,6 +344,20 @@ export function FormPreviewModal({
                                     <p className="text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest leading-none mb-1.5">{field.label || field.name}</p>
                                     <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
                                         {field.placeholder || field.description || 'Sin información disponible.'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : field.type === 'attachment' ? (
+                        <div className="flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-6 bg-slate-50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 transition-all group/upload shadow-inner">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 group-hover/upload:scale-110 transition-transform">
+                                    <Paperclip className="w-5 h-5 text-blue-500" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Subir Archivo</p>
+                                    <p className="text-[9px] text-slate-400 font-bold mt-0.5">
+                                        {field.attachment_accept ? `Formatos: ${field.attachment_accept}` : 'Cualquier formato'}
                                     </p>
                                 </div>
                             </div>
@@ -1191,6 +1206,26 @@ export function FormPreviewModal({
                                                     <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">Sin columnas configuradas</p>
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedField.type === 'attachment' && (
+                                    <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2">
+                                            <Paperclip className="w-4 h-4 text-blue-500" />
+                                            <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Configuración de Adjunto</h4>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Tipos de Archivo Aceptados</label>
+                                            <input
+                                                type="text"
+                                                value={selectedField.attachment_accept ?? ''}
+                                                onChange={e => onUpdateField(selectedField.id, { attachment_accept: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 font-extrabold text-xs text-slate-900 dark:text-slate-200 shadow-inner transition-all placeholder:text-slate-300"
+                                                placeholder="Ej: .pdf,.docx,image/*"
+                                            />
+                                            <p className="text-[8px] text-slate-400 italic px-2 pt-2">Separa por comas. Ej: .pdf,.jpg. Deja vacío para permitir todo.</p>
                                         </div>
                                     </div>
                                 )}

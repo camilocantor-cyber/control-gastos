@@ -2,7 +2,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../contexts/ThemeContext';
-import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen, Shield } from 'lucide-react';
+import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen, Shield, Columns, Activity, FileSpreadsheet } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { usePermissions } from '../hooks/usePermissions';
@@ -142,8 +142,17 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
         setOpenSections(newOpen);
     };
 
-    const isHerramientasActive = ['calendar', 'reports', 'monitor'].includes(activeSection);
+    const isHerramientasActive = ['calendar', 'reports', 'monitor', 'search', 'kanban', 'workload', 'advanced-reports'].includes(activeSection);
     const isConfigActive = ['workflows', 'users', 'organization', 'accounts', 'parameters', 'providers', 'orgchart'].includes(activeSection);
+
+    React.useEffect(() => {
+        if (isHerramientasActive) {
+            setOpenSections(prev => new Set(prev).add('herramientas'));
+        }
+        if (isConfigActive) {
+            setOpenSections(prev => new Set(prev).add('config'));
+        }
+    }, [activeSection, isHerramientasActive, isConfigActive]);
 
     return (
         <aside className={cn(
@@ -229,14 +238,37 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                 onClick={() => onSectionChange('calendar')}
                                 isCollapsed={isCollapsed}
                             />
+                            <SidebarItem
+                                icon={Columns}
+                                label="Tablero Kanban"
+                                active={activeSection === 'kanban'}
+                                onClick={() => onSectionChange('kanban')}
+                                isCollapsed={isCollapsed}
+                            />
+                            <SidebarItem
+                                icon={Activity}
+                                label="Carga de Trabajo"
+                                active={activeSection === 'workload'}
+                                onClick={() => onSectionChange('workload')}
+                                isCollapsed={isCollapsed}
+                            />
                             {hasPermission('view_reports') && (
-                                <SidebarItem
-                                    icon={BarChart3}
-                                    label="Reportes"
-                                    active={activeSection === 'reports'}
-                                    onClick={() => onSectionChange('reports')}
-                                    isCollapsed={isCollapsed}
-                                />
+                                <>
+                                    <SidebarItem
+                                        icon={BarChart3}
+                                        label="Reportes"
+                                        active={activeSection === 'reports'}
+                                        onClick={() => onSectionChange('reports')}
+                                        isCollapsed={isCollapsed}
+                                    />
+                                    <SidebarItem
+                                        icon={FileSpreadsheet}
+                                        label="Reportes Avanzados"
+                                        active={activeSection === 'advanced-reports'}
+                                        onClick={() => onSectionChange('advanced-reports')}
+                                        isCollapsed={isCollapsed}
+                                    />
+                                </>
                             )}
                             {hasPermission('access_settings') && (
                                 <SidebarItem
@@ -421,12 +453,15 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                                         activeSection === 'orgchart' ? 'Organigrama' :
                                             activeSection === 'workflows' ? 'Flujos de Trabajo' :
                                                 activeSection === 'search' ? 'Mis Trámites' :
-                                                    activeSection === 'calendar' ? 'Calendario' :
-                                                        activeSection === 'users' ? 'Colaboradores' :
-                                                            activeSection === 'accounts' ? 'Cuentas de Sistema' :
-                                                                activeSection === 'monitor' ? 'Monitor de API' :
-                                                                    activeSection === 'help' ? 'Centro de Ayuda' : // Added help display name
-                                                                        activeSection
+                                                    activeSection === 'kanban' ? 'Tablero Kanban' :
+                                                        activeSection === 'workload' ? 'Mapa de Carga' :
+                                                            activeSection === 'advanced-reports' ? 'Reportes Avanzados' :
+                                                                activeSection === 'calendar' ? 'Calendario' :
+                                                                    activeSection === 'users' ? 'Colaboradores' :
+                                                                        activeSection === 'accounts' ? 'Cuentas de Sistema' :
+                                                                            activeSection === 'monitor' ? 'Monitor de API' :
+                                                                                activeSection === 'help' ? 'Centro de Ayuda' : // Added help display name
+                                                                                    activeSection
                                     )}
                                 </h2>
                             </div>
