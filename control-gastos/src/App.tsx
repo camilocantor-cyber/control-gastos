@@ -12,11 +12,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 import { CategoryManager } from './components/CategoryManager';
 import { ProviderManager } from './components/ProviderManager';
+import { AccountingOperationManager } from './components/AccountingOperationManager';
+import { AccountingOperationCatalog } from './components/AccountingOperationCatalog';
 
 function AuthenticatedApp() {
   const { user, loading } = useAuth();
   const { transactions, addTransaction, deleteTransaction, updateTransaction } = useTransactions(user?.id);
-  const [view, setView] = useState<'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers' | 'operations' | 'execute-operations'>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
@@ -74,6 +76,14 @@ function AuthenticatedApp() {
 
         {view === 'providers' && (
           <ProviderManager />
+        )}
+
+        {view === 'operations' && (
+          <AccountingOperationManager />
+        )}
+
+        {view === 'execute-operations' && (
+          <AccountingOperationCatalog />
         )}
       </Layout>
 

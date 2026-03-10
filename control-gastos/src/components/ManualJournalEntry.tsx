@@ -163,7 +163,7 @@ export function ManualJournalEntry({ onClose, onSaved }: { onClose: () => void; 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
                 {/* Header */}
-                <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20">
+                <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
                     <div className="flex items-start justify-between">
                         <div>
                             <h3 className="text-2xl font-black text-slate-900 dark:text-white">
@@ -268,7 +268,7 @@ export function ManualJournalEntry({ onClose, onSaved }: { onClose: () => void; 
                                 <button
                                     type="button"
                                     onClick={addLine}
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg font-bold text-sm hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg font-bold text-sm hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                                 >
                                     <Plus className="w-4 h-4" />
                                     Agregar Línea
@@ -296,19 +296,14 @@ export function ManualJournalEntry({ onClose, onSaved }: { onClose: () => void; 
                                         </div>
 
                                         <div className="col-span-3">
-                                            <select
+                                            <input
+                                                list="accounts-list-manual"
                                                 required
                                                 value={detail.account_code}
                                                 onChange={(e) => updateDetail(index, 'account_code', e.target.value)}
-                                                className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                                            >
-                                                <option value="">Seleccione cuenta</option>
-                                                {movementAccounts.map(acc => (
-                                                    <option key={acc.id} value={acc.code}>
-                                                        {acc.code} - {acc.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                placeholder="Código o nombre..."
+                                            />
                                         </div>
 
                                         <div className="col-span-3">
@@ -365,7 +360,7 @@ export function ManualJournalEntry({ onClose, onSaved }: { onClose: () => void; 
                                     <div className="col-span-7"></div>
                                     <div className="col-span-2 text-right">
                                         <div className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Total Débito</div>
-                                        <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                                        <div className="text-xl font-black text-blue-600 dark:text-blue-400 font-mono">
                                             ${totalDebit.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
                                     </div>
@@ -383,8 +378,8 @@ export function ManualJournalEntry({ onClose, onSaved }: { onClose: () => void; 
                                         <div className="flex items-center gap-3">
                                             {isBalanced ? (
                                                 <>
-                                                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                                                    <span className="text-lg font-bold text-green-700 dark:text-green-400">
+                                                    <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                                    <span className="text-lg font-bold text-blue-700 dark:text-blue-400">
                                                         ✓ Asiento Balanceado
                                                     </span>
                                                 </>
@@ -451,6 +446,13 @@ export function ManualJournalEntry({ onClose, onSaved }: { onClose: () => void; 
                     </div>
                 </form>
             </div>
+            <datalist id="accounts-list-manual">
+                {movementAccounts.map(acc => (
+                    <option key={acc.id} value={acc.code}>
+                        {acc.name}
+                    </option>
+                ))}
+            </datalist>
         </div>
     );
 }

@@ -113,7 +113,7 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                                                 <div className="flex items-center gap-3">
                                                     <div className={clsx(
                                                         "p-2 rounded-full",
-                                                        t.type === 'income' ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+                                                        t.type === 'income' ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-600"
                                                     )}>
                                                         {t.type === 'income' ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
                                                     </div>
@@ -129,7 +129,7 @@ export function TransactionList({ transactions, onDelete, onEdit }: TransactionL
                                             <td className="px-6 py-4 text-right">
                                                 <span className={clsx(
                                                     "font-bold",
-                                                    t.type === 'income' ? "text-emerald-600" : "text-slate-900"
+                                                    t.type === 'income' ? "text-blue-600" : "text-slate-900"
                                                 )}>
                                                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                                 </span>

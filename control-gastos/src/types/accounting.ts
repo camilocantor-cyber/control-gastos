@@ -203,3 +203,45 @@ export interface BalanceSheetAccount {
     amount: number;
     level: number;
 }
+// --- Operaciones Contables Avanzadas ---
+
+export interface AccountingOperation {
+    id: string;
+    code: string;
+    name: string;
+    description: string | null;
+    concept_id: string | null;
+    user_id: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    // Relaciones
+    parameters?: OperationParameter[];
+    templates?: OperationTemplate[];
+}
+
+export interface OperationParameter {
+    id: string;
+    operation_id: string;
+    name: string;
+    label: string;
+    data_type: 'NUMBER' | 'TEXT' | 'DATE' | 'PROVIDER';
+    required: boolean;
+    default_value: string | null;
+    position: number;
+}
+
+export interface OperationTemplate {
+    id: string;
+    operation_id: string;
+    line_number: number;
+    account_code: string;
+    movement_type: 'DEBITO' | 'CREDITO';
+    third_party_formula: string | null;
+    description_formula: string | null;
+    value_formula: string | null;
+    base_formula: string | null;
+    cost_center: string | null;
+    municipality: string | null;
+    active_asset: string | null;
+}

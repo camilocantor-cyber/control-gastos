@@ -1,12 +1,12 @@
 import React from 'react';
-import { LayoutDashboard, PlusCircle, List, PieChart, Wallet, LogOut, User, Building2 } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, List, PieChart, Wallet, LogOut, User, Building2, Zap } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
     children: React.ReactNode;
-    currentView: 'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers';
-    onNavigate: (view: 'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers') => void;
+    currentView: 'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers' | 'operations' | 'execute-operations';
+    onNavigate: (view: 'dashboard' | 'transactions' | 'reports' | 'categories' | 'providers' | 'operations' | 'execute-operations') => void;
     onOpenAddModal: () => void;
 }
 
@@ -15,10 +15,12 @@ export function Layout({ children, currentView, onNavigate, onOpenAddModal }: La
 
     const navItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: 'Resumen' },
+        { id: 'execute-operations', icon: Zap, label: 'Ejecutar Op.' },
         { id: 'transactions', icon: List, label: 'Movimientos' },
         { id: 'reports', icon: PieChart, label: 'Reportes' },
         { id: 'categories', icon: List, label: 'Categorías' },
         { id: 'providers', icon: Building2, label: 'Proveedores' },
+        { id: 'operations', icon: User, label: 'Config. Operativas' },
     ] as const;
 
     return (

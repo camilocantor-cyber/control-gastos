@@ -165,8 +165,8 @@ export function Reports({ transactions }: ReportsProps) {
                                     formatter={(value: any) => [formatCurrency(value), '']}
                                 />
                                 <Legend />
-                                <Bar dataKey="income" name="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="expense" name="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="income" name="Ingresos" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="expense" name="Gastos" fill="#0f172a" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -249,12 +249,12 @@ export function Reports({ transactions }: ReportsProps) {
                         <AreaChart data={trendData}>
                             <defs>
                                 <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1} />
+                                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                                 </linearGradient>
                                 <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="#0f172a" stopOpacity={0.1} />
+                                    <stop offset="95%" stopColor="#0f172a" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -270,8 +270,8 @@ export function Reports({ transactions }: ReportsProps) {
                                 labelFormatter={(label) => new Date(label).toLocaleDateString()}
                             />
                             <Legend />
-                            <Area type="monotone" dataKey="income" name="Ingresos" stroke="#10b981" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
-                            <Area type="monotone" dataKey="expense" name="Gastos" stroke="#f43f5e" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
+                            <Area type="monotone" dataKey="income" name="Ingresos" stroke="#2563eb" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
+                            <Area type="monotone" dataKey="expense" name="Gastos" stroke="#0f172a" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>

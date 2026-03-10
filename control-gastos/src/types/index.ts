@@ -1,5 +1,18 @@
 export type TransactionType = 'income' | 'expense';
 
+export type UserRole = 'admin' | 'editor' | 'viewer' | 'turista';
+
+export interface User {
+    id: string;
+    email: string;
+    role: UserRole;
+    name?: string;
+    organization_id?: string;
+    available_organizations?: { id: string, name: string, role: UserRole, logo_url?: string }[];
+    permissions?: string[];
+    dashboard_widgets?: string[];
+}
+
 export interface Transaction {
     id: string;
     type: TransactionType;

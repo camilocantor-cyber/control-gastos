@@ -67,11 +67,11 @@ export function Dashboard({ stats, transactions }: DashboardProps) {
                     onClick={() => setFilter('income')}
                     className={clsx(
                         "text-left bg-white rounded-2xl p-6 border transition-all hover:scale-[1.02] active:scale-[0.98]",
-                        filter === 'income' ? "border-emerald-500 ring-4 ring-emerald-100 shadow-md" : "border-slate-100 shadow-sm hover:border-emerald-200"
+                        filter === 'income' ? "border-blue-500 ring-4 ring-blue-100 shadow-md" : "border-slate-100 shadow-sm hover:border-blue-200"
                     )}
                 >
-                    <div className="flex items-center gap-3 mb-2 text-emerald-600">
-                        <div className="p-2 bg-emerald-50 rounded-lg">
+                    <div className="flex items-center gap-3 mb-2 text-blue-600">
+                        <div className="p-2 bg-blue-50 rounded-lg">
                             <TrendingUp className="w-5 h-5" />
                         </div>
                         <span className="text-sm font-semibold text-slate-500">Ingresos</span>
@@ -112,7 +112,7 @@ export function Dashboard({ stats, transactions }: DashboardProps) {
                                 <div className="flex items-center gap-4">
                                     <div className={clsx(
                                         "p-2 rounded-full",
-                                        t.type === 'income' ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+                                        t.type === 'income' ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-600"
                                     )}>
                                         {t.type === 'income' ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
                                     </div>
@@ -123,7 +123,7 @@ export function Dashboard({ stats, transactions }: DashboardProps) {
                                 </div>
                                 <span className={clsx(
                                     "font-bold",
-                                    t.type === 'income' ? "text-emerald-600" : "text-slate-900"
+                                    t.type === 'income' ? "text-blue-600" : "text-slate-900"
                                 )}>
                                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                 </span>
@@ -143,12 +143,12 @@ export function Dashboard({ stats, transactions }: DashboardProps) {
                         <AreaChart data={trendData}>
                             <defs>
                                 <linearGradient id="dashColorIncome" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1} />
+                                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                                 </linearGradient>
                                 <linearGradient id="dashColorExpense" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="#0f172a" stopOpacity={0.1} />
+                                    <stop offset="95%" stopColor="#0f172a" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -164,10 +164,10 @@ export function Dashboard({ stats, transactions }: DashboardProps) {
                                 labelFormatter={(label) => new Date(label).toLocaleDateString()}
                             />
                             {(filter === 'all' || filter === 'income') && (
-                                <Area type="monotone" dataKey="income" name="Ingresos" stroke="#10b981" fillOpacity={1} fill="url(#dashColorIncome)" strokeWidth={2} />
+                                <Area type="monotone" dataKey="income" name="Ingresos" stroke="#2563eb" fillOpacity={1} fill="url(#dashColorIncome)" strokeWidth={2} />
                             )}
                             {(filter === 'all' || filter === 'expense') && (
-                                <Area type="monotone" dataKey="expense" name="Gastos" stroke="#f43f5e" fillOpacity={1} fill="url(#dashColorExpense)" strokeWidth={2} />
+                                <Area type="monotone" dataKey="expense" name="Gastos" stroke="#0f172a" fillOpacity={1} fill="url(#dashColorExpense)" strokeWidth={2} />
                             )}
                         </AreaChart>
                     </ResponsiveContainer>
