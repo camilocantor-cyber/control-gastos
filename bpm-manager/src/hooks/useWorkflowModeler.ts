@@ -127,6 +127,7 @@ export function useWorkflowModeler(workflowId: string) {
                         visibility_condition: f.visibility_condition ?? null,
                         default_value: f.default_value ?? null,
                         consecutive_mask: f.consecutive_mask ?? null,
+                        consecutive_id: f.consecutive_id ?? null,
                         lookup_config: f.lookup_config ?? null,
                         grid_columns: f.grid_columns ?? null,
                         source_activity_id: f.source_activity_id ?? null,
@@ -137,7 +138,10 @@ export function useWorkflowModeler(workflowId: string) {
                         db_type: f.db_type ?? null,
                         db_nullable: f.db_nullable ?? null,
                         db_is_primary_key: f.db_is_primary_key ?? null,
+                        location_mode: f.location_mode || 'coordinates',
                     };
+
+                    console.log(`Mapping field ${f.name} (ID: ${f.id}): location_mode = ${fieldToSave.location_mode}`);
 
                     // Solo incluir order_index si f lo tiene, para evitar errores si la columna no existe
                     if (f.order_index !== undefined) {
@@ -169,12 +173,14 @@ export function useWorkflowModeler(workflowId: string) {
 
                             // Lista de columnas que podrían no existir aún
                             const optionalColumns = [
-                                'order_index', 'consecutive_mask', 'default_value', 'grid_columns',
+                                'order_index', 'consecutive_mask', 'consecutive_id', 'default_value', 'grid_columns',
                                 'source_activity_id', 'source_field_name', 'parent_accordion_id',
                                 'regex_pattern', 'visibility_condition',
                                 'db_column', 'db_type', 'db_nullable', 'db_is_primary_key',
                                 'rows', 'is_global_header'
                             ];
+
+                            console.log('Error original que causó el reintento:', upsFieldsError);
 
                             const fieldsResilient = cleanedFields.map(f => {
                                 const newF = { ...f };

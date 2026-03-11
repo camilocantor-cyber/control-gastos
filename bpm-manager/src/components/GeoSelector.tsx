@@ -3,23 +3,29 @@ import { Locate, Map as MapIcon, Globe, X, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface GeoSelectorProps {
-    value?: string; // Stored as "lat,lng" string
+    value?: string; // Stored as "lat,lng" string OR postal code
     onChange: (value: string) => void;
+    mode?: 'coordinates' | 'postal_code';
 }
 
-export function GeoSelector({ value, onChange }: GeoSelectorProps) {
+export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelectorProps) {
     const [lat, setLat] = useState<string>('');
     const [lng, setLng] = useState<string>('');
+    const [postalCode, setPostalCode] = useState<string>('');
     const [isLocating, setIsLocating] = useState(false);
     const [showMapPreview, setShowMapPreview] = useState(false);
 
     useEffect(() => {
-        if (value && value.includes(',')) {
-            const [vLat, vLng] = value.split(',');
-            setLat(vLat.trim());
-            setLng(vLng.trim());
+        if (mode === 'coordinates') {
+            if (value && value.includes(',')) {
+                const [vLat, vLng] = value.split(',');
+                setLat(vLat.trim());
+                setLng(vLng.trim());
+            }
+        } else {
+            setPostalCode(value || '');
         }
-    }, [value]);
+    }, [value, mode]);
 
     const handleGetLocation = () => {
         if (!navigator.geolocation) {
@@ -29,12 +35,49 @@ export function GeoSelector({ value, onChange }: GeoSelectorProps) {
 
         setIsLocating(true);
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const newLat = position.coords.latitude.toString();
-                const newLng = position.coords.longitude.toString();
-                setLat(newLat);
-                setLng(newLng);
-                onChange(`${newLat},${newLng}`);
+            async (position) => {
+                const nLat = position.coords.latitude.toString();
+                const nLng = position.coords.longitude.toString();
+
+                setLat(nLat);
+                setLng(nLng);
+
+                if (mode === 'postal_code') {
+                    try {
+                        // Intentar con zoom 16 para mayor probabilidad de obtener código postal
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&zoom=16&addressdetails=1`);
+                        const data = await response.json();
+
+                        // Intentar obtener el código postal de varias fuentes en la respuesta
+                        let pc = data.address?.postcode ||
+                            data.address?.['postcode:postal'] ||
+                            data.address?.postal_code ||
+                            '';
+
+                        if (pc) {
+                            setPostalCode(String(pc));
+                            onChange(String(pc));
+                        } else {
+                            // Intento secundario con zoom más bajo si falló el primero
+                            const res2 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&zoom=14&addressdetails=1`);
+                            const data2 = await res2.json();
+                            pc = data2.address?.postcode || data2.address?.postal_code || '';
+
+                            if (pc) {
+                                setPostalCode(String(pc));
+                                onChange(String(pc));
+                            } else {
+                                alert('No se pudo encontrar el código postal para esta ubicación exacta. Por favor, ingrésalo manualmente.');
+                                // No bloqueamos, permitimos ingreso manual
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Reverse geocoding error:', err);
+                        alert('Error al obtener el código postal de forma automática.');
+                    }
+                } else {
+                    onChange(`${nLat},${nLng}`);
+                }
                 setIsLocating(false);
             },
             (error) => {
@@ -66,27 +109,45 @@ export function GeoSelector({ value, onChange }: GeoSelectorProps) {
     return (
         <div className="space-y-3">
             <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 grid grid-cols-2 gap-2">
-                    <div className="relative">
-                        <label className="absolute -top-1.5 left-2 bg-white dark:bg-slate-900 px-1 text-[8px] font-black text-slate-400 uppercase tracking-widest z-10">Latitud</label>
-                        <input
-                            type="text"
-                            value={lat}
-                            onChange={(e) => handleInputChange('lat', e.target.value)}
-                            placeholder="-4.123"
-                            className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm"
-                        />
-                    </div>
-                    <div className="relative">
-                        <label className="absolute -top-1.5 left-2 bg-white dark:bg-slate-900 px-1 text-[8px] font-black text-slate-400 uppercase tracking-widest z-10">Longitud</label>
-                        <input
-                            type="text"
-                            value={lng}
-                            onChange={(e) => handleInputChange('lng', e.target.value)}
-                            placeholder="-74.456"
-                            className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm"
-                        />
-                    </div>
+                <div className="flex-1">
+                    {mode === 'coordinates' ? (
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="relative">
+                                <label className="absolute -top-1.5 left-2 bg-white dark:bg-slate-900 px-1 text-[8px] font-black text-slate-400 uppercase tracking-widest z-10">Latitud</label>
+                                <input
+                                    type="text"
+                                    value={lat}
+                                    onChange={(e) => handleInputChange('lat', e.target.value)}
+                                    placeholder="-4.123"
+                                    className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm"
+                                />
+                            </div>
+                            <div className="relative">
+                                <label className="absolute -top-1.5 left-2 bg-white dark:bg-slate-900 px-1 text-[8px] font-black text-slate-400 uppercase tracking-widest z-10">Longitud</label>
+                                <input
+                                    type="text"
+                                    value={lng}
+                                    onChange={(e) => handleInputChange('lng', e.target.value)}
+                                    placeholder="-74.456"
+                                    className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <label className="absolute -top-1.5 left-2 bg-white dark:bg-slate-900 px-1 text-[8px] font-black text-rose-500 uppercase tracking-widest z-10">Código Postal</label>
+                            <input
+                                type="text"
+                                value={postalCode}
+                                onChange={(e) => {
+                                    setPostalCode(e.target.value);
+                                    onChange(e.target.value);
+                                }}
+                                placeholder="Escribe o captura el C.P."
+                                className="w-full h-10 bg-rose-50/30 dark:bg-rose-900/10 border-2 border-rose-100 dark:border-rose-900/30 rounded-xl px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-rose-500/50 transition-all shadow-sm"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-2">
@@ -98,9 +159,11 @@ export function GeoSelector({ value, onChange }: GeoSelectorProps) {
                             "flex-1 sm:w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all shrink-0 active:scale-90",
                             isLocating
                                 ? "bg-blue-100 border-blue-200 text-blue-600 animate-pulse"
-                                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:text-blue-500 hover:border-blue-500/50 shadow-sm"
+                                : (mode === 'postal_code'
+                                    ? "bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/40 text-rose-500 hover:border-rose-500 shadow-sm"
+                                    : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:text-blue-500 hover:border-blue-500/50 shadow-sm")
                         )}
-                        title="Obtener ubicación actual"
+                        title={mode === 'postal_code' ? "Capturar Código Postal" : "Obtener ubicación actual"}
                     >
                         <Locate className={clsx("w-5 h-5", isLocating && "animate-spin")} />
                     </button>
@@ -153,9 +216,6 @@ export function GeoSelector({ value, onChange }: GeoSelectorProps) {
                             >
                                 <X className="w-4 h-4" />
                             </button>
-                        </div>
-                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-950/90 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] shadow-lg border border-indigo-100 dark:border-indigo-900/50">
-                            Vista previa interactiva
                         </div>
                     </div>
                 </div>

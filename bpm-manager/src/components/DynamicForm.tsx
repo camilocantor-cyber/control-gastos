@@ -123,6 +123,7 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                             <GeoSelector
                                 value={data[field.name]}
                                 onChange={(val) => onChange(field.name, val)}
+                                mode={field.location_mode}
                             />
                         </div>
                     ) : field.type === 'lookup' ? (

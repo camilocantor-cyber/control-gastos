@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, ArrowRight, CheckCircle2, AlertCircle, Eye, Globe, X, Trash2 } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle2, AlertCircle, Globe, X, Trash2 } from 'lucide-react';
 import { useExecution } from '../hooks/useExecution';
-import { ProcessViewerModal } from './ProcessViewerModal';
 
 import { toast } from 'sonner';
 
 export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (taskId: string) => void, refreshTrigger?: number }) {
     const { getActiveTasks, deleteProcessInstance, loading, error } = useExecution();
     const [tasks, setTasks] = useState<any[]>([]);
-    const [viewingProcessId, setViewingProcessId] = useState<string | null>(null);
     const [escalatedTask, setEscalatedTask] = useState<any | null>(null);
 
     async function loadTasks() {
@@ -198,18 +196,6 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
                                                 </td>
                                                 <td className="px-3 py-1.5 text-left">
                                                     <div className="flex justify-start items-center gap-1.5">
-                                                        {/* View Flow Button */}
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setViewingProcessId(task.id);
-                                                            }}
-                                                            title="Ver Flujo del Proceso"
-                                                            className="w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white border border-slate-100 dark:border-slate-800/50 active:scale-90"
-                                                        >
-                                                            <Eye className="w-3 h-3" />
-                                                        </button>
-
                                                         {/* Borrar si es nuevo y no tiene data */}
                                                         {task.activities.type === 'start' &&
                                                             (!task.process_data || (Array.isArray(task.process_data) ? task.process_data[0]?.count === 0 : (task.process_data as any).count === 0)) && (
@@ -246,13 +232,6 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
                 </table>
             </div>
 
-            {/* Process Viewer Modal */}
-            {viewingProcessId && (
-                <ProcessViewerModal
-                    processId={viewingProcessId}
-                    onClose={() => setViewingProcessId(null)}
-                />
-            )}
 
             {/* Escalation Detail Modal */}
             {escalatedTask && (

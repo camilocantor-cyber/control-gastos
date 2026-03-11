@@ -247,7 +247,7 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                             />
                             <SidebarItem
                                 icon={Activity}
-                                label="Carga de Trabajo"
+                                label="Mapa de Carga"
                                 active={activeSection === 'workload'}
                                 onClick={() => onSectionChange('workload')}
                                 isCollapsed={isCollapsed}

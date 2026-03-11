@@ -2910,7 +2910,12 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                         type="text"
                                         value={workflowTemplate}
                                         onChange={(e) => setWorkflowTemplate(e.target.value)}
-                                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm"
+                                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm mb-2"
+                                        placeholder="Ej: Solicitud de Vacaciones - {{empleado_nombre}}"
+                                    />
+                                    <FormulaValidationFeedback
+                                        value={workflowTemplate}
+                                        availableFields={['date', 'user_name', 'user_email', 'organization_name', ...(activities.find(a => a.type === 'start')?.fields?.map(f => f.name) || [])]}
                                     />
                                 </div>
 

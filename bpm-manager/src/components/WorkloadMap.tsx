@@ -134,7 +134,7 @@ export function WorkloadMap() {
                         <Activity className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black text-blue-900 dark:text-white tracking-tight">Mapa de Carga de Trabajo</h2>
+                        <h2 className="text-xl font-black text-blue-900 dark:text-white tracking-tight">Mapa de Carga</h2>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                             {workloads.length} responsables activos
                         </p>

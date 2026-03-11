@@ -210,11 +210,22 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
 
                                 let formatted = mask.replace(/YYYY/g, YYYY).replace(/YY/g, YY).replace(/MM/g, MM).replace(/DD/g, DD);
 
-                                // Process the '#' symbols, using workflow_sequence as the sequence for identity per workflow type
-                                // Defaulting to process_number or random if there's an issue with sequence, to prevent crashes.
+                                // Si tiene un ID de secuencia nombrada, usar el RPC
+                                let seqValue = ins.workflow_sequence || ins.process_number || Math.floor(Math.random() * 1000);
+                                if (field.consecutive_id && ins.organization_id) {
+                                    try {
+                                        const { data: nextVal } = await supabase.rpc('get_next_consecutive_value', {
+                                            org_id: ins.organization_id,
+                                            seq_id: field.consecutive_id
+                                        });
+                                        if (nextVal) seqValue = nextVal;
+                                    } catch (err) {
+                                        console.warn(`Error al obtener secuencia nombrada ${field.consecutive_id}:`, err);
+                                    }
+                                }
+
                                 formatted = formatted.replace(/#+/g, (match: string) => {
-                                    const seq = ins.workflow_sequence || ins.process_number || Math.floor(Math.random() * 1000);
-                                    return seq.toString().padStart(match.length, '0');
+                                    return seqValue.toString().padStart(match.length, '0');
                                 });
 
                                 initialData[field.name] = formatted;
@@ -1229,6 +1240,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                     <GeoSelector
                                                                         value={formData[field.name]}
                                                                         onChange={(val: string) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                        mode={field.location_mode}
                                                                     />
                                                                 </div>
                                                             ) : field.type === 'attachment' ? (
@@ -1789,6 +1801,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                 <GeoSelector
                                                                     value={detailFormData[field.name]}
                                                                     onChange={(val: string) => setDetailFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                    mode={field.location_mode}
                                                                 />
                                                             </div>
                                                         ) : (

@@ -190,6 +190,8 @@ export interface FieldDefinition {
         mapping?: Record<string, string>; // Maps response/row column names to current target form field names
     };
     consecutive_mask?: string; // e.g. "CON-EH1-YYYY-MM-####" for consecutivo type
+    consecutive_id?: string; // Optional name for a specific sequence (e.g. "FACTURA_VENTA")
+    location_mode?: 'coordinates' | 'postal_code'; // For location type
     parent_accordion_id?: string; // ID of the accordion field this field belongs to
     is_global_header?: boolean; // If true, this field will be shown as context in all subsequent activities
     rows?: number; // For textarea type, number of rows to display

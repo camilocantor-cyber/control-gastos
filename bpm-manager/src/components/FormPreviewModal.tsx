@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wand2, Database, Hash, ShieldCheck, Zap, X, Settings2, Trash2, Plus, ChevronRight, Eye, Info, CheckCircle2, Save, Layout, AlertCircle, Paperclip } from 'lucide-react';
+import { Wand2, Database, Hash, ShieldCheck, Zap, X, Settings2, Trash2, Plus, ChevronRight, Eye, Info, CheckCircle2, Save, Layout, AlertCircle, Paperclip, MapPin, Crosshair, Mail } from 'lucide-react';
 import type { FieldDefinition, FieldType } from '../types';
 import { evaluateCondition } from '../utils/conditions';
 import { GeoSelector } from './GeoSelector';
@@ -316,6 +316,7 @@ export function FormPreviewModal({
                             <GeoSelector
                                 value={formData[field.name]}
                                 onChange={(val) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                mode={field.location_mode}
                             />
                         </div>
                     ) : field.type === 'lookup' ? (
@@ -665,6 +666,19 @@ export function FormPreviewModal({
                                                         </select>
                                                     </div>
 
+                                                    {selectedField.type === 'select' && (
+                                                        <div className="space-y-1.5 p-2.5 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 animate-in zoom-in-95 duration-200">
+                                                            <label className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block px-1">Opciones de la Lista</label>
+                                                            <textarea
+                                                                value={selectedField.options?.join('\n') || ''}
+                                                                onChange={(e) => onUpdateField(selectedField.id, { options: e.target.value.split('\n').filter(o => o.trim()) })}
+                                                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-[10px] font-bold min-h-[100px] shadow-inner focus:border-blue-400"
+                                                                placeholder="Una opción por cada línea"
+                                                            />
+                                                            <p className="text-[7px] text-slate-400 italic px-1 pt-1">Escribe cada opción en una línea nueva.</p>
+                                                        </div>
+                                                    )}
+
                                                     <div className="space-y-1">
                                                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1 leading-none">Identificador (Name)</label>
                                                         <input
@@ -708,17 +722,6 @@ export function FormPreviewModal({
                                             </div>
 
 
-                                            {selectedField.type === 'select' && (
-                                                <div className="space-y-1.5 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                                    <label className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block px-1">Opciones</label>
-                                                    <textarea
-                                                        value={selectedField.options?.join('\n') || ''}
-                                                        onChange={(e) => onUpdateField(selectedField.id, { options: e.target.value.split('\n').filter(o => o.trim()) })}
-                                                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-[10px] font-bold min-h-[80px]"
-                                                        placeholder="Una opción por línea..."
-                                                    />
-                                                </div>
-                                            )}
                                         </div>
 
                                     </div>
@@ -784,6 +787,93 @@ export function FormPreviewModal({
 
                             {/* Contenido Scrolleable */}
                             <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-thin">
+                                {/* Sección: Configuración General (Moved from side panel) */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2">
+                                        <Settings2 className="w-4 h-4 text-blue-500" />
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0f172a] dark:text-slate-300">Configuración General</h4>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="col-span-full space-y-1.5">
+                                            <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Etiqueta del Campo</label>
+                                            <input
+                                                type="text"
+                                                value={selectedField.label || ''}
+                                                onChange={(e) => {
+                                                    const newLabel = e.target.value;
+                                                    const newName = newLabel.toLowerCase()
+                                                        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                                                        .replace(/\s+/g, '_')
+                                                        .replace(/[^a-z0-9_]/g, '');
+                                                    onUpdateField(selectedField.id, {
+                                                        label: newLabel,
+                                                        name: newName || selectedField.name
+                                                    });
+                                                }}
+                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Tipo de Dato</label>
+                                            <select
+                                                value={selectedField.type}
+                                                onChange={(e) => {
+                                                    const newType = e.target.value as FieldType;
+                                                    const updates: Partial<FieldDefinition> = { type: newType };
+                                                    if (newType === 'email' && !selectedField.regex_pattern) {
+                                                        updates.regex_pattern = '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$';
+                                                    } else if (newType === 'phone' && !selectedField.regex_pattern) {
+                                                        updates.regex_pattern = '^\\+?[1-9]\\d{1,14}$';
+                                                    }
+                                                    onUpdateField(selectedField.id, updates);
+                                                }}
+                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 appearance-none cursor-pointer"
+                                            >
+                                                {FIELD_TYPES.map(t => (
+                                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Identificador (Name)</label>
+                                            <input
+                                                type="text"
+                                                value={selectedField.name || ''}
+                                                onChange={(e) => onUpdateField(selectedField.id, { name: e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') })}
+                                                className="w-full px-4 py-2.5 bg-blue-500/5 dark:bg-blue-500/10 border-2 border-blue-200 dark:border-blue-800/50 rounded-xl outline-none focus:border-blue-500 text-xs font-mono text-blue-600 dark:text-blue-400 font-bold"
+                                            />
+                                        </div>
+
+                                        {selectedField.type === 'textarea' && (
+                                            <div className="col-span-full space-y-1.5">
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Altura (Filas)</label>
+                                                <input
+                                                    type="number"
+                                                    min={2}
+                                                    max={20}
+                                                    value={selectedField.rows || 4}
+                                                    onChange={(e) => onUpdateField(selectedField.id, { rows: parseInt(e.target.value) || 4 })}
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {selectedField.type === 'select' && (
+                                            <div className="col-span-full space-y-1.5">
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Opciones de la Lista</label>
+                                                <textarea
+                                                    value={selectedField.options?.join('\n') || ''}
+                                                    onChange={(e) => onUpdateField(selectedField.id, { options: e.target.value.split('\n').filter(o => o.trim()) })}
+                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 min-h-[120px] placeholder:text-slate-400 shadow-inner"
+                                                    placeholder="Escribe una opción por cada línea..."
+                                                />
+                                                <p className="text-[9px] text-slate-400 italic px-1">Tip: Presiona Enter para agregar una nueva opción.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                                 {/* Sección 1: Validaciones y Restricciones */}
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-2">
@@ -1107,16 +1197,29 @@ export function FormPreviewModal({
                                             <Hash className="w-4 h-4 text-amber-500" />
                                             <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Máscara de Consecutivo</h4>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Formato de Máscara</label>
-                                            <input
-                                                type="text"
-                                                value={selectedField.consecutive_mask ?? ''}
-                                                onChange={e => onUpdateField(selectedField.id, { consecutive_mask: e.target.value })}
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 font-extrabold text-sm tracking-widest text-slate-900 dark:text-blue-400 shadow-inner transition-all placeholder:text-slate-300"
-                                                placeholder="Ej: CTR-YYYY-####"
-                                            />
-                                            <p className="text-[8px] text-slate-400 italic px-2 pt-2">YYYY: Año | MM: Mes | ####: Contador secuencial.</p>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Formato de Máscara</label>
+                                                <input
+                                                    type="text"
+                                                    value={selectedField.consecutive_mask ?? ''}
+                                                    onChange={e => onUpdateField(selectedField.id, { consecutive_mask: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 font-extrabold text-sm tracking-widest text-slate-900 dark:text-blue-400 shadow-inner transition-all placeholder:text-slate-300"
+                                                    placeholder="Ej: CTR-YYYY-####"
+                                                />
+                                                <p className="text-[8px] text-slate-400 italic px-2 pt-2">YYYY: Año | MM: Mes | ####: Contador secuencial.</p>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Nombre de Secuencia (Sufijo)</label>
+                                                <input
+                                                    type="text"
+                                                    value={selectedField.consecutive_id ?? ''}
+                                                    onChange={e => onUpdateField(selectedField.id, { consecutive_id: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 font-extrabold text-sm text-slate-900 dark:text-emerald-400 shadow-inner transition-all placeholder:text-slate-300"
+                                                    placeholder="Ej: ORDEN_COMPRA"
+                                                />
+                                                <p className="text-[8px] text-slate-400 italic px-2 pt-2">Opcional. Define una secuencia única para este campo.</p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -1189,6 +1292,21 @@ export function FormPreviewModal({
                                                                 <option value="select">Lista</option>
                                                             </select>
                                                         </div>
+                                                        {col.type === 'select' && (
+                                                            <div className="col-span-full space-y-1 animate-in slide-in-from-top-1">
+                                                                <label className="text-[7px] font-black text-indigo-500 uppercase tracking-widest px-1">Opciones de la Columna</label>
+                                                                <textarea
+                                                                    value={col.options?.join('\n') || ''}
+                                                                    onChange={e => {
+                                                                        const newCols = [...(selectedField.grid_columns || [])];
+                                                                        newCols[index] = { ...col, options: e.target.value.split('\n').filter(o => o.trim()) };
+                                                                        onUpdateField(selectedField.id, { grid_columns: newCols });
+                                                                    }}
+                                                                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[9px] font-bold outline-none focus:border-indigo-400 min-h-[60px]"
+                                                                    placeholder="Una opción por línea..."
+                                                                />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <button
                                                         onClick={() => {
@@ -1226,6 +1344,55 @@ export function FormPreviewModal({
                                                 placeholder="Ej: .pdf,.docx,image/*"
                                             />
                                             <p className="text-[8px] text-slate-400 italic px-2 pt-2">Separa por comas. Ej: .pdf,.jpg. Deja vacío para permitir todo.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedField.type === 'location' && (
+                                    <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="w-4 h-4 text-rose-500" />
+                                            <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-300">Configuración de Ubicación</h4>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">MODO DE CAPTURA DE UBICACIÓN</label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onUpdateField(selectedField.id, { location_mode: 'coordinates' });
+                                                    }}
+                                                    className={clsx(
+                                                        "flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                        (selectedField.location_mode === 'coordinates' || !selectedField.location_mode)
+                                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                                                            : "bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                                    )}
+                                                >
+                                                    <Crosshair className="w-4 h-4" /> Coordenadas
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onUpdateField(selectedField.id, { location_mode: 'postal_code' });
+                                                    }}
+                                                    className={clsx(
+                                                        "flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                        selectedField.location_mode === 'postal_code'
+                                                            ? "bg-rose-500 text-white shadow-lg shadow-rose-500/30"
+                                                            : "bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                                    )}
+                                                >
+                                                    <Mail className="w-4 h-4" /> Código Postal
+                                                </button>
+                                            </div>
+                                            <p className="text-[9px] text-slate-400 italic px-2 pt-1 font-medium">
+                                                {(selectedField.location_mode || 'coordinates') === 'coordinates'
+                                                    ? 'Captura latitud y longitud actuales.'
+                                                    : 'Obtiene automáticamente el código postal de la ubicación actual.'}
+                                            </p>
                                         </div>
                                     </div>
                                 )}
@@ -1431,19 +1598,32 @@ export function FormPreviewModal({
                                     </div>
                                 </div>
 
-                                {/* Footer del Modal */}
-                                <div className="bg-slate-50 dark:bg-[#020617] p-8 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-                                    <button
-                                        onClick={() => setShowAdvancedModal(false)}
-                                        className="px-10 py-4 bg-[#0f172a] hover:bg-[#1e293b] text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-xl active:scale-95 translate-y-0 hover:-translate-y-1"
-                                    >
-                                        Entendido y Cerrar
-                                    </button>
-                                </div>
+                            </div>
+
+                            {/* Footer del Modal */}
+                            <div className="bg-slate-50 dark:bg-[#020617] p-8 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 z-10 shrink-0">
+                                <button
+                                    onClick={() => setShowAdvancedModal(false)}
+                                    className="px-10 py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-sm active:scale-95"
+                                >
+                                    Cerrar
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        await handleSaveClick();
+                                        setShowAdvancedModal(false);
+                                    }}
+                                    disabled={saving}
+                                    className="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-xl active:scale-95 translate-y-0 hover:-translate-y-1 flex items-center gap-2"
+                                >
+                                    <Save className={clsx("w-4 h-4", saving && "animate-pulse")} />
+                                    {saving ? 'Guardando...' : 'Guardar y Cerrar'}
+                                </button>
                             </div>
                         </div>
                     </div>
-                )}
+                )
+            }
         </>
     );
 }
