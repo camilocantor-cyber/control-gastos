@@ -1,6 +1,43 @@
 import { useState, useEffect } from 'react';
 import { Locate, Map as MapIcon, Globe, X, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Corregir el ícono por defecto de Leaflet en React (problema conocido con empaquetadores)
+const DefaultIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+// Componente para manejar clics en el mapa y centrar la vista
+function LocationMarker({ position, onChange }: { position: L.LatLngExpression | null, onChange: (lat: number, lng: number) => void }) {
+    const map = useMap();
+    
+    // Centrar el mapa cuando la posición cambia desde afuara
+    useEffect(() => {
+        if (position) {
+            map.flyTo(position, map.getZoom(), { animate: true, duration: 0.5 });
+        }
+    }, [position, map]);
+
+    useMapEvents({
+        click(e) {
+            onChange(e.latlng.lat, e.latlng.lng);
+        },
+    });
+
+    return position === null ? null : (
+        <Marker position={position} />
+    );
+}
 
 interface GeoSelectorProps {
     value?: string; // Stored as "lat,lng" string OR postal code
@@ -44,11 +81,9 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
 
                 if (mode === 'postal_code') {
                     try {
-                        // Intentar con zoom 16 para mayor probabilidad de obtener código postal
                         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&zoom=16&addressdetails=1`);
                         const data = await response.json();
 
-                        // Intentar obtener el código postal de varias fuentes en la respuesta
                         let pc = data.address?.postcode ||
                             data.address?.['postcode:postal'] ||
                             data.address?.postal_code ||
@@ -58,7 +93,6 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
                             setPostalCode(String(pc));
                             onChange(String(pc));
                         } else {
-                            // Intento secundario con zoom más bajo si falló el primero
                             const res2 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&zoom=14&addressdetails=1`);
                             const data2 = await res2.json();
                             pc = data2.address?.postcode || data2.address?.postal_code || '';
@@ -68,7 +102,6 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
                                 onChange(String(pc));
                             } else {
                                 alert('No se pudo encontrar el código postal para esta ubicación exacta. Por favor, ingrésalo manualmente.');
-                                // No bloqueamos, permitimos ingreso manual
                             }
                         }
                     } catch (err) {
@@ -79,6 +112,8 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
                     onChange(`${nLat},${nLng}`);
                 }
                 setIsLocating(false);
+                // Mostrar el mapa automáticamente al ubicar exitosamente en cualquiera de los modos
+                setShowMapPreview(true);
             },
             (error) => {
                 console.error('Geolocation error:', error);
@@ -92,22 +127,62 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
     const handleInputChange = (field: 'lat' | 'lng', val: string) => {
         if (field === 'lat') {
             setLat(val);
-            if (val && lng) onChange(`${val},${lng}`);
+            if (val && lng && !isNaN(Number(val)) && !isNaN(Number(lng))) onChange(`${val},${lng}`);
         } else {
             setLng(val);
-            if (lat && val) onChange(`${lat},${val}`);
+            if (lat && val && !isNaN(Number(lat)) && !isNaN(Number(val))) onChange(`${lat},${val}`);
         }
     };
 
-    // OpenStreetMap URL for preview
-    const mapUrl = (lat && lng)
-        ? `https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(lng) - 0.005}%2C${parseFloat(lat) - 0.005}%2C${parseFloat(lng) + 0.005}%2C${parseFloat(lat) + 0.005}&layer=mapnik&marker=${lat}%2C${lng}`
-        : '';
+    const handleMapClick = async (nLat: number, nLng: number) => {
+        const formattedLat = nLat.toFixed(6);
+        const formattedLng = nLng.toFixed(6);
+        setLat(formattedLat);
+        setLng(formattedLng);
+        
+        if (mode === 'coordinates') {
+            onChange(`${formattedLat},${formattedLng}`);
+        } else if (mode === 'postal_code') {
+            try {
+                // Hacemos reverse geocoding para obtener el código postal del punto clickeado
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${formattedLat}&lon=${formattedLng}&zoom=16&addressdetails=1`);
+                const data = await response.json();
+
+                let pc = data.address?.postcode ||
+                    data.address?.['postcode:postal'] ||
+                    data.address?.postal_code ||
+                    '';
+
+                if (pc) {
+                    setPostalCode(String(pc));
+                    onChange(String(pc));
+                } else {
+                    const res2 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${formattedLat}&lon=${formattedLng}&zoom=14&addressdetails=1`);
+                    const data2 = await res2.json();
+                    pc = data2.address?.postcode || data2.address?.postal_code || '';
+
+                    if (pc) {
+                        setPostalCode(String(pc));
+                        onChange(String(pc));
+                    }
+                }
+            } catch (err) {
+                console.error('Reverse geocoding error on click:', err);
+            }
+        }
+    };
 
     const googleMapsUrl = (lat && lng) ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : '';
 
+    const centerPos: L.LatLngExpression | null = (lat && lng && !isNaN(Number(lat)) && !isNaN(Number(lng))) 
+        ? [Number(lat), Number(lng)] 
+        : null;
+
+    // Si no hay centro, por defecto Bogotá o un punto global
+    const defaultMapCenter: L.LatLngExpression = centerPos || [4.6097, -74.0817];
+
     return (
-        <div className="space-y-3">
+        <div className="space-y-3 relative z-10 w-full">
             <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1">
                     {mode === 'coordinates' ? (
@@ -168,54 +243,67 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
                         <Locate className={clsx("w-5 h-5", isLocating && "animate-spin")} />
                     </button>
 
-                    {lat && lng && (
-                        <button
-                            type="button"
-                            onClick={() => setShowMapPreview(!showMapPreview)}
-                            className={clsx(
-                                "flex-1 sm:w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all shrink-0",
-                                showMapPreview
-                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
-                                    : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:text-indigo-600 hover:border-indigo-500/50 shadow-sm"
-                            )}
-                            title="Previsualizar Mapa"
-                        >
-                            <MapIcon className="w-5 h-5" />
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => setShowMapPreview(!showMapPreview)}
+                        className={clsx(
+                            "flex-1 sm:w-10 h-10 flex items-center justify-center rounded-xl border-2 transition-all shrink-0",
+                            showMapPreview
+                                ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
+                                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:text-indigo-600 hover:border-indigo-500/50 shadow-sm"
+                        )}
+                        title="Previsualizar Mapa Interactivo"
+                    >
+                        <MapIcon className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 
-            {showMapPreview && lat && lng && (
-                <div className="animate-in slide-in-from-top-2 duration-300">
-                    <div className="rounded-2xl border-2 border-slate-100 dark:border-slate-800 overflow-hidden relative group bg-slate-200 h-48 sm:h-64 shadow-inner">
-                        <iframe
-                            width="100%"
-                            height="100%"
-                            frameBorder="0"
-                            scrolling="no"
-                            marginHeight={0}
-                            marginWidth={0}
-                            src={mapUrl}
-                            className="bg-slate-100"
-                        />
-                        <div className="absolute top-2 right-2 flex gap-1">
-                            <a
-                                href={googleMapsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-white/90 dark:bg-slate-950/90 backdrop-blur p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-blue-600 shadow-xl border border-white/20 flex items-center gap-1.5 transition-all active:scale-95"
-                            >
-                                <Globe className="w-3.5 h-3.5" />
-                                <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Google Maps</span>
-                                <ExternalLink className="w-3 h-3" />
-                            </a>
-                            <button
-                                onClick={() => setShowMapPreview(false)}
-                                className="bg-white/90 dark:bg-slate-950/90 backdrop-blur p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-rose-500 shadow-xl border border-white/20 transition-all active:scale-95"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
+            {showMapPreview && (
+                <div className="animate-in slide-in-from-top-2 duration-300 z-0">
+                    <div className="rounded-2xl border-2 border-slate-100 dark:border-slate-800 overflow-hidden relative group bg-slate-200 h-64 sm:h-80 shadow-inner z-0">
+                        <MapContainer 
+                            center={defaultMapCenter} 
+                            zoom={16} 
+                            scrollWheelZoom={true} 
+                            style={{ height: '100%', width: '100%' }}
+                            className="bg-slate-100 z-0"
+                        >
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            <LocationMarker position={centerPos} onChange={handleMapClick} />
+                        </MapContainer>
+                        
+                        {lat && lng && (
+                            <div className="absolute top-2 right-2 flex gap-1 z-[1000]">
+                                <a
+                                    href={googleMapsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-blue-600 shadow-xl border border-slate-200 dark:border-slate-800 flex items-center gap-1.5 transition-all active:scale-95"
+                                >
+                                    <Globe className="w-3.5 h-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Google Maps</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                </a>
+                                <button
+                                    onClick={() => setShowMapPreview(false)}
+                                    className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-rose-500 shadow-xl border border-slate-200 dark:border-slate-800 transition-all active:scale-95"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                        <div className="absolute bottom-2 left-2 z-[1000] pointer-events-none">
+                            <div className="bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl text-[10px] font-bold text-white shadow-xl flex items-center gap-2">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                </span>
+                                Haz clic en cualquier parte del mapa para ajustar el pin
+                            </div>
                         </div>
                     </div>
                 </div>
