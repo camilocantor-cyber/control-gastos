@@ -14,6 +14,7 @@ import { UserManagement } from './components/UserManagement';
 import { StartProcessModal } from './components/StartProcessModal';
 import { ProcessExecution } from './components/ProcessExecution';
 import { ProcessSearch } from './components/ProcessSearch';
+import { ProcessViewerModal } from './components/ProcessViewerModal';
 import { Reports } from './components/Reports';
 import { OrganizationSettings } from './components/OrganizationSettings';
 import { Providers } from './components/Providers';
@@ -41,6 +42,7 @@ function AppContent() {
   const [executingProcessId, setExecutingProcessId] = useState<string | null>(null);
   const [helpArticleId, setHelpArticleId] = useState<string | undefined>(undefined);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+  const [viewingProcessId, setViewingProcessId] = useState<string | null>(null);
 
   const handleSectionChange = (section: string) => {
     if (activeSection !== 'help') {
@@ -132,6 +134,8 @@ function AppContent() {
       setShowStartProcess(true);
     } else if (action === 'attend-task') {
       setExecutingProcessId(data);
+    } else if (action === 'view-process') {
+      setViewingProcessId(data);
     } else {
       setActiveSection(action);
     }
@@ -253,6 +257,13 @@ function AppContent() {
           onComplete={() => {
             setDashboardRefreshKey(prev => prev + 1);
           }}
+        />
+      )}
+
+      {viewingProcessId && (
+        <ProcessViewerModal
+          processId={viewingProcessId}
+          onClose={() => setViewingProcessId(null)}
         />
       )}
 

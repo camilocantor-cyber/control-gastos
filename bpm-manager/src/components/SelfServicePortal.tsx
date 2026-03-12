@@ -9,6 +9,7 @@ import { ProcessExecution } from './ProcessExecution';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { Reports } from './Reports';
 import { useTheme } from '../contexts/ThemeContext';
+import { ProcessViewerModal } from './ProcessViewerModal';
 import clsx from 'clsx';
 
 function NavButton({ active, onClick, icon: Icon, label, color }: { active: boolean, onClick: () => void, icon: any, label: string, color: 'blue' | 'emerald' | 'indigo' }) {
@@ -38,6 +39,7 @@ export function SelfServicePortal() {
     const [executingTaskId, setExecutingTaskId] = useState<string | null>(null);
     const [showStartProcess, setShowStartProcess] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [viewingProcessId, setViewingProcessId] = useState<string | null>(null);
     const { theme, toggleTheme } = useTheme();
     const isDarkMode = theme === 'dark';
 
@@ -178,6 +180,7 @@ export function SelfServicePortal() {
                                 <div className="bg-white dark:bg-[#0f172a] rounded-3xl shadow-xl shadow-black/5 dark:shadow-black/20 border border-slate-100 dark:border-white/5 p-1 overflow-hidden">
                                     <TaskInbox
                                         onAttendTask={(id) => setExecutingTaskId(id)}
+                                        onViewProcess={(id) => setViewingProcessId(id)}
                                         refreshTrigger={refreshTrigger}
                                     />
                                 </div>
@@ -221,6 +224,13 @@ export function SelfServicePortal() {
                             setExecutingTaskId(processId);
                         }
                     }}
+                />
+            )}
+
+            {viewingProcessId && (
+                <ProcessViewerModal
+                    processId={viewingProcessId}
+                    onClose={() => setViewingProcessId(null)}
                 />
             )}
         </div>

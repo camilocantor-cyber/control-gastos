@@ -62,6 +62,7 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                 </div>
                 <TaskInbox
                     onAttendTask={(id) => onAction?.('attend-task', id)}
+                    onViewProcess={(id) => onAction?.('view-process', id)}
                     refreshTrigger={refreshTrigger}
                 />
             </div>
@@ -106,6 +107,7 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                             <div key="inbox" className="w-full">
                                 <TaskInbox
                                     onAttendTask={(id) => onAction?.('attend-task', id)}
+                                    onViewProcess={(id) => onAction?.('view-process', id)}
                                     refreshTrigger={refreshTrigger}
                                 />
                             </div>

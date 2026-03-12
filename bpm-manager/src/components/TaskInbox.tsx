@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, ArrowRight, CheckCircle2, AlertCircle, Globe, X, Trash2 } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle2, AlertCircle, Globe, X, Trash2, Eye } from 'lucide-react';
 import { useExecution } from '../hooks/useExecution';
 
 import { toast } from 'sonner';
 
-export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (taskId: string) => void, refreshTrigger?: number }) {
+export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger }: { onAttendTask: (taskId: string) => void, onViewProcess?: (processId: string) => void, refreshTrigger?: number }) {
     const { getActiveTasks, deleteProcessInstance, loading, error } = useExecution();
     const [tasks, setTasks] = useState<any[]>([]);
     const [escalatedTask, setEscalatedTask] = useState<any | null>(null);
@@ -210,6 +210,20 @@ export function TaskInbox({ onAttendTask, refreshTrigger }: { onAttendTask: (tas
                                                                     <Trash2 className="w-3 h-3" />
                                                                 </button>
                                                             )}
+ 
+                                                         {/* View Button */}
+                                                         {onViewProcess && (
+                                                             <button
+                                                                 onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     onViewProcess(task.id);
+                                                                 }}
+                                                                 title="Ver Mapa del Trámite"
+                                                                 className="w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm border bg-white dark:bg-slate-800 text-blue-500 hover:bg-blue-600 hover:text-white border-slate-200 dark:border-slate-700 active:scale-90"
+                                                             >
+                                                                 <Eye className="w-3 h-3" />
+                                                             </button>
+                                                         )}
 
                                                         {/* Attend Button */}
                                                         <div className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm active:scale-95 ${isOverdue

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Search, ChevronLeft, ChevronRight, Lock, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, Clock } from 'lucide-react';
+import { ArrowRight, Search, ChevronLeft, ChevronRight, Lock, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, Clock, Eye } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import clsx from 'clsx';
 
@@ -282,6 +282,15 @@ export function ProcessTable({
                                         </td>
                                         <td className="px-3 py-2.5">
                                             <div className="flex justify-start items-center gap-1.5">
+                                                {onView && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); onView(process.id); }}
+                                                        title="Ver Mapa del Trámite"
+                                                        className="w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm border bg-white dark:bg-slate-800 text-blue-500 hover:bg-blue-600 hover:text-white border-slate-200 dark:border-slate-700 active:scale-90"
+                                                    >
+                                                        <Eye className="w-3 h-3" />
+                                                    </button>
+                                                )}
 
                                                 {process.status === 'active' ? (
                                                     <button
