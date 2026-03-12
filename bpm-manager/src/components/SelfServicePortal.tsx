@@ -214,9 +214,12 @@ export function SelfServicePortal() {
             {showStartProcess && (
                 <StartProcessModal
                     onClose={() => setShowStartProcess(false)}
-                    onStarted={() => {
+                    onStarted={(processId) => {
                         setShowStartProcess(false);
                         setRefreshTrigger(prev => prev + 1);
+                        if (processId) {
+                            setExecutingTaskId(processId);
+                        }
                     }}
                 />
             )}

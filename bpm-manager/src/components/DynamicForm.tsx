@@ -63,7 +63,7 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                                     onChange(field.name, finalVal);
                                 }}
                                 className={clsx(
-                                    "w-full h-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[13px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer font-bold",
+                                    "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[13px] text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer font-black",
                                     field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 select-none"
                                 )}
                                 required={field.required}

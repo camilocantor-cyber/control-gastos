@@ -33,6 +33,17 @@ body {
     radial-gradient(at 100% 100%, rgba(126, 34, 206, 0.05) 0px, transparent 50%);
 }
 
+/* Fix for invisible list options (white on white) */
+option {
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
+.dark option {
+  color: #f1f5f9;
+  background-color: #0f172a;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

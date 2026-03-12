@@ -167,7 +167,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                         <select
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value)}
-                            className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none appearance-none pr-4"
+                            className="bg-transparent border-none text-xs font-black text-slate-900 dark:text-slate-100 focus:outline-none appearance-none pr-4 cursor-pointer"
                         >
                             <option value="all">Todas las Categorías</option>
                             {categories.map(c => (
@@ -471,7 +471,7 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
                             <select
                                 value={formData.category_id}
                                 onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm appearance-none"
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 text-xs shadow-sm appearance-none cursor-pointer"
                             >
                                 <option value="">Sin Categoría</option>
                                 {categories.map(c => (
@@ -496,7 +496,7 @@ function WorkflowForm({ workflow, onSave, onClose }: WorkflowFormProps) {
                             <select
                                 value={formData.status}
                                 onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all bg-white dark:bg-slate-900 font-bold text-slate-700 dark:text-slate-300 text-xs shadow-sm appearance-none cursor-pointer"
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all bg-white dark:bg-slate-900 font-black text-slate-900 dark:text-white text-xs shadow-sm appearance-none cursor-pointer"
                             >
                                 <option value="draft">Borrador</option>
                                 <option value="active">Activo</option>

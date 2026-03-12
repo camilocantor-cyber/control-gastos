@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useExecution } from '../hooks/useExecution';
-import { X, Save, Plus, Trash2, Clock, GitBranch, Download, AlertCircle, Maximize2, Minimize2, CheckCircle2, DollarSign, Layers, ChevronRight, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2, Loader2, Paperclip } from 'lucide-react';
+import { X, Save, Plus, Trash2, Clock, GitBranch, Download, AlertCircle, Maximize2, Minimize2, CheckCircle2, DollarSign, Layers, ChevronRight, Globe, Eye, History, Box, FolderOpen, Info, Lock, Upload, Edit2, Loader2, Paperclip, Sparkles } from 'lucide-react';
 import type { Transition, Provider } from '../types';
 import { evaluateCondition, translateCondition } from '../utils/conditions';
 import { FileAttachments } from './FileAttachments';
@@ -64,6 +64,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     const [ifcFile, setIfcFile] = useState<any>(null);
     const [bimStates, setBimStates] = useState<Record<number, 'completed' | 'processing' | 'delayed' | 'pending'>>({});
     const [selectedBimObject, setSelectedBimObject] = useState<any>(null);
+    const [isOCRing, setIsOCRing] = useState<string | null>(null);
 
     const handleFieldFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string, accept?: string) => {
         const file = e.target.files?.[0];
@@ -112,6 +113,62 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
         return data?.signedUrl;
     };
 
+    const handleApplyOCR = async (field: any) => {
+        if (!formData[field.name]) return;
+
+        try {
+            setIsOCRing(field.id);
+            toast.info("Analizando documento con IA...");
+
+            // Simulate API call to OCR service
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Heuristic mockup: simulated extraction data
+            const extractedData: Record<string, string> = {
+                'fecha_factura': new Date().toISOString().split('T')[0],
+                'monto_total': '1550000',
+                'numero_factura': 'FE-78239',
+                'referencia': 'FE-78239',
+                'nombre_proveedor': 'Inversiones Globales S.A.S',
+                'nit': '900.234.567-1',
+                'proveedor': 'Inversiones Globales S.A.S',
+                'descripcion_factura': 'Compra de insumos de papelería para oficina central - Marzo 2026',
+                'importe': '1550000',
+                'referencia_de_la_factura': 'FE-78239'
+            };
+
+            // Find fields in current activity that match extraction keys
+            const updates: Record<string, string> = {};
+            let count = 0;
+
+            fields.forEach(f => {
+                const normName = f.name.toLowerCase().replace(/\s+/g, '_');
+                const normLabel = f.label?.toLowerCase().replace(/\s+/g, '_') || '';
+                
+                if (extractedData[normName]) {
+                    updates[f.name] = extractedData[normName];
+                    count++;
+                } else if (normLabel && extractedData[normLabel]) {
+                    updates[f.name] = extractedData[normLabel];
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                setFormData(prev => ({ ...prev, ...updates }));
+                toast.success(`OCR exitoso: se cargaron ${count} campos automáticamente.`);
+            } else {
+                toast.warning("El documento fue procesado pero no se encontraron campos coincidentes en este formulario.");
+            }
+
+        } catch (err) {
+            console.error("OCR Error:", err);
+            toast.error("Error al procesar el documento con OCR.");
+        } finally {
+            setIsOCRing(null);
+        }
+    };
+
 
     useEffect(() => {
         loadData();
@@ -154,9 +211,33 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                 setGlobalHeaders(gHeaders || []);
 
                 const fieldDefs = await getFieldDefinitions(ins.current_activity_id);
-                setFields(fieldDefs || []);
+                
+                // Inyectar o forzar campos de Contexto Global
+                const augmentedFields = [...(fieldDefs || [])];
+                (gHeaders || []).forEach(gh => {
+                    const idx = augmentedFields.findIndex(f => f.name === gh.name);
+                    if (idx === -1) {
+                        augmentedFields.unshift({
+                            ...gh,
+                            id: `global-${gh.id}`,
+                            is_readonly: true,
+                            is_global_injected: true,
+                            order_index: -100, // Aparecer arriba
+                            parent_accordion_id: null // Evitar que se oculte si el acordeon original no existe en esta actividad
+                        });
+                    } else {
+                        // Si ya existe en la actividad, forzar Solo Lectura y marcar como Global
+                        augmentedFields[idx] = { 
+                            ...augmentedFields[idx], 
+                            is_readonly: true,
+                            is_global_header: true 
+                            // Ojo: si ya existe, respetamos su parent_accordion_id actual
+                        };
+                    }
+                });
+                setFields(augmentedFields);
 
-                const hasProviderField = fieldDefs?.some((f: any) => f.type === 'provider');
+                const hasProviderField = augmentedFields.some((f: any) => f.type === 'provider');
                 if (hasProviderField && ins.organization_id) {
                     const { data: providerData } = await supabase
                         .from('providers')
@@ -172,9 +253,16 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                     initialData[d.field_name] = d.value;
                 });
 
+                // Mezclar valores de Global Headers en el data inicial
+                (gHeaders || []).forEach(gh => {
+                    if (gh.value) {
+                        initialData[gh.name] = gh.value;
+                    }
+                });
+
                 const pkVals: Record<string, any> = {};
 
-                for (const field of (fieldDefs || [])) {
+                for (const field of augmentedFields) {
                     if (field.db_is_primary_key && field.db_column) {
                         pkVals[field.db_column] = initialData[field.name];
                     }
@@ -592,6 +680,9 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
     function isFieldVisible(field: any): boolean {
         if (!field) return false;
 
+        // Si es un campo de Contexto Global o inyectado, mostrarlo siempre (solicitud usuario)
+        if (field.is_global_header || field.is_global_injected) return true;
+
         // If the field belongs to an accordion, check if that accordion is visible first
         if (field.parent_accordion_id) {
             const parent = fields.find(f => f.id === field.parent_accordion_id);
@@ -884,7 +975,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                     <span className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">
                                         {header.label || header.name}
                                     </span>
-                                    <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 truncate max-w-[150px]">
+                                    <span className="text-[11px] font-black text-slate-700 dark:text-slate-300">
                                         {header.value || '---'}
                                     </span>
                                 </div>
@@ -1176,8 +1267,8 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                         onChange={(e) => !field.is_readonly && setFormData({ ...formData, [field.name]: e.target.value })}
                                                                         disabled={field.is_readonly}
                                                                         className={clsx(
-                                                                            "w-full h-full bg-slate-50/50 dark:bg-slate-950/40 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-4 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-xl pr-10 font-bold hover:shadow-2xl hover:scale-[1.01]",
-                                                                            field.is_readonly && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
+                                                                            "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-3 text-[11px] text-slate-900 dark:text-slate-200 outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-xl font-black hover:shadow-2xl hover:scale-[1.01]",
+                                                                            (field.is_readonly || (field.source_activity_id && field.source_field_name)) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 grayscale"
                                                                         )}
                                                                     >
                                                                         <option value="">Seleccione...</option>
@@ -1253,16 +1344,41 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                                 </div>
                                                                                 <div className="flex flex-col min-w-0">
                                                                                     <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 truncate uppercase tracking-tight">Archivo Cargado</span>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={async () => {
-                                                                                            const url = await getFieldFileUrl(formData[field.name]);
-                                                                                            if (url) window.open(url, '_blank');
-                                                                                        }}
-                                                                                        className="text-[9px] text-blue-600 dark:text-blue-400 font-bold hover:underline text-left truncate"
-                                                                                    >
-                                                                                        Ver Documento
-                                                                                    </button>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={async () => {
+                                                                                                const url = await getFieldFileUrl(formData[field.name]);
+                                                                                                if (url) window.open(url, '_blank');
+                                                                                            }}
+                                                                                            className="text-[9px] text-blue-600 dark:text-blue-400 font-bold hover:underline"
+                                                                                        >
+                                                                                            Ver Documento
+                                                                                        </button>
+                                                                                        {field.ocr_enabled && (
+                                                                                            <>
+                                                                                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    disabled={isOCRing !== null}
+                                                                                                    onClick={() => handleApplyOCR(field)}
+                                                                                                    className="flex items-center gap-1 text-[9px] text-amber-600 dark:text-amber-400 font-black hover:text-amber-700 transition-colors uppercase tracking-widest disabled:opacity-50"
+                                                                                                >
+                                                                                                    {isOCRing === field.id ? (
+                                                                                                        <>
+                                                                                                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                                                                                            Procesando...
+                                                                                                        </>
+                                                                                                    ) : (
+                                                                                                        <>
+                                                                                                            <Sparkles className="w-2.5 h-2.5" />
+                                                                                                            Aplicar OCR
+                                                                                                        </>
+                                                                                                    )}
+                                                                                                </button>
+                                                                                            </>
+                                                                                        )}
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
                                                                             {!field.is_readonly && (
@@ -1644,7 +1760,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                     Pasar a:
                                                                 </span>
                                                                 <span className={clsx(
-                                                                    "text-xs font-black transition-all duration-300 truncate max-w-[160px]",
+                                                                    "text-xs font-black transition-all duration-300",
                                                                     isActive ? "text-white group-hover/btn:translate-x-1" : "text-slate-500"
                                                                 )}>
                                                                     {t.target_name}
@@ -1756,7 +1872,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                         const val = e.target.value;
                                                                         setDetailFormData({ ...detailFormData, [field.name]: (field.max_length && val.length > field.max_length) ? val.slice(0, field.max_length) : val });
                                                                     }}
-                                                                    className="w-full h-12 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl px-4 text-xs text-slate-700 dark:text-slate-200 font-bold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none hover:shadow-sm transition-all appearance-none cursor-pointer pr-10"
+                                                                    className="w-full h-12 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl px-4 text-xs text-slate-900 dark:text-slate-200 font-black focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none hover:shadow-sm transition-all appearance-none cursor-pointer pr-10"
                                                                 >
                                                                     <option value="">Seleccione...</option>
                                                                     {field.options?.map((opt: string) => (

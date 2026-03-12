@@ -183,7 +183,8 @@ export const GraphicalTreeView: React.FC<{
     setZoom: React.Dispatch<React.SetStateAction<number>>;
     offset: { x: number; y: number };
     setOffset: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
-}> = ({ tree, onSelect, selectedId, onAddChild, zoom, setZoom, offset, setOffset }) => {
+    onAttendTask?: (id: string) => void;
+}> = ({ tree, onSelect, selectedId, onAddChild, zoom, setZoom, offset, setOffset, onAttendTask }) => {
 
     const [isPanning, setIsPanning] = React.useState(false);
     const [lastMousePos, setLastMousePos] = React.useState({ x: 0, y: 0 });
@@ -280,8 +281,9 @@ export const GraphicalTreeView: React.FC<{
             {startingProcessDept && (
                 <StartProcessModal
                     onClose={() => setStartingProcessDept(null)}
-                    onStarted={() => {
+                    onStarted={(processId) => {
                         setStartingProcessDept(null);
+                        if (processId && onAttendTask) onAttendTask(processId);
                     }}
                 />
             )}

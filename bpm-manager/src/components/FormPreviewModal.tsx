@@ -233,7 +233,7 @@ export function FormPreviewModal({
 
                 <div className={clsx(
                     "relative",
-                    (field.type === 'textarea' || field.type === 'label' || field.type === 'accordion' || field.type === 'location') ? "h-auto" : "h-10"
+                    (field.type === 'textarea' || field.type === 'label' || field.type === 'accordion' || field.type === 'location' || field.type === 'attachment') ? "h-auto" : "h-10"
                 )}>
                     {field.type === 'textarea' ? (
                         <textarea
@@ -244,7 +244,7 @@ export function FormPreviewModal({
                             }}
                             style={{ minHeight: field.rows ? `${field.rows * 24}px` : '120px' }}
                             className={clsx(
-                                "w-full bg-white dark:bg-slate-900 border-2 rounded-xl p-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none transition-all resize-none shadow-xl focus:border-blue-500 hover:shadow-2xl hover:scale-[1.005]",
+                                "w-full bg-white dark:bg-slate-900 border-2 rounded-xl p-3 text-[11px] text-slate-900 dark:text-slate-200 outline-none transition-all resize-none shadow-xl focus:border-blue-500 hover:shadow-2xl hover:scale-[1.005] font-black",
                                 (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 grayscale-[0.3]",
                                 field.regex_pattern && formData[field.name] && !new RegExp(field.regex_pattern).test(formData[field.name]) ? "border-rose-500 focus:border-rose-600" : "border-slate-300 dark:border-slate-700 focus:border-blue-500"
                             )}
@@ -259,7 +259,7 @@ export function FormPreviewModal({
                                 onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
                                 disabled={field.is_readonly || isReadOnly}
                                 className={clsx(
-                                    "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-xl font-bold hover:shadow-2xl hover:scale-[1.01]",
+                                    "w-full h-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-3 text-[11px] text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-xl font-black hover:shadow-2xl hover:scale-[1.01]",
                                     (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50"
                                 )}
                             >
@@ -304,7 +304,7 @@ export function FormPreviewModal({
                                 }}
                                 readOnly={field.is_readonly || isReadOnly}
                                 className={clsx(
-                                    "w-full h-full bg-white dark:bg-slate-900 border-2 rounded-xl pl-8 pr-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none transition-all shadow-xl font-bold hover:shadow-2xl hover:scale-[1.01]",
+                                    "w-full h-full bg-white dark:bg-slate-900 border-2 rounded-xl pl-8 pr-3 text-[11px] text-slate-900 dark:text-slate-200 outline-none transition-all shadow-xl font-black hover:shadow-2xl hover:scale-[1.01]",
                                     (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50",
                                     field.regex_pattern && formData[field.name] && !new RegExp(field.regex_pattern).test(formData[field.name]) ? "border-rose-500 focus:border-rose-600" : "border-slate-300 dark:border-slate-700 focus:border-blue-500"
                                 )}
@@ -441,7 +441,7 @@ export function FormPreviewModal({
                             }}
                             readOnly={field.is_readonly || isReadOnly}
                             className={clsx(
-                                "w-full h-full bg-white dark:bg-slate-900 border-2 rounded-xl px-3 text-[11px] text-slate-700 dark:text-slate-200 outline-none transition-all shadow-xl font-bold hover:scale-[1.01]",
+                                "w-full h-full bg-white dark:bg-slate-900 border-2 rounded-xl px-3 text-[11px] text-slate-900 dark:text-slate-200 outline-none transition-all shadow-xl font-black hover:scale-[1.01]",
                                 (field.is_readonly || isReadOnly) && "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50",
                                 field.regex_pattern && formData[field.name] && !new RegExp(field.regex_pattern).test(formData[field.name]) ? "border-rose-500 focus:border-rose-600" : "border-slate-300 dark:border-slate-700 focus:border-blue-500"
                             )}
@@ -658,7 +658,7 @@ export function FormPreviewModal({
 
                                                                 onUpdateField(selectedField.id, updates);
                                                             }}
-                                                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-bold text-slate-900 dark:text-white appearance-none cursor-pointer"
+                                                            className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-black text-slate-900 dark:text-white appearance-none cursor-pointer"
                                                         >
                                                             {FIELD_TYPES.map(t => (
                                                                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -672,7 +672,7 @@ export function FormPreviewModal({
                                                             <textarea
                                                                 value={selectedField.options?.join('\n') || ''}
                                                                 onChange={(e) => onUpdateField(selectedField.id, { options: e.target.value.split('\n').filter(o => o.trim()) })}
-                                                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-[10px] font-bold min-h-[100px] shadow-inner focus:border-blue-400"
+                                                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-[10px] font-black text-slate-900 dark:text-white min-h-[100px] shadow-inner focus:border-blue-400"
                                                                 placeholder="Una opción por cada línea"
                                                             />
                                                             <p className="text-[7px] text-slate-400 italic px-1 pt-1">Escribe cada opción en una línea nueva.</p>
@@ -715,6 +715,35 @@ export function FormPreviewModal({
                                                                 className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-[11px] font-bold text-slate-900 dark:text-white"
                                                                 placeholder="Ej: 255"
                                                             />
+                                                        </div>
+                                                    )}
+
+                                                    {selectedField.type === 'attachment' && (
+                                                        <div className="space-y-3 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 animate-in zoom-in-95 duration-200">
+                                                            <div className="flex items-center justify-between">
+                                                                <h4 className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest px-1">Inteligencia Artificial</h4>
+                                                                <div className="px-1.5 py-0.5 bg-blue-500 text-white text-[7px] font-black rounded-md uppercase tracking-tighter">OCR</div>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <button
+                                                                    onClick={() => onUpdateField(selectedField.id, { ocr_enabled: !selectedField.ocr_enabled })}
+                                                                    className={clsx(
+                                                                        "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl border-2 transition-all",
+                                                                        selectedField.ocr_enabled
+                                                                            ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400"
+                                                                            : "bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800"
+                                                                    )}
+                                                                >
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest">Habilitar OCR</span>
+                                                                    <div className={clsx(
+                                                                        "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-colors",
+                                                                        selectedField.ocr_enabled ? "bg-blue-600 border-blue-600" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                                                                    )}>
+                                                                        {selectedField.ocr_enabled && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                                                    </div>
+                                                                </button>
+                                                                <p className="text-[8px] text-slate-400 italic px-1">Si se activa, el usuario podrá extraer datos automáticamente de facturas o documentos PDF.</p>
+                                                            </div>
                                                         </div>
                                                     )}
 
@@ -810,7 +839,7 @@ export function FormPreviewModal({
                                                         name: newName || selectedField.name
                                                     });
                                                 }}
-                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100"
+                                                className="w-full px-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-black text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                             />
                                         </div>
 
@@ -828,7 +857,7 @@ export function FormPreviewModal({
                                                     }
                                                     onUpdateField(selectedField.id, updates);
                                                 }}
-                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 appearance-none cursor-pointer"
+                                                className="w-full px-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-black text-sm text-slate-900 dark:text-slate-100 appearance-none cursor-pointer"
                                             >
                                                 {FIELD_TYPES.map(t => (
                                                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -842,7 +871,7 @@ export function FormPreviewModal({
                                                 type="text"
                                                 value={selectedField.name || ''}
                                                 onChange={(e) => onUpdateField(selectedField.id, { name: e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') })}
-                                                className="w-full px-4 py-2.5 bg-blue-500/5 dark:bg-blue-500/10 border-2 border-blue-200 dark:border-blue-800/50 rounded-xl outline-none focus:border-blue-500 text-xs font-mono text-blue-600 dark:text-blue-400 font-bold"
+                                                className="w-full px-4 py-2.5 bg-blue-500/5 dark:bg-blue-500/10 border-2 border-blue-200 dark:border-blue-800/50 rounded-xl outline-none focus:border-blue-500 text-xs font-mono text-blue-600 dark:text-blue-400 font-black"
                                             />
                                         </div>
 
@@ -855,7 +884,7 @@ export function FormPreviewModal({
                                                     max={20}
                                                     value={selectedField.rows || 4}
                                                     onChange={(e) => onUpdateField(selectedField.id, { rows: parseInt(e.target.value) || 4 })}
-                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100"
+                                                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-black text-sm text-slate-900 dark:text-slate-100"
                                                 />
                                             </div>
                                         )}
@@ -866,7 +895,7 @@ export function FormPreviewModal({
                                                 <textarea
                                                     value={selectedField.options?.join('\n') || ''}
                                                     onChange={(e) => onUpdateField(selectedField.id, { options: e.target.value.split('\n').filter(o => o.trim()) })}
-                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 min-h-[120px] placeholder:text-slate-400 shadow-inner"
+                                                    className="w-full px-4 py-3 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-500 font-black text-sm text-slate-900 dark:text-slate-100 min-h-[120px] placeholder:text-slate-400 shadow-inner"
                                                     placeholder="Escribe una opción por cada línea..."
                                                 />
                                                 <p className="text-[9px] text-slate-400 italic px-1">Tip: Presiona Enter para agregar una nueva opción.</p>
@@ -889,7 +918,7 @@ export function FormPreviewModal({
                                                         type="number"
                                                         value={selectedField.min_value ?? ''}
                                                         onChange={e => onUpdateField(selectedField.id, { min_value: e.target.value ? Number(e.target.value) : undefined })}
-                                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                                                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-black text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                                         placeholder="Ej: 0"
                                                     />
                                                 </div>
@@ -899,7 +928,7 @@ export function FormPreviewModal({
                                                         type="number"
                                                         value={selectedField.max_value ?? ''}
                                                         onChange={e => onUpdateField(selectedField.id, { max_value: e.target.value ? Number(e.target.value) : undefined })}
-                                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                                                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-black text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                                         placeholder="Ej: 9999"
                                                     />
                                                 </div>
@@ -913,7 +942,7 @@ export function FormPreviewModal({
                                                     type="number"
                                                     value={selectedField.max_length ?? ''}
                                                     onChange={e => onUpdateField(selectedField.id, { max_length: e.target.value ? Number(e.target.value) : undefined })}
-                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                                                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-black text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                                                     placeholder="Ej: 255"
                                                 />
                                             </div>
@@ -924,7 +953,7 @@ export function FormPreviewModal({
                                                 type="text"
                                                 value={selectedField.regex_pattern ?? ''}
                                                 onChange={e => onUpdateField(selectedField.id, { regex_pattern: e.target.value })}
-                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-mono text-slate-900 dark:text-blue-400 shadow-sm placeholder:text-slate-400"
+                                                className="w-full px-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-mono text-slate-900 dark:text-blue-200 shadow-sm placeholder:text-slate-400 font-black"
                                                 placeholder={
                                                     selectedField.type === 'email' ? "Ej: ^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$" :
                                                         selectedField.type === 'phone' ? "Ej: ^\\+?[1-9]\\d{1,14}$" :
@@ -992,7 +1021,7 @@ export function FormPreviewModal({
                                                                 } as any
                                                             });
                                                         }}
-                                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-900 dark:text-slate-100"
+                                                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 font-black text-sm text-slate-900 dark:text-slate-100"
                                                     >
                                                         <option value="">-- Elija una tabla --</option>
                                                         {dbTables && dbTables.length > 0 ? dbTables.map(t => (

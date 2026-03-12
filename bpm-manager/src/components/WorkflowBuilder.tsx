@@ -1866,7 +1866,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                             fields: a.fields?.map(f => f.id === field.id ? { ...f, type: newType } : f)
                                                                                                         } : a));
                                                                                                     }}
-                                                                                                    className="w-full h-8 px-2 text-[11px] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-300 dark:border-slate-700/50 rounded-lg font-bold text-slate-500 dark:text-slate-400 focus:bg-white dark:focus:bg-slate-800 outline-none cursor-pointer transition-all"
+                                                                                                    className="w-full h-8 px-2 text-[11px] bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg font-black text-slate-900 dark:text-slate-100 focus:border-blue-500 outline-none cursor-pointer transition-all"
                                                                                                 >
                                                                                                     <option value="text">Texto Corto</option>
                                                                                                     <option value="textarea">Texto Largo</option>
@@ -1900,7 +1900,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                             } : f)
                                                                                                         } : a));
                                                                                                     }}
-                                                                                                    className="w-full h-8 px-2 text-[11px] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-300 dark:border-slate-700/50 rounded-lg text-slate-500 dark:text-slate-400 focus:bg-white dark:focus:bg-slate-800 outline-none cursor-pointer transition-all font-bold"
+                                                                                                    className="w-full h-8 px-2 text-[11px] bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:border-blue-500 outline-none cursor-pointer transition-all font-black"
                                                                                                 >
                                                                                                     <option value="">Manual (Usuario)</option>
                                                                                                     {previousActivities.map(prevActivity =>

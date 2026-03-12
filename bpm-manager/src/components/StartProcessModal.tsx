@@ -5,7 +5,7 @@ import { useExecution } from '../hooks/useExecution';
 import { useAuth } from '../hooks/useAuth';
 import type { Workflow } from '../types';
 
-export function StartProcessModal({ onClose, onStarted }: { onClose: () => void, onStarted: () => void }) {
+export function StartProcessModal({ onClose, onStarted }: { onClose: () => void, onStarted: (processId?: string) => void }) {
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
     const [processName, setProcessName] = useState('');
@@ -38,7 +38,7 @@ export function StartProcessModal({ onClose, onStarted }: { onClose: () => void,
         }
         const result = await startProcess(selectedWorkflowId, processName, user.organization_id);
         if (result.success) {
-            onStarted();
+            onStarted(result.instance?.id);
             onClose();
         }
     }
@@ -79,7 +79,7 @@ export function StartProcessModal({ onClose, onStarted }: { onClose: () => void,
                                         const wf = workflows.find(w => w.id === id);
                                         if (wf) setProcessName(wf.name);
                                     }}
-                                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all font-bold text-slate-700 appearance-none"
+                                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all font-black text-slate-900 appearance-none cursor-pointer"
                                 >
                                     <option value="">Selecciona una plantilla...</option>
                                     {workflows.map(w => (

@@ -196,6 +196,8 @@ export interface FieldDefinition {
     is_global_header?: boolean; // If true, this field will be shown as context in all subsequent activities
     rows?: number; // For textarea type, number of rows to display
     attachment_accept?: string; // For attachment type, e.g. ".pdf,.docx" or "image/*"
+    ocr_enabled?: boolean; // If true, OCR will be available for this attachment
+    ocr_mapping?: Record<string, string>; // Maps OCR keys to form field names
 }
 
 export interface ActivityField {

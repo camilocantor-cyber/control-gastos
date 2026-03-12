@@ -49,6 +49,8 @@ function AppContent() {
     setActiveSection(section);
     setShouldOpenForm(false);
     setHelpArticleId(undefined);
+    // Si cambiamos de sección, cerramos cualquier flujo que se esté editando
+    setSelectedWorkflow(null);
   };
   const [isResetPasswordPage] = useState(() => window.location.hash.includes('type=recovery'));
   const [publicWorkflowId] = useState(() => new URLSearchParams(window.location.search).get('public_process'));
@@ -222,7 +224,10 @@ function AppContent() {
       {activeSection === 'reports' && <Reports />}
       {activeSection === 'calendar' && <Calendar />}
       {activeSection === 'orgchart' && user?.organization_id && (
-        <OrganizationalChart organizationId={user.organization_id} />
+        <OrganizationalChart 
+          organizationId={user.organization_id} 
+          onAttendTask={(id) => setExecutingProcessId(id)}
+        />
       )}
       {activeSection === 'accounts' && <SystemAccounts />}
       {activeSection === 'roles' && <RoleManager />}
@@ -232,8 +237,11 @@ function AppContent() {
       {showStartProcess && (
         <StartProcessModal
           onClose={() => setShowStartProcess(false)}
-          onStarted={() => {
+          onStarted={(processId) => {
             setDashboardRefreshKey(prev => prev + 1);
+            if (processId) {
+              setExecutingProcessId(processId);
+            }
           }}
         />
       )}

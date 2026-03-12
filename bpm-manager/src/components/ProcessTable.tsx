@@ -340,7 +340,7 @@ export function ProcessTable({
                                 onPageSizeChange(Number(e.target.value));
                                 onPageChange(1);
                             }}
-                            className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                            className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
                         >
                             <option value={5}>5</option>
                             <option value={10}>10</option>

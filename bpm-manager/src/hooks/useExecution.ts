@@ -538,27 +538,53 @@ export function useExecution() {
 
             if (!instance) return [];
 
-            // 2. Fetch all fields of the workflow that are marked as global headers
-            const { data: globalFields } = await supabase
+            // 2. Fetch all activity IDs for this workflow
+            const { data: activities } = await supabase
+                .from('activities')
+                .select('id')
+                .eq('workflow_id', instance.workflow_id);
+            
+            if (!activities || activities.length === 0) return [];
+            const activityIds = activities.map(a => a.id);
+
+            // 3. Fetch all fields of these activities that are marked as global headers
+            const { data: allGlobalFields } = await supabase
                 .from('activity_field_definitions')
-                .select('*, activities!inner(workflow_id)')
-                .eq('activities.workflow_id', instance.workflow_id)
+                .select('*')
+                .in('activity_id', activityIds)
                 .eq('is_global_header', true);
 
-            if (!globalFields || globalFields.length === 0) return [];
+            if (!allGlobalFields || allGlobalFields.length === 0) return [];
 
-            // 3. Fetch values for these fields in this process
+            // Deduplicate by name (keep only one definition per field name)
+            const uniqueGlobalFields: any[] = [];
+            const seenNames = new Set();
+            for (const f of allGlobalFields) {
+                if (!seenNames.has(f.name)) {
+                    uniqueGlobalFields.push(f);
+                    seenNames.add(f.name);
+                }
+            }
+
+            // 4. Fetch ALL values for this process to find global field values
             const { data: values } = await supabase
                 .from('process_data')
                 .select('*')
                 .eq('process_id', processId)
-                .in('field_name', globalFields.map(f => f.name));
+                .in('field_name', uniqueGlobalFields.map(f => f.name));
 
-            // 4. Map values to field definitions
-            return globalFields.map(f => ({
-                ...f,
-                value: values?.find(v => v.field_name === f.name)?.value || ''
-            }));
+            // 5. Map values to field definitions
+            return uniqueGlobalFields.map(f => {
+                // Pick the most recent/relevant value (not empty if possible)
+                const relevantValue = values?.filter(v => v.field_name === f.name).sort((a,b) => b.created_at?.localeCompare(a.created_at)).find(v => v.value !== '')?.value 
+                    || values?.find(v => v.field_name === f.name)?.value 
+                    || '';
+                    
+                return {
+                    ...f,
+                    value: relevantValue
+                };
+            });
         } catch (err) {
             console.error('Error fetching global header data:', err);
             return [];
@@ -599,49 +625,82 @@ export function useExecution() {
 
             // --- RESOLVE DYNAMIC NAME LOGIC ---
             // 1. Get process instance and workflow info
-            const { data: instance } = await supabase
+            const { data: instance, error: insFetchError } = await supabase
                 .from('process_instances')
                 .select('*, workflows(name_template, name)')
                 .eq('id', processId)
                 .single();
 
+            if (insFetchError) {
+                console.error("Error fetching instance for name template:", insFetchError);
+            }
+
             if (instance && instance.workflows?.name_template) {
-                // 2. Check if this is the START activity
-                const { data: startActivity } = await supabase
-                    .from('activities')
-                    .select('id')
-                    .eq('workflow_id', instance.workflow_id)
-                    .eq('type', 'start')
-                    .single();
+                // 2. Fetch profile if available
+                let creatorName = 'Usuario';
+                if (instance.created_by) {
+                    const { data: prof } = await supabase
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', instance.created_by)
+                        .maybeSingle();
+                    if (prof?.full_name) creatorName = prof.full_name;
+                }
 
-                if (activityId === startActivity?.id) {
-                    let fullyResolved = true;
-                    let newName = instance.workflows.name_template;
+                // 2. Fetch ALL data for this process to have full context for the template
+                const { data: allProcessData } = await supabase
+                    .from('process_data')
+                    .select('field_name, value')
+                    .eq('process_id', processId);
 
-                    // Replace variables {{field_name}}
-                    newName = newName.replace(/{{(.*?)}}/g, (match: string, fieldName: string) => {
-                        const cleanName = fieldName.trim();
-                        // 1. Try direct match
-                        if (fields[cleanName] !== undefined && fields[cleanName] !== '') {
-                            return fields[cleanName];
-                        }
-                        // 2. Try normalized match (lowercase, spaces to underscores)
-                        const normalizedName = cleanName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-                        if (fields[normalizedName] !== undefined && fields[normalizedName] !== '') {
-                            return fields[normalizedName];
-                        }
+                const fullContext: Record<string, string> = {};
+                allProcessData?.forEach(d => fullContext[d.field_name] = d.value);
+                // Priority to current fields being saved
+                Object.assign(fullContext, fields);
 
-                        fullyResolved = false;
-                        return match;
-                    });
+                let newName = instance.workflows.name_template;
 
-                    // Update instance name only if fully resolved and it actually changed
-                    if (fullyResolved && newName !== instance.name) {
-                        await supabase
-                            .from('process_instances')
-                            .update({ name: newName })
-                            .eq('id', processId);
+                // Support Predefined Variables
+                const globals: Record<string, string> = {
+                    'date': new Date().toLocaleDateString('es-CO'),
+                    'user_name': creatorName || (user as any)?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario',
+                    'id': instance.process_number ? instance.process_number.toString() : processId.split('-')[0].toUpperCase(),
+                    'process_number': instance.process_number?.toString() || ''
+                };
+
+                // Replace variables {{field_name}}
+                newName = newName.replace(/{{(.*?)}}/g, (match: string, fieldName: string) => {
+                    const cleanName = fieldName.trim();
+                    const lowerClean = cleanName.toLowerCase();
+
+                    // A. Check Globals first
+                    if (globals[lowerClean] !== undefined) {
+                        return globals[lowerClean];
                     }
+
+                    // B. Try case-insensitive match in fullContext
+                    const foundKey = Object.keys(fullContext).find(k => k.toLowerCase() === lowerClean);
+                    if (foundKey && fullContext[foundKey] !== undefined && fullContext[foundKey] !== '') {
+                        return String(fullContext[foundKey]);
+                    }
+
+                    // C. Try normalized match (lowercase, spaces to underscores)
+                    const normalizedSearch = lowerClean.replace(/\s+/g, '_');
+                    const normalizedKey = Object.keys(fullContext).find(k => k.toLowerCase().replace(/\s+/g, '_') === normalizedSearch);
+                    if (normalizedKey && fullContext[normalizedKey] !== undefined && fullContext[normalizedKey] !== '') {
+                        return String(fullContext[normalizedKey]);
+                    }
+
+                    // If not found, it might be a partial resolve
+                    return match;
+                });
+
+                // Update instance name if it actually changed
+                if (newName !== instance.name && newName.trim().length > 0) {
+                    await supabase
+                        .from('process_instances')
+                        .update({ name: newName })
+                        .eq('id', processId);
                 }
             }
             // ----------------------------------

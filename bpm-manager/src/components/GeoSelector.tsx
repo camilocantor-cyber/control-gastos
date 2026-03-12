@@ -194,7 +194,7 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
                                     value={lat}
                                     onChange={(e) => handleInputChange('lat', e.target.value)}
                                     placeholder="-4.123"
-                                    className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm"
+                                    className="w-full h-10 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-3 text-xs font-black text-slate-900 dark:text-white outline-none focus:border-blue-500/50 transition-all shadow-sm"
                                 />
                             </div>
                             <div className="relative">
@@ -204,7 +204,7 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
                                     value={lng}
                                     onChange={(e) => handleInputChange('lng', e.target.value)}
                                     placeholder="-74.456"
-                                    className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500/50 transition-all shadow-sm"
+                                    className="w-full h-10 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl px-3 text-xs font-black text-slate-900 dark:text-white outline-none focus:border-blue-500/50 transition-all shadow-sm"
                                 />
                             </div>
                         </div>
@@ -219,7 +219,7 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
                                     onChange(e.target.value);
                                 }}
                                 placeholder="Escribe o captura el C.P."
-                                className="w-full h-10 bg-rose-50/30 dark:bg-rose-900/10 border-2 border-rose-100 dark:border-rose-900/30 rounded-xl px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-rose-500/50 transition-all shadow-sm"
+                                className="w-full h-10 bg-white dark:bg-rose-900/10 border-2 border-rose-200 dark:border-rose-900/30 rounded-xl px-3 text-xs font-black text-slate-900 dark:text-white outline-none focus:border-rose-500/50 transition-all shadow-sm"
                             />
                         </div>
                     )}

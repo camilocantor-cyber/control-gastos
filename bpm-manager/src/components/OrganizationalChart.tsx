@@ -30,9 +30,10 @@ import { toast } from 'sonner';
 
 interface OrganizationalChartProps {
     organizationId: string;
+    onAttendTask?: (id: string) => void;
 }
 
-export function OrganizationalChart({ organizationId }: OrganizationalChartProps) {
+export function OrganizationalChart({ organizationId, onAttendTask }: OrganizationalChartProps) {
     const {
         tree,
         departments,
@@ -95,6 +96,7 @@ export function OrganizationalChart({ organizationId }: OrganizationalChartProps
                             setZoom={setZoom}
                             offset={offset}
                             setOffset={setOffset}
+                            onAttendTask={onAttendTask}
                         />
                     )}
                 </div>
