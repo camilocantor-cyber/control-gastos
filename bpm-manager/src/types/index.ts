@@ -9,7 +9,7 @@ export interface Organization {
     logo_url?: string;
 }
 
-export type UserRole = 'admin' | 'editor' | 'viewer' | 'turista';
+export type UserRole = 'admin' | 'editor' | 'viewer' | 'turista' | 'kommandant';
 
 export interface User {
     id: string;

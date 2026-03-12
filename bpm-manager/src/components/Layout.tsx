@@ -1,4 +1,4 @@
-﻿import React, { type ReactNode, useState } from 'react';
+import React, { type ReactNode, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../contexts/ThemeContext';
@@ -127,8 +127,8 @@ interface SidebarProps {
 
 export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapsed }: SidebarProps) {
     const { user, signOut, switchOrganization } = useAuth();
-    const { hasPermission, hasAnyPermission } = usePermissions();
-    const [openSections, setOpenSections] = useState<Set<string>>(new Set(['herramientas']));
+    const { hasPermission, hasAnyPermission, isKommandant } = usePermissions();
+    const [openSections, setOpenSections] = useState<Set<string>>(new Set(['configuracion']));
 
     const currentOrg = user?.available_organizations?.find(o => o.id === user.organization_id);
 
@@ -142,17 +142,21 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
         setOpenSections(newOpen);
     };
 
-    const isHerramientasActive = ['calendar', 'reports', 'monitor', 'search', 'kanban', 'workload', 'advanced-reports'].includes(activeSection);
+    const isHerramientasActive = ['calendar', 'search'].includes(activeSection);
+    const isReportesActive = ['reports', 'monitor', 'kanban', 'workload', 'advanced-reports'].includes(activeSection);
     const isConfigActive = ['workflows', 'users', 'organization', 'accounts', 'parameters', 'providers', 'orgchart'].includes(activeSection);
 
     React.useEffect(() => {
         if (isHerramientasActive) {
             setOpenSections(prev => new Set(prev).add('herramientas'));
         }
-        if (isConfigActive) {
-            setOpenSections(prev => new Set(prev).add('config'));
+        if (isReportesActive) {
+            setOpenSections(prev => new Set(prev).add('reportes'));
         }
-    }, [activeSection, isHerramientasActive, isConfigActive]);
+        if (isConfigActive) {
+            setOpenSections(prev => new Set(prev).add('configuracion'));
+        }
+    }, [activeSection, isHerramientasActive, isReportesActive, isConfigActive]);
 
     return (
         <aside className={cn(
@@ -165,8 +169,15 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                         "w-full flex items-center gap-3 p-2 -ml-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left",
                         isCollapsed && "ml-0 justify-center p-0"
                     )}>
-                        <div className="w-9 h-9 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex items-center justify-center shadow-lg border border-slate-100 dark:border-slate-800 flex-shrink-0 overflow-hidden">
-                            {currentOrg?.logo_url ? (
+                        <div className={cn(
+                            "w-9 h-9 flex items-center justify-center rounded-xl shadow-lg border flex-shrink-0 overflow-hidden",
+                            isKommandant 
+                                ? "bg-indigo-600 border-indigo-500 shadow-indigo-500/20" 
+                                : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800"
+                        )}>
+                            {isKommandant ? (
+                                <Zap className="text-white w-5 h-5 fill-white" />
+                            ) : currentOrg?.logo_url ? (
                                 <img src={currentOrg.logo_url} alt="Logo" className="w-full h-full object-contain p-1" />
                             ) : (
                                 <div className="w-full h-full bg-blue-600 flex items-center justify-center">
@@ -177,8 +188,11 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                         {!isCollapsed && (
                             <>
                                 <div className="flex-1 overflow-hidden">
-                                    <h1 className="text-sm font-black text-slate-900 dark:text-slate-100 leading-tight truncate">
-                                        {currentOrg?.name || 'BPM FLOW'}
+                                    <h1 className={cn(
+                                        "text-sm font-black leading-tight truncate",
+                                        isKommandant ? "text-indigo-600 dark:text-indigo-400 italic" : "text-slate-900 dark:text-slate-100"
+                                    )}>
+                                        {isKommandant ? 'Her Kommandant' : (currentOrg?.name || 'BPM FLOW')}
                                     </h1>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:rotate-90 transition-transform" />
@@ -223,21 +237,93 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                         isCollapsed={isCollapsed}
                     />
 
-                    <div className="space-y-3">
+                    {hasAnyPermission(['edit_workflows', 'manage_users', 'access_settings']) && (
                         <CollapsibleSection
-                            label="Herramientas"
-                            isOpen={openSections.has('herramientas')}
-                            onToggle={() => toggleSection('herramientas')}
-                            isActive={isHerramientasActive}
+                            label="Configuración"
+                            isOpen={openSections.has('configuracion')}
+                            onToggle={() => toggleSection('configuracion')}
+                            isActive={isConfigActive}
                             isCollapsed={isCollapsed}
                         >
+                            {hasPermission('edit_workflows') && (
+                                <SidebarItem
+                                    icon={GitBranch}
+                                    label="Mis Flujos"
+                                    active={activeSection === 'workflows'}
+                                    onClick={() => onSectionChange('workflows')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('manage_users') && (
+                                <SidebarItem
+                                    icon={Users}
+                                    label="Usuarios"
+                                    active={activeSection === 'users'}
+                                    onClick={() => onSectionChange('users')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('access_settings') && (
+                                <SidebarItem
+                                    icon={Building2}
+                                    label="Mi Empresa"
+                                    active={activeSection === 'organization'}
+                                    onClick={() => onSectionChange('organization')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('manage_users') && (
+                                <SidebarItem
+                                    icon={Shield}
+                                    label="Roles y Permisos"
+                                    active={activeSection === 'roles'}
+                                    onClick={() => onSectionChange('roles')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('access_settings') && (
+                                <SidebarItem
+                                    icon={Settings}
+                                    label="Parámetros"
+                                    active={activeSection === 'parameters'}
+                                    onClick={() => onSectionChange('parameters')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('access_settings') && (
+                                <SidebarItem
+                                    icon={Package}
+                                    label="Proveedores"
+                                    active={activeSection === 'providers'}
+                                    onClick={() => onSectionChange('providers')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
                             <SidebarItem
-                                icon={Calendar}
-                                label="Calendario"
-                                active={activeSection === 'calendar'}
-                                onClick={() => onSectionChange('calendar')}
+                                icon={Network}
+                                label="Organigrama"
+                                active={activeSection === 'orgchart'}
+                                onClick={() => onSectionChange('orgchart')}
                                 isCollapsed={isCollapsed}
                             />
+                            <SidebarItem
+                                icon={Fingerprint}
+                                label="Cuentas"
+                                active={activeSection === 'accounts'}
+                                onClick={() => onSectionChange('accounts')}
+                                isCollapsed={isCollapsed}
+                            />
+                        </CollapsibleSection>
+                    )}
+
+                    <div className="space-y-3">
+                        <CollapsibleSection
+                            label="Reportes"
+                            isOpen={openSections.has('reportes')}
+                            onToggle={() => toggleSection('reportes')}
+                            isActive={isReportesActive}
+                            isCollapsed={isCollapsed}
+                        >
                             <SidebarItem
                                 icon={Columns}
                                 label="Tablero Kanban"
@@ -281,84 +367,21 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                             )}
                         </CollapsibleSection>
 
-                        {hasAnyPermission(['edit_workflows', 'manage_users', 'access_settings']) && (
-                            <CollapsibleSection
-                                label="Configuración"
-                                isOpen={openSections.has('configuracion')}
-                                onToggle={() => toggleSection('configuracion')}
-                                isActive={isConfigActive}
+                        <CollapsibleSection
+                            label="Herramientas"
+                            isOpen={openSections.has('herramientas')}
+                            onToggle={() => toggleSection('herramientas')}
+                            isActive={isHerramientasActive}
+                            isCollapsed={isCollapsed}
+                        >
+                            <SidebarItem
+                                icon={Calendar}
+                                label="Calendario"
+                                active={activeSection === 'calendar'}
+                                onClick={() => onSectionChange('calendar')}
                                 isCollapsed={isCollapsed}
-                            >
-                                {hasPermission('edit_workflows') && (
-                                    <SidebarItem
-                                        icon={GitBranch}
-                                        label="Mis Flujos"
-                                        active={activeSection === 'workflows'}
-                                        onClick={() => onSectionChange('workflows')}
-                                        isCollapsed={isCollapsed}
-                                    />
-                                )}
-                                {hasPermission('manage_users') && (
-                                    <SidebarItem
-                                        icon={Users}
-                                        label="Usuarios"
-                                        active={activeSection === 'users'}
-                                        onClick={() => onSectionChange('users')}
-                                        isCollapsed={isCollapsed}
-                                    />
-                                )}
-                                {hasPermission('access_settings') && (
-                                    <SidebarItem
-                                        icon={Building2}
-                                        label="Mi Empresa"
-                                        active={activeSection === 'organization'}
-                                        onClick={() => onSectionChange('organization')}
-                                        isCollapsed={isCollapsed}
-                                    />
-                                )}
-                                {hasPermission('manage_users') && (
-                                    <SidebarItem
-                                        icon={Shield}
-                                        label="Roles y Permisos"
-                                        active={activeSection === 'roles'}
-                                        onClick={() => onSectionChange('roles')}
-                                        isCollapsed={isCollapsed}
-                                    />
-                                )}
-                                {hasPermission('access_settings') && (
-                                    <SidebarItem
-                                        icon={Settings}
-                                        label="Parámetros"
-                                        active={activeSection === 'parameters'}
-                                        onClick={() => onSectionChange('parameters')}
-                                        isCollapsed={isCollapsed}
-                                    />
-                                )}
-                                {hasPermission('access_settings') && (
-                                    <SidebarItem
-                                        icon={Package}
-                                        label="Proveedores"
-                                        active={activeSection === 'providers'}
-                                        onClick={() => onSectionChange('providers')}
-                                        isCollapsed={isCollapsed}
-                                    />
-                                )}
-                                <SidebarItem
-                                    icon={Network}
-                                    label="Organigrama"
-                                    active={activeSection === 'orgchart'}
-                                    onClick={() => onSectionChange('orgchart')}
-                                    isCollapsed={isCollapsed}
-                                />
-                                <SidebarItem
-                                    icon={Fingerprint}
-                                    label="Cuentas"
-                                    active={activeSection === 'accounts'}
-                                    onClick={() => onSectionChange('accounts')}
-                                    isCollapsed={isCollapsed}
-                                />
-                            </CollapsibleSection>
-                        )}
+                            />
+                        </CollapsibleSection>
                     </div>
                 </nav>
 
@@ -380,10 +403,10 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                     <button
                         onClick={signOut}
                         title={isCollapsed ? "Cerrar Sesión" : undefined}
-                        className={cn(
-                            "w-full flex items-center gap-3 p-4 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl transition-all group",
-                            isCollapsed && "p-2 justify-center"
-                        )}
+                         className={cn(
+                             "w-full flex items-center gap-3 p-4 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl transition-all group",
+                             isCollapsed && "p-2 justify-center"
+                         )}
                     >
                         <LogOut className="w-4.5 h-4.5 group-hover:rotate-12 transition-transform" />
                         {!isCollapsed && <span className="font-bold text-[13px]">Cerrar Sesión</span>}
@@ -437,13 +460,6 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                             </button>
                         )}
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-200 dark:shadow-blue-900/20 border-2 border-white dark:border-slate-800">
-                                {currentOrg?.logo_url ? (
-                                    <img src={currentOrg.logo_url} alt="Logo" className="w-full h-full object-contain p-1.5" />
-                                ) : (
-                                    (currentOrg?.name?.[0] || 'A').toUpperCase()
-                                )}
-                            </div>
                             <div>
                                 <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-0.5 leading-none">
                                     {isTurista ? currentOrg?.name : 'Módulo Principal'}

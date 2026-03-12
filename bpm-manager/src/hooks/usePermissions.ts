@@ -27,6 +27,7 @@ export function usePermissions() {
         permissions: user?.permissions || [],
         isAdmin: user?.role === 'admin',
         isEditor: user?.role === 'editor',
-        isViewer: user?.role === 'viewer'
+        isViewer: user?.role === 'viewer',
+        isKommandant: user?.role === 'kommandant'
     };
 }

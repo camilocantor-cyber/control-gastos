@@ -26,6 +26,7 @@ import { PublicForm } from './components/PublicForm';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { HelpCenter } from './components/HelpCenter';
 import { DashboardV2 } from './components/DashboardV2';
+import { DashboardV3 } from './components/DashboardV3';
 import { KanbanBoard } from './components/KanbanBoard';
 import { WorkloadMap } from './components/WorkloadMap';
 import { AdvancedReports } from './components/AdvancedReports';
@@ -55,6 +56,7 @@ function AppContent() {
   const [processId] = useState(() => new URLSearchParams(window.location.search).get('process_id'));
   const [isSuperadminPage] = useState(() => window.location.hash.includes('superadmin'));
   const [isV2Page] = useState(() => window.location.hash.includes('dashboard2'));
+  const [isV3Page] = useState(() => window.location.hash.includes('dashboard3'));
 
   // Close help with Escape key
   useEffect(() => {
@@ -73,6 +75,19 @@ function AppContent() {
 
   if (isV2Page) {
     return <DashboardV2 />;
+  }
+  if (isV3Page) {
+    return (
+      <AuthProvider>
+        <DashboardV3 onAction={(action) => {
+          if (action === 'advanced-reports') {
+            // This is a lab shortcut, in a real scenario we'd persist the search
+            window.location.hash = ''; // Back to main app
+            setActiveSection('advanced-reports');
+          }
+        }} />
+      </AuthProvider>
+    );
   }
 
   if (publicWorkflowId) {
@@ -156,10 +171,14 @@ function AppContent() {
       onNewProcess={() => setShowStartProcess(true)}
     >
       {activeSection === 'dashboard' && (
-        <Dashboard
-          onAction={handleDashboardAction}
-          refreshTrigger={dashboardRefreshKey}
-        />
+        currentRole === 'kommandant' ? (
+          <DashboardV3 onAction={handleDashboardAction} />
+        ) : (
+          <Dashboard
+            onAction={handleDashboardAction}
+            refreshTrigger={dashboardRefreshKey}
+          />
+        )
       )}
       {activeSection === 'workflows' && (
         <WorkflowList

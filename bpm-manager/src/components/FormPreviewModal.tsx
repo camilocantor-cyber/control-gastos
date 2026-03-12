@@ -114,13 +114,13 @@ export function FormPreviewModal({
 
         // If dropping onto another field (reordering)
         if (targetId && draggedId !== targetId) {
-            const targetField = fields.find(f => f.id === targetId);
-            const draggedField = fields.find(f => f.id === draggedId);
+            const targetField = sortedFields.find(f => f.id === targetId);
+            const draggedField = sortedFields.find(f => f.id === draggedId);
 
             if (!targetField || !draggedField) return;
 
             // Maintain the same hierarchy if just reordering
-            const newFields = [...fields];
+            const newFields = [...sortedFields];
             const draggedIdx = newFields.findIndex(f => f.id === draggedId);
             newFields.splice(draggedIdx, 1);
 
@@ -140,10 +140,10 @@ export function FormPreviewModal({
         }
         // If dropping into root empty space
         else if (targetId === null) {
-            const draggedIdx = fields.findIndex(f => f.id === draggedId);
+            const draggedIdx = sortedFields.findIndex(f => f.id === draggedId);
             if (draggedIdx === -1) return;
 
-            const newFields = [...fields];
+            const newFields = [...sortedFields];
             const [field] = newFields.splice(draggedIdx, 1);
             newFields.push({ ...field, parent_accordion_id: undefined }); // Remove parent
             onReorderFields(newFields.map((f, i) => ({ ...f, order_index: i })));

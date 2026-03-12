@@ -138,15 +138,13 @@ export function useWorkflowModeler(workflowId: string) {
                         db_type: f.db_type ?? null,
                         db_nullable: f.db_nullable ?? null,
                         db_is_primary_key: f.db_is_primary_key ?? null,
+                        is_global_header: !!f.is_global_header,
+                        attachment_accept: f.attachment_accept ?? null,
                         location_mode: f.location_mode || 'coordinates',
+                        order_index: f.order_index ?? 0,
                     };
 
-                    console.log(`Mapping field ${f.name} (ID: ${f.id}): location_mode = ${fieldToSave.location_mode}`);
-
-                    // Solo incluir order_index si f lo tiene, para evitar errores si la columna no existe
-                    if (f.order_index !== undefined) {
-                        fieldToSave.order_index = f.order_index;
-                    }
+                    console.log(`Mapping field ${f.name} (ID: ${f.id}): location_mode = ${fieldToSave.location_mode}, order_index = ${fieldToSave.order_index}`);
 
                     return fieldToSave;
                 }));
@@ -172,12 +170,11 @@ export function useWorkflowModeler(workflowId: string) {
                             console.warn('⚠️ Detectada inconsistencia de esquema. Reintentando guardado básico...');
 
                             // Lista de columnas que podrían no existir aún
+                            // NOTA: order_index NO está aquí - siempre debe persistirse
                             const optionalColumns = [
-                                'order_index', 'consecutive_mask', 'consecutive_id', 'default_value', 'grid_columns',
-                                'source_activity_id', 'source_field_name', 'parent_accordion_id',
-                                'regex_pattern', 'visibility_condition',
-                                'db_column', 'db_type', 'db_nullable', 'db_is_primary_key',
-                                'rows', 'is_global_header'
+                                'is_global_header', 'attachment_accept', 'source_activity_id', 'source_field_name', 
+                                'parent_accordion_id', 'db_column', 'db_type', 'db_nullable', 'db_is_primary_key',
+                                'rows', 'grid_columns', 'consecutive_mask', 'consecutive_id'
                             ];
 
                             console.log('Error original que causó el reintento:', upsFieldsError);

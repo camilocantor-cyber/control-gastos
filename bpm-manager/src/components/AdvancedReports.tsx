@@ -5,11 +5,12 @@ import { clsx } from 'clsx';
 import {
     FileSpreadsheet, Filter,
     ChevronLeft, ChevronRight, RefreshCw, X, Search, FileText, CheckCircle2,
-    Clock, AlertCircle, XCircle, Calendar
+    Clock, AlertCircle, XCircle, Calendar, Eye
 } from 'lucide-react';
 
 interface ReportRow {
     id: string;
+    process_number: string;
     name: string;
     workflow_name: string;
     activity_name: string;
@@ -17,6 +18,8 @@ interface ReportRow {
     assigned_to: string;
     department: string;
     created_at: string;
+    metadata?: Record<string, string>;
+    detail_rows?: any[];
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -44,7 +47,9 @@ export function AdvancedReports() {
     const [selectedDept, setSelectedDept] = useState('');
     const [selectedUser, setSelectedUser] = useState('');
     const [search, setSearch] = useState('');
+    const [metadataSearch, setMetadataSearch] = useState('');
     const [showFilters, setShowFilters] = useState(true);
+    const [selectedRow, setSelectedRow] = useState<ReportRow | null>(null);
 
     // Pagination
     const [pageSize, setPageSize] = useState(25);
@@ -77,10 +82,12 @@ export function AdvancedReports() {
             let q = supabase
                 .from('process_instances')
                 .select(`
-                    id, name, status, created_at, workflow_id,
+                    id, name, status, created_at, workflow_id, process_number,
                     workflows(name),
                     activities!process_instances_current_activity_id_fkey(name, assigned_department_id, departments(name)),
-                    profiles!process_instances_assigned_user_id_fkey(full_name, email)
+                    profiles!process_instances_assigned_user_id_fkey(full_name, email),
+                    process_data(field_name, value),
+                    process_detail_rows(data)
                 `)
                 .order('created_at', { ascending: false })
                 .limit(500);
@@ -95,16 +102,26 @@ export function AdvancedReports() {
             const { data, error } = await q;
             if (error) throw error;
 
-            let mapped: ReportRow[] = (data || []).map((row: any) => ({
-                id: row.id,
-                name: row.name || `#${row.id.slice(0, 8)}`,
-                workflow_name: row.workflows?.name || '—',
-                activity_name: row.activities?.name || (row.status === 'completed' ? 'Finalizado' : '—'),
-                status: row.status,
-                assigned_to: row.profiles?.full_name || row.profiles?.email || 'Sin asignar',
-                department: row.activities?.departments?.name || '—',
-                created_at: row.created_at,
-            }));
+            let mapped: ReportRow[] = (data || []).map((row: any) => {
+                const metadata: Record<string, string> = {};
+                row.process_data?.forEach((d: any) => {
+                    metadata[d.field_name] = d.value;
+                });
+
+                return {
+                    id: row.id,
+                    process_number: row.process_number || `#${row.id.slice(0, 8)}`,
+                    name: row.name || '—',
+                    workflow_name: row.workflows?.name || '—',
+                    activity_name: row.activities?.name || (row.status === 'completed' ? 'Finalizado' : '—'),
+                    status: row.status,
+                    assigned_to: row.profiles?.full_name || row.profiles?.email || 'Sin asignar',
+                    department: row.activities?.departments?.name || '—',
+                    created_at: row.created_at,
+                    metadata: metadata,
+                    detail_rows: row.process_detail_rows || []
+                };
+            });
 
             // Client-side filters
             if (selectedDept) {
@@ -124,15 +141,47 @@ export function AdvancedReports() {
     }
 
     const filteredRows = useMemo(() => {
-        if (!search.trim()) return rows;
-        const q = search.toLowerCase();
-        return rows.filter(r =>
-            r.name.toLowerCase().includes(q) ||
-            r.workflow_name.toLowerCase().includes(q) ||
-            r.assigned_to.toLowerCase().includes(q) ||
-            r.activity_name.toLowerCase().includes(q)
-        );
-    }, [rows, search]);
+        const q = search.toLowerCase().trim();
+        const ms = metadataSearch.toLowerCase().trim();
+
+        return rows.filter(r => {
+            // 1. Priority: Deep Search from Filter Panel
+            if (ms) {
+                const inMetadata = r.metadata && Object.values(r.metadata).some(val =>
+                    String(val).toLowerCase().includes(ms)
+                );
+                const inDetailRows = r.detail_rows && r.detail_rows.some(dr =>
+                    JSON.stringify(dr.data).toLowerCase().includes(ms)
+                );
+                
+                if (!inMetadata && !inDetailRows) return false;
+            }
+
+            // 2. Secondary: General Search (search bar)
+            if (!q) return true;
+
+            const matchesBasic = (r.process_number || '').toLowerCase().includes(q) ||
+                r.name.toLowerCase().includes(q) ||
+                r.workflow_name.toLowerCase().includes(q) ||
+                r.assigned_to.toLowerCase().includes(q) ||
+                r.activity_name.toLowerCase().includes(q);
+
+            if (matchesBasic) return true;
+
+            // Also search in metadata/details with the general search but only if matchesBasic is false
+            const inMetadataGen = r.metadata && Object.values(r.metadata).some(val =>
+                String(val).toLowerCase().includes(q)
+            );
+            if (inMetadataGen) return true;
+
+            const inDetailRowsGen = r.detail_rows && r.detail_rows.some(dr =>
+                JSON.stringify(dr.data).toLowerCase().includes(q)
+            );
+            if (inDetailRowsGen) return true;
+
+            return false;
+        });
+    }, [rows, search, metadataSearch]);
 
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     const pageRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
@@ -210,10 +259,10 @@ export function AdvancedReports() {
     const resetFilters = () => {
         setDateFrom(''); setDateTo(''); setSelectedWorkflow('');
         setSelectedStatus(''); setSelectedDept(''); setSelectedUser('');
-        setSearch(''); setRows([]);
+        setMetadataSearch(''); setSearch(''); setRows([]);
     };
 
-    const activeFiltersCount = [dateFrom, dateTo, selectedWorkflow, selectedStatus, selectedDept, selectedUser].filter(Boolean).length;
+    const activeFiltersCount = [dateFrom, dateTo, selectedWorkflow, selectedStatus, selectedDept, selectedUser, metadataSearch].filter(Boolean).length;
 
     return (
         <div className="animate-in fade-in duration-500 space-y-4 pb-10">
@@ -314,6 +363,19 @@ export function AdvancedReports() {
                                 {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                             </select>
                         </div>
+                        <div className="space-y-1 sm:col-span-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Búsqueda en Metadata / Detalles (Deep Search)</label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                <input 
+                                    type="text" 
+                                    value={metadataSearch} 
+                                    onChange={e => setMetadataSearch(e.target.value)}
+                                    placeholder="Ej: materia19, delta, nit, observación técnica..."
+                                    className="w-full pl-9 pr-3 py-2 bg-blue-50/30 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl text-xs text-blue-800 dark:text-blue-100 outline-none focus:border-blue-500 font-bold placeholder:text-slate-400" 
+                                />
+                            </div>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
@@ -374,6 +436,7 @@ export function AdvancedReports() {
                                     <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest">Flujo</th>
                                     <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest">Actividad</th>
                                     <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest">Estado</th>
+                                    <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest">Detalles</th>
                                     <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest">Asignado a</th>
                                     <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest">Depto.</th>
                                     <th className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest">Creado</th>
@@ -384,8 +447,12 @@ export function AdvancedReports() {
                                     const sc = STATUS_CONFIG[row.status] || STATUS_CONFIG.active;
                                     const Icon = sc.icon;
                                     return (
-                                        <tr key={row.id} className={clsx("hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors", i % 2 === 0 ? '' : 'bg-slate-50/40 dark:bg-slate-950/40')}>
-                                            <td className="px-4 py-3 text-[10px] font-black text-slate-400 font-mono">{row.id.slice(0, 8)}</td>
+                                        <tr key={row.id} 
+                                            onClick={() => setSelectedRow(row)}
+                                            className={clsx("hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group", i % 2 === 0 ? '' : 'bg-slate-50/40 dark:bg-slate-950/40')}>
+                                            <td className="px-4 py-3 text-[10px] font-black text-blue-600 dark:text-blue-400 font-mono group-hover:underline">
+                                                {row.process_number}
+                                            </td>
                                             <td className="px-4 py-3 text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[200px] truncate">{row.name}</td>
                                             <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400 max-w-[150px] truncate">{row.workflow_name}</td>
                                             <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400 max-w-[150px] truncate">{row.activity_name}</td>
@@ -394,6 +461,14 @@ export function AdvancedReports() {
                                                     <Icon className="w-2.5 h-2.5" />
                                                     {sc.label}
                                                 </span>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedRow(row); }}
+                                                    className="inline-flex items-center gap-1.5 text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg"
+                                                >
+                                                    <Eye className="w-3 h-3" /> Ver Todo
+                                                </button>
                                             </td>
                                             <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400 truncate max-w-[140px]">{row.assigned_to}</td>
                                             <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400 truncate max-w-[120px]">{row.department}</td>
@@ -440,6 +515,96 @@ export function AdvancedReports() {
                     </div>
                     <p className="text-slate-400 font-bold text-sm">Configura los filtros y presiona "Aplicar Filtros"</p>
                     <p className="text-slate-300 text-xs mt-1">Los resultados aparecerán aquí con soporte de exportación a Excel y PDF.</p>
+                </div>
+            )}
+
+            {/* Metadata Modal */}
+            {selectedRow && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-[#0d111d] w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-600 rounded-2xl text-white shadow-lg shadow-blue-200 dark:shadow-none">
+                                    <FileText className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-xl font-black text-slate-900 dark:text-white">{selectedRow.process_number}</h3>
+                                        <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest", STATUS_CONFIG[selectedRow.status]?.color)}>
+                                            {STATUS_CONFIG[selectedRow.status]?.label}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 font-bold mt-0.5">{selectedRow.workflow_name} · {selectedRow.name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedRow(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                                <X className="w-6 h-6 text-slate-400" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Captured Fields */}
+                                <div className="space-y-6">
+                                    <h4 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-current rounded-full" />
+                                        Campos del Formulario
+                                    </h4>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {Object.entries(selectedRow.metadata || {}).length > 0 ? (
+                                            Object.entries(selectedRow.metadata || {}).map(([key, value]) => (
+                                                <div key={key} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/60 transition-colors hover:border-blue-200 dark:hover:border-blue-800/40">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{key}</p>
+                                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 break-words">{value || '—'}</p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-xs text-slate-400 italic">No hay datos de formulario registrados.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Detail Tables */}
+                                <div className="space-y-6">
+                                    <h4 className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-current rounded-full" />
+                                        Tablas de Detalles
+                                    </h4>
+                                    {selectedRow.detail_rows && selectedRow.detail_rows.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {selectedRow.detail_rows.map((dr, idx) => (
+                                                <div key={idx} className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100/50 dark:border-emerald-800/30">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <div className="w-1 h-4 bg-emerald-500 rounded-full" />
+                                                        <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 uppercase tracking-widest">Registro #{idx + 1}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {Object.entries(dr.data || {}).map(([k, v]) => (
+                                                            <div key={k} className="flex justify-between items-start gap-4 text-xs py-1.5 border-b border-emerald-100/30 dark:border-emerald-800/20 last:border-0">
+                                                                <span className="font-bold text-slate-500 dark:text-slate-400 shrink-0">{k}:</span>
+                                                                <span className="text-slate-700 dark:text-slate-300 text-right font-medium">{String(v)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-slate-400 italic">No hay registros en carpetas de detalles.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                            <button 
+                                onClick={() => setSelectedRow(null)}
+                                className="px-8 py-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+                            >
+                                Cerrar Detalle
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

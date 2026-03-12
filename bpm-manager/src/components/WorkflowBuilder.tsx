@@ -323,7 +323,9 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
             required: false,
             order_index: (activities.find(a => a.id === selectedActivityId)?.fields?.length || 0)
         };
-        setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, fields: [...(a.fields || []), newField] } : a));
+        const nextActs = activities.map(a => a.id === selectedActivityId ? { ...a, fields: [...(a.fields || []), newField] } : a);
+        setActivities(nextActs);
+        handleSave(nextActs);
     };
 
     const handleUpdateField = (fieldId: string, updates: Partial<FieldDefinition>) => {
@@ -337,20 +339,24 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
 
     const handleDeleteField = (fieldId: string) => {
         if (!selectedActivityId) return;
-        setActivities(prev => prev.map(a =>
+        const nextActs = activities.map(a =>
             a.id === selectedActivityId
                 ? { ...a, fields: (a.fields || []).filter(f => f.id !== fieldId) }
                 : a
-        ));
+        );
+        setActivities(nextActs);
+        handleSave(nextActs);
     };
 
     const handleReorderFields = (newFields: FieldDefinition[]) => {
         if (!selectedActivityId) return;
-        setActivities(prev => prev.map(a =>
+        const nextActs = activities.map(a =>
             a.id === selectedActivityId
                 ? { ...a, fields: newFields }
                 : a
-        ));
+        );
+        setActivities(nextActs);
+        handleSave(nextActs);
     };
 
 
@@ -1799,44 +1805,40 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                             }}
                                                                                         >
                                                                                             <td className="px-2 py-2 w-10">
-                                                                                                <div className="flex flex-col gap-0.5 items-center">
-                                                                                                    <button
-                                                                                                        disabled={idx === 0}
-                                                                                                        onClick={() => {
-                                                                                                            setActivities(prev => prev.map(a => {
-                                                                                                                if (a.id === selectedActivityId && a.fields) {
-                                                                                                                    const newFields = [...a.fields];
-                                                                                                                    const temp = newFields[idx];
-                                                                                                                    newFields[idx] = newFields[idx - 1];
-                                                                                                                    newFields[idx - 1] = temp;
-                                                                                                                    return { ...a, fields: newFields.map((f, i) => ({ ...f, order_index: i })) };
-                                                                                                                }
-                                                                                                                return a;
-                                                                                                            }));
-                                                                                                        }}
-                                                                                                        className="p-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-slate-300 hover:text-blue-600 disabled:opacity-10 transition-colors"
-                                                                                                    >
-                                                                                                        <ChevronUp className="w-3.5 h-3.5" />
-                                                                                                    </button>
-                                                                                                    <button
-                                                                                                        disabled={idx === (activities.find(a => a.id === selectedActivityId)?.fields?.length || 1) - 1}
-                                                                                                        onClick={() => {
-                                                                                                            setActivities(prev => prev.map(a => {
-                                                                                                                if (a.id === selectedActivityId && a.fields) {
-                                                                                                                    const newFields = [...a.fields];
-                                                                                                                    const temp = newFields[idx];
-                                                                                                                    newFields[idx] = newFields[idx + 1];
-                                                                                                                    newFields[idx + 1] = temp;
-                                                                                                                    return { ...a, fields: newFields.map((f, i) => ({ ...f, order_index: i })) };
-                                                                                                                }
-                                                                                                                return a;
-                                                                                                            }));
-                                                                                                        }}
-                                                                                                        className="p-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-slate-300 hover:text-blue-600 disabled:opacity-10 transition-colors"
-                                                                                                    >
-                                                                                                        <ChevronDown className="w-3.5 h-3.5" />
-                                                                                                    </button>
-                                                                                                </div>
+                                                                    <div className="flex flex-col gap-0.5 items-center">
+                                                                        <button
+                                                                            disabled={idx === 0}
+                                                                            onClick={() => {
+                                                                                const act = activities.find(a => a.id === selectedActivityId);
+                                                                                if (act && act.fields) {
+                                                                                    const newFields = [...act.fields];
+                                                                                    const temp = newFields[idx];
+                                                                                    newFields[idx] = newFields[idx - 1];
+                                                                                    newFields[idx - 1] = temp;
+                                                                                    handleReorderFields(newFields.map((f, i) => ({ ...f, order_index: i })));
+                                                                                }
+                                                                            }}
+                                                                            className="p-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-slate-300 hover:text-blue-600 disabled:opacity-10 transition-colors"
+                                                                        >
+                                                                            <ChevronUp className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        <button
+                                                                            disabled={idx === (activities.find(a => a.id === selectedActivityId)?.fields?.length || 1) - 1}
+                                                                            onClick={() => {
+                                                                                const act = activities.find(a => a.id === selectedActivityId);
+                                                                                if (act && act.fields) {
+                                                                                    const newFields = [...act.fields];
+                                                                                    const temp = newFields[idx];
+                                                                                    newFields[idx] = newFields[idx + 1];
+                                                                                    newFields[idx + 1] = temp;
+                                                                                    handleReorderFields(newFields.map((f, i) => ({ ...f, order_index: i })));
+                                                                                }
+                                                                            }}
+                                                                            className="p-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-slate-300 hover:text-blue-600 disabled:opacity-10 transition-colors"
+                                                                        >
+                                                                            <ChevronDown className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
                                                                                             </td>
                                                                                             <td className="px-3 py-2">
                                                                                                 <input
