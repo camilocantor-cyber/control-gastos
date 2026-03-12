@@ -4,13 +4,14 @@ import {
     PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Treemap,
     BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line
 } from 'recharts';
-import { BarChart3, PieChart as PieChartIcon, Grid, Activity, Download, Calendar, CheckSquare, Clock, User, Box, DollarSign, BrainCircuit } from 'lucide-react';
+import { BarChart3, PieChart as PieChartIcon, Grid, Activity, Download, Calendar, CheckSquare, Clock, User, Box, DollarSign, BrainCircuit, Table as TableIcon } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
 import { WorkflowHeatmap } from './WorkflowHeatmap';
 import { BimReport } from './BimReport';
 import { CostReport } from './CostReport';
 import { PredictionReport } from './PredictionReport';
+import { PivotReports } from './PivotReports';
 import { useAuth } from '../hooks/useAuth';
 
 interface ProcessHistoryStats {
@@ -301,7 +302,7 @@ export function Reports() {
     const { avgResolutionTimeByWorkflow, processStatus } = useDashboardAnalytics();
 
     // Tab State
-    const [activeTab, setActiveTab] = useState<'operation' | 'flow' | 'efficiency' | 'bim' | 'costs' | 'predictions'>('operation');
+    const [activeTab, setActiveTab] = useState<'operation' | 'flow' | 'efficiency' | 'bim' | 'costs' | 'predictions' | 'pivot'>('operation');
     const [deptEfficiencyData, setDeptEfficiencyData] = useState<any[]>([]);
     const [userStats, setUserStats] = useState<{ name: string; created: number; completed: number }[]>([]);
 
@@ -799,6 +800,13 @@ export function Reports() {
                                     4D BIM
                                 </button>
                             )}
+                            <button
+                                onClick={() => setActiveTab('pivot')}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'pivot' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            >
+                                <TableIcon className="w-3 h-3 inline-block mr-1.5" />
+                                Tablas Dinámicas
+                            </button>
                         </>
                     )}
                 </div>
@@ -1402,6 +1410,12 @@ export function Reports() {
             {activeTab === 'predictions' && (
                 <div className="animate-in slide-in-from-bottom-5 duration-500">
                     <PredictionReport />
+                </div>
+            )}
+
+            {activeTab === 'pivot' && (
+                <div className="animate-in slide-in-from-bottom-5 duration-500">
+                    <PivotReports />
                 </div>
             )}
         </div>
