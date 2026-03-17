@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge, Database } from 'lucide-react';
+import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge, Database, Bot } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy, Department, Position } from '../types';
 import { exportToBPMN, importFromBPMN } from '../utils/bpmnConverter';
@@ -828,6 +828,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                 <ToolboxItem icon={GitBranch} label="Subproceso" color="purple" onDragStart={(e) => handleDragStartToolbox(e, 'subprocess')} />
                                 <ToolboxItem icon={Clock} label="Espera (Wait)" color="amber" onDragStart={(e) => handleDragStartToolbox(e, 'wait')} />
                                 <ToolboxItem icon={GitMerge} label="Sincronía" color="violet" onDragStart={(e) => handleDragStartToolbox(e, 'sync')} />
+                                <ToolboxItem icon={Bot} label="BOT (Radio)" color="navy" onDragStart={(e) => handleDragStartToolbox(e, 'bot')} />
                                 <ToolboxItem icon={Square} label="Fin" color="rose" onDragStart={(e) => handleDragStartToolbox(e, 'end')} />
                             </div>
                         </div>
@@ -1458,7 +1459,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                     </div>
                                                                 )}
 
-                                                                {['start', 'task', 'decision', 'end'].includes(activities.find(a => a.id === selectedActivityId)?.type || '') && (
+                                                                {['start', 'task', 'decision', 'bot', 'end'].includes(activities.find(a => a.id === selectedActivityId)?.type || '') && (
                                                                     <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center text-center bg-slate-50/30 dark:bg-slate-900/10">
                                                                         <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
                                                                             <Settings2 className="w-8 h-8 text-slate-300 opacity-50" />
@@ -3070,7 +3071,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
     );
 }
 
-function ToolboxItem({ icon: Icon, label, color, onDragStart }: { icon: any, label: string, color: 'emerald' | 'blue' | 'orange' | 'rose' | 'purple' | 'amber' | 'violet', onDragStart: (e: React.DragEvent) => void }) {
+function ToolboxItem({ icon: Icon, label, color, onDragStart }: { icon: any, label: string, color: 'emerald' | 'blue' | 'orange' | 'rose' | 'purple' | 'amber' | 'violet' | 'navy', onDragStart: (e: React.DragEvent) => void }) {
     const colors_map = {
         emerald: "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50 dark:hover:bg-emerald-900/40",
         blue: "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50 dark:hover:bg-blue-900/40",
@@ -3079,6 +3080,7 @@ function ToolboxItem({ icon: Icon, label, color, onDragStart }: { icon: any, lab
         purple: "bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50 dark:hover:bg-purple-900/40",
         amber: "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50 dark:hover:bg-amber-900/40",
         violet: "bg-violet-50 text-violet-600 border-violet-100 hover:bg-violet-100 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800/50 dark:hover:bg-violet-900/40",
+        navy: "bg-blue-100 text-[#000080] border-blue-200 hover:bg-blue-200 dark:bg-blue-900/60 dark:text-blue-100 dark:border-blue-700",
     };
 
     const selectedColor = colors_map[color as keyof typeof colors_map];

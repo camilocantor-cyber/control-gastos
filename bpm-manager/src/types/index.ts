@@ -85,7 +85,7 @@ export interface WorkflowTemplate {
     created_by: string;
 }
 
-export type ActivityType = 'start' | 'task' | 'decision' | 'end' | 'subprocess' | 'wait' | 'sync';
+export type ActivityType = 'start' | 'task' | 'decision' | 'bot' | 'end' | 'subprocess' | 'wait' | 'sync';
 
 
 export interface Transition {
@@ -215,6 +215,7 @@ export interface ProcessDetailRow {
     created_by: string;
     data: Record<string, any>;
 }
+
 
 export type AssignmentType = 'manual' | 'position' | 'department' | 'department_and_position' | 'specific_user' | 'creator';
 export type AssignmentStrategy = 'manual' | 'workload' | 'efficiency' | 'random' | 'claim' | 'cost' | 'skills' | 'shift' | 'weighted';

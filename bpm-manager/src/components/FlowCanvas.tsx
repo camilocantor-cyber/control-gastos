@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Play, Square, GitBranch, Clock, CheckCircle2, Zap, Code, X, GitMerge, AlertCircle } from 'lucide-react';
+import { Play, Square, GitBranch, Clock, CheckCircle2, Zap, Code, X, GitMerge, AlertCircle, Bot } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Activity, Transition } from '../types';
 
@@ -276,6 +276,7 @@ function FlowNode({ activity, status, isSelected, isConnectionSource, isDragging
         subprocess: GitBranch,
         wait: Clock,
         sync: GitMerge,
+        bot: Bot,
         end: Square,
     };
     const Icon = (icons as any)[activity.type] || Square;
@@ -287,6 +288,7 @@ function FlowNode({ activity, status, isSelected, isConnectionSource, isDragging
         subprocess: isSelected ? 'bg-purple-800' : 'bg-purple-700',
         wait: isSelected ? 'bg-amber-800' : 'bg-amber-700',
         sync: isSelected ? 'bg-violet-800' : 'bg-violet-700',
+        bot: isSelected ? 'bg-[#000066]' : 'bg-[#000080]',
         end: isSelected ? 'bg-rose-600' : 'bg-rose-500',
     };
 

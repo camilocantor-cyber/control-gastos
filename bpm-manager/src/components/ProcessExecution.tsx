@@ -1330,7 +1330,35 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                 <div className="h-auto w-full">
                                                                     <GeoSelector
                                                                         value={formData[field.name]}
-                                                                        onChange={(val: string) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                        onChange={(val: string, details) => {
+                                                                            const updates: Record<string, string> = { [field.name]: val };
+                                                                            if (details) {
+                                                                                fields.forEach(f => {
+                                                                                    const name = (f.name || '').toLowerCase();
+                                                                                    const label = (f.label || '').toLowerCase();
+                                                                                    
+                                                                                    const isMatch = (keywords: string[]) => 
+                                                                                        keywords.some(k => name.includes(k) || label.includes(k));
+
+                                                                                    if (details.city && isMatch(['ciudad', 'municipio', 'distrito', 'localidad'])) {
+                                                                                        updates[f.name] = details.city;
+                                                                                    }
+                                                                                    if (details.country && isMatch(['pais', 'país', 'country'])) {
+                                                                                        updates[f.name] = details.country;
+                                                                                    }
+                                                                                    if (details.postcode && isMatch(['postal', 'zip', 'postcode'])) {
+                                                                                        updates[f.name] = details.postcode;
+                                                                                    }
+                                                                                    if (details.address && isMatch(['direccion', 'dirección', 'address', 'ubicacion', 'ubicación'])) {
+                                                                                        updates[f.name] = details.address;
+                                                                                    }
+                                                                                    if (details.state && isMatch(['estado', 'departamento', 'state', 'provincia'])) {
+                                                                                        updates[f.name] = details.state;
+                                                                                    }
+                                                                                });
+                                                                            }
+                                                                            setFormData(prev => ({ ...prev, ...updates }));
+                                                                        }}
                                                                         mode={field.location_mode}
                                                                     />
                                                                 </div>
@@ -1916,7 +1944,35 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             <div className="h-auto w-full pt-1">
                                                                 <GeoSelector
                                                                     value={detailFormData[field.name]}
-                                                                    onChange={(val: string) => setDetailFormData(prev => ({ ...prev, [field.name]: val }))}
+                                                                    onChange={(val: string, details) => {
+                                                                        const updates: Record<string, any> = { [field.name]: val };
+                                                                        if (details) {
+                                                                            detail?.fields?.forEach((f: any) => {
+                                                                                const name = (f.name || '').toLowerCase();
+                                                                                const label = (f.label || '').toLowerCase();
+                                                                                
+                                                                                const isMatch = (keywords: string[]) => 
+                                                                                    keywords.some(k => name.includes(k) || label.includes(k));
+
+                                                                                if (details.city && isMatch(['ciudad', 'municipio', 'distrito', 'localidad'])) {
+                                                                                    updates[f.name] = details.city;
+                                                                                }
+                                                                                if (details.country && isMatch(['pais', 'país', 'country'])) {
+                                                                                    updates[f.name] = details.country;
+                                                                                }
+                                                                                if (details.postcode && isMatch(['postal', 'zip', 'postcode'])) {
+                                                                                    updates[f.name] = details.postcode;
+                                                                                }
+                                                                                if (details.address && isMatch(['direccion', 'dirección', 'address', 'ubicacion', 'ubicación'])) {
+                                                                                    updates[f.name] = details.address;
+                                                                                }
+                                                                                if (details.state && isMatch(['estado', 'departamento', 'state', 'provincia'])) {
+                                                                                    updates[f.name] = details.state;
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                        setDetailFormData(prev => ({ ...prev, ...updates }));
+                                                                    }}
                                                                     mode={field.location_mode}
                                                                 />
                                                             </div>

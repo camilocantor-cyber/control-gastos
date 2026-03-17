@@ -37,11 +37,10 @@ export function useScheduledProcesses(organizationId?: string) {
                     organization_id: organizationId,
                     status: 'pending'
                 }])
-                .select()
-                .single();
+                .select();
 
             if (error) throw error;
-            return { success: true, data };
+            return { success: true, data: data?.[0] };
         } catch (err: any) {
             setError(err.message);
             return { success: false, error: err.message };
@@ -71,11 +70,10 @@ export function useScheduledProcesses(organizationId?: string) {
                 .from('scheduled_processes')
                 .update(updates)
                 .eq('id', id)
-                .select()
-                .single();
+                .select();
 
             if (error) throw error;
-            return { success: true, data };
+            return { success: true, data: data?.[0] };
         } catch (err: any) {
             setError(err.message);
             return { success: false, error: err.message };

@@ -2,7 +2,7 @@ import React, { type ReactNode, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../contexts/ThemeContext';
-import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen, Shield, Columns, Activity, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen, Shield, Columns, Activity, FileSpreadsheet, Megaphone } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { usePermissions } from '../hooks/usePermissions';
@@ -234,6 +234,13 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                         label="Dashboard"
                         active={activeSection === 'dashboard'}
                         onClick={() => onSectionChange('dashboard')}
+                        isCollapsed={isCollapsed}
+                    />
+                    <SidebarItem
+                        icon={Megaphone}
+                        label="CRM"
+                        active={activeSection === 'crm'}
+                        onClick={() => onSectionChange('crm')}
                         isCollapsed={isCollapsed}
                     />
 

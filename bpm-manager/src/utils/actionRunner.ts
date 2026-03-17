@@ -88,7 +88,7 @@ async function injectDetailRowsIntoContext(
  * Evaluates a condition string against the provided context data.
  * Example condition: "{{monto}} > 1000"
  */
-function evaluateCondition(condition: string | undefined, data: Record<string, any>): boolean {
+export function evaluateCondition(condition: string | undefined, data: Record<string, any>): boolean {
     if (!condition || condition.trim() === '') return true;
 
     try {

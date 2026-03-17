@@ -122,7 +122,35 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                         <div className="h-auto">
                             <GeoSelector
                                 value={data[field.name]}
-                                onChange={(val) => onChange(field.name, val)}
+                                onChange={(val, details) => {
+                                    onChange(field.name, val);
+                                    if (details) {
+                                        // Auto-populate other fields based on name or label
+                                        fields.forEach(f => {
+                                            const name = (f.name || '').toLowerCase();
+                                            const label = (f.label || '').toLowerCase();
+                                            
+                                            const isMatch = (keywords: string[]) => 
+                                                keywords.some(k => name.includes(k) || label.includes(k));
+
+                                            if (details.city && isMatch(['ciudad', 'municipio', 'distrito', 'localidad'])) {
+                                                onChange(f.name, details.city);
+                                            }
+                                            if (details.country && isMatch(['pais', 'país', 'country'])) {
+                                                onChange(f.name, details.country);
+                                            }
+                                            if (details.postcode && isMatch(['postal', 'zip', 'postcode'])) {
+                                                onChange(f.name, details.postcode);
+                                            }
+                                            if (details.address && isMatch(['direccion', 'dirección', 'address', 'ubicacion', 'ubicación'])) {
+                                                onChange(f.name, details.address);
+                                            }
+                                            if (details.state && isMatch(['estado', 'departamento', 'state', 'provincia'])) {
+                                                onChange(f.name, details.state);
+                                            }
+                                        });
+                                    }
+                                }}
                                 mode={field.location_mode}
                             />
                         </div>

@@ -41,7 +41,7 @@ function LocationMarker({ position, onChange }: { position: L.LatLngExpression |
 
 interface GeoSelectorProps {
     value?: string; // Stored as "lat,lng" string OR postal code
-    onChange: (value: string) => void;
+    onChange: (value: string, details?: { city?: string, country?: string, postcode?: string, address?: string, state?: string }) => void;
     mode?: 'coordinates' | 'postal_code';
 }
 
@@ -81,27 +81,37 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
 
                 if (mode === 'postal_code') {
                     try {
-                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&zoom=16&addressdetails=1`);
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&addressdetails=1`);
                         const data = await response.json();
 
                         let pc = data.address?.postcode ||
                             data.address?.['postcode:postal'] ||
                             data.address?.postal_code ||
                             '';
+                        
+                        const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || data.address?.suburb || data.address?.state_district || data.address?.county || '';
+                        const country = data.address?.country || '';
+                        const state = data.address?.state || data.address?.region || data.address?.state_district || '';
+                        const fullAddress = data.display_name || '';
 
                         if (pc) {
                             setPostalCode(String(pc));
-                            onChange(String(pc));
+                            onChange(String(pc), { city, country, postcode: String(pc), address: fullAddress, state });
                         } else {
                             const res2 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&zoom=14&addressdetails=1`);
                             const data2 = await res2.json();
                             pc = data2.address?.postcode || data2.address?.postal_code || '';
+                            const city2 = data2.address?.city || data2.address?.town || data2.address?.village || data2.address?.municipality || data2.address?.suburb || data2.address?.state_district || data2.address?.county || '';
+                            const country2 = data2.address?.country || '';
+                            const state2 = data2.address?.state || data2.address?.region || data2.address?.state_district || '';
+                            const fullAddress2 = data2.display_name || '';
 
                             if (pc) {
                                 setPostalCode(String(pc));
-                                onChange(String(pc));
+                                onChange(String(pc), { city: city2, country: country2, postcode: String(pc), address: fullAddress2, state: state2 });
                             } else {
                                 alert('No se pudo encontrar el código postal para esta ubicación exacta. Por favor, ingrésalo manualmente.');
+                                onChange('', { city, country, address: fullAddress, state });
                             }
                         }
                     } catch (err) {
@@ -109,7 +119,20 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
                         alert('Error al obtener el código postal de forma automática.');
                     }
                 } else {
-                    onChange(`${nLat},${nLng}`);
+                    try {
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&addressdetails=1`);
+                        const data = await response.json();
+                        const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || data.address?.suburb || data.address?.state_district || data.address?.county || '';
+                        const country = data.address?.country || '';
+                        const state = data.address?.state || data.address?.region || data.address?.state_district || '';
+                        const pc = data.address?.postcode || data.address?.postal_code || '';
+                        const fullAddress = data.display_name || '';
+                        
+                        onChange(`${nLat},${nLng}`, { city, country, postcode: String(pc), address: fullAddress, state });
+                    } catch (err) {
+                        console.error('Reverse geocoding error on coordinates mode:', err);
+                        onChange(`${nLat},${nLng}`);
+                    }
                 }
                 setIsLocating(false);
                 // Mostrar el mapa automáticamente al ubicar exitosamente en cualquiera de los modos
@@ -141,29 +164,53 @@ export function GeoSelector({ value, onChange, mode = 'coordinates' }: GeoSelect
         setLng(formattedLng);
         
         if (mode === 'coordinates') {
-            onChange(`${formattedLat},${formattedLng}`);
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${formattedLat}&lon=${formattedLng}&addressdetails=1`);
+                const data = await response.json();
+                const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || data.address?.suburb || data.address?.state_district || data.address?.county || '';
+                const country = data.address?.country || '';
+                const state = data.address?.state || data.address?.region || data.address?.state_district || '';
+                const pc = data.address?.postcode || data.address?.postal_code || '';
+                const fullAddress = data.display_name || '';
+                
+                onChange(`${formattedLat},${formattedLng}`, { city, country, postcode: String(pc), address: fullAddress, state });
+            } catch (err) {
+                console.error('Reverse geocoding error on map click:', err);
+                onChange(`${formattedLat},${formattedLng}`);
+            }
         } else if (mode === 'postal_code') {
             try {
                 // Hacemos reverse geocoding para obtener el código postal del punto clickeado
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${formattedLat}&lon=${formattedLng}&zoom=16&addressdetails=1`);
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${formattedLat}&lon=${formattedLng}&addressdetails=1`);
                 const data = await response.json();
 
                 let pc = data.address?.postcode ||
                     data.address?.['postcode:postal'] ||
                     data.address?.postal_code ||
                     '';
+                
+                const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || data.address?.suburb || data.address?.state_district || data.address?.county || '';
+                const country = data.address?.country || '';
+                const state = data.address?.state || data.address?.region || data.address?.state_district || '';
+                const fullAddress = data.display_name || '';
 
                 if (pc) {
                     setPostalCode(String(pc));
-                    onChange(String(pc));
+                    onChange(String(pc), { city, country, postcode: String(pc), address: fullAddress, state });
                 } else {
                     const res2 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${formattedLat}&lon=${formattedLng}&zoom=14&addressdetails=1`);
                     const data2 = await res2.json();
                     pc = data2.address?.postcode || data2.address?.postal_code || '';
+                    const city2 = data2.address?.city || data2.address?.town || data2.address?.village || data2.address?.municipality || data2.address?.suburb || data2.address?.state_district || data2.address?.county || '';
+                    const country2 = data2.address?.country || '';
+                    const state2 = data2.address?.state || data2.address?.region || data2.address?.state_district || '';
+                    const fullAddress2 = data2.display_name || '';
 
                     if (pc) {
                         setPostalCode(String(pc));
-                        onChange(String(pc));
+                        onChange(String(pc), { city: city2, country: country2, postcode: String(pc), address: fullAddress2, state: state2 });
+                    } else {
+                        onChange('', { city, country, address: fullAddress, state });
                     }
                 }
             } catch (err) {

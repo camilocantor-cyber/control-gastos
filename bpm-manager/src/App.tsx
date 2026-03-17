@@ -31,6 +31,8 @@ import { DashboardV3 } from './components/DashboardV3';
 import { KanbanBoard } from './components/KanbanBoard';
 import { WorkloadMap } from './components/WorkloadMap';
 import { AdvancedReports } from './components/AdvancedReports';
+import { useScheduler } from './hooks/useScheduler';
+import { CRMDashboard } from './components/crm/CRMDashboard';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -43,6 +45,9 @@ function AppContent() {
   const [helpArticleId, setHelpArticleId] = useState<string | undefined>(undefined);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const [viewingProcessId, setViewingProcessId] = useState<string | null>(null);
+
+  // Initialize background scheduler
+  useScheduler(user?.organization_id);
 
   const handleSectionChange = (section: string) => {
     if (activeSection !== 'help') {
@@ -236,6 +241,7 @@ function AppContent() {
       {activeSection === 'accounts' && <SystemAccounts />}
       {activeSection === 'roles' && <RoleManager />}
       {activeSection === 'monitor' && <IntegrationMonitor />}
+      {activeSection === 'crm' && <CRMDashboard />}
       {/* help section removed from here */}
 
       {showStartProcess && (

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 import { useAuth } from './useAuth';
-import { executeServiceTask } from '../utils/actionRunner';
+import { executeServiceTask, evaluateCondition } from '../utils/actionRunner';
 
 export function useExecution() {
     const { user } = useAuth();
@@ -134,14 +134,24 @@ export function useExecution() {
             setLoading(true);
 
             // 1. Get the start activity for this workflow
-            const { data: activities, error: actError } = await supabase
+            const { data: startNodes } = await supabase
                 .from('activities')
                 .select('*')
                 .eq('workflow_id', workflowId)
-                .eq('type', 'start')
-                .single();
+                .in('type', ['start', 'bot']);
 
-            if (actError) throw new Error('No se encontró el nodo de inicio para este flujo.');
+            if (!startNodes || startNodes.length === 0) {
+                throw new Error('No se encontró el nodo de inicio (Start o BOT) para este flujo.');
+            }
+
+            // Prioritize 'start' type, then any node without incoming transitions
+            let activities = startNodes.find(n => n.type === 'start');
+            
+            if (!activities) {
+                const { data: allTransitions } = await supabase.from('transitions').select('target_id').eq('workflow_id', workflowId);
+                const targetIds = new Set(allTransitions?.map(t => t.target_id) || []);
+                activities = startNodes.find(n => !targetIds.has(n.id)) || startNodes[0];
+            }
 
             // 2. Create the process instance
             const { data: instance, error: insError } = await supabase
@@ -171,6 +181,40 @@ export function useExecution() {
                 });
 
             if (histError) throw histError;
+
+            // 4. Auto-advance if the starting node is a BOT or connects to one
+            try {
+                const { data: transitions } = await supabase
+                    .from('transitions')
+                    .select('*')
+                    .eq('source_id', activities.id);
+
+                if (activities.type === 'bot' && transitions && transitions.length > 0) {
+                    // Save defaults for BOT entry point
+                    const { data: fDefs } = await supabase
+                        .from('activity_field_definitions')
+                        .select('name, default_value')
+                        .eq('activity_id', activities.id)
+                        .not('default_value', 'is', null)
+                        .neq('default_value', '');
+                    if (fDefs && fDefs.length > 0) {
+                        const defaults: Record<string, string> = {};
+                        fDefs.forEach(fd => defaults[fd.name] = fd.default_value);
+                        await saveProcessData(instance.id, activities.id, defaults);
+                    }
+
+                    console.log('[AUTO-START] Starting at BOT. Advancing...');
+                    await advanceProcess(instance.id, transitions[0].id, 'Inicio automático desde BOT');
+                } else if (activities.type === 'start' && transitions && transitions.length === 1) {
+                    const { data: nextAct } = await supabase.from('activities').select('type').eq('id', transitions[0].target_id).single();
+                    if (nextAct?.type === 'bot') {
+                        console.log('[AUTO-START] Start leads to BOT. Advancing...');
+                        await advanceProcess(instance.id, transitions[0].id, 'Inicio automático hacia BOT');
+                    }
+                }
+            } catch (e) {
+                console.warn('[AUTO-START] Error in chain reaction:', e);
+            }
 
             return { success: true, instance };
         } catch (err: any) {
@@ -505,6 +549,51 @@ export function useExecution() {
                         comment: `❌ Error de sistema en acciones: ${actionErr.message}`,
                         user_id: user?.id
                     });
+                }
+            }
+
+            // 5. Automatic BOT execution
+            if (targetActivity?.type === 'bot') {
+                try {
+                    // 0. Initialize metadata (default values) for the BOT
+                    const { data: fDefs } = await supabase
+                        .from('activity_field_definitions')
+                        .select('name, default_value')
+                        .eq('activity_id', transition.target_id)
+                        .not('default_value', 'is', null)
+                        .neq('default_value', '');
+                    
+                    if (fDefs && fDefs.length > 0) {
+                        const defaults: Record<string, string> = {};
+                        fDefs.forEach(fd => defaults[fd.name] = fd.default_value);
+                        await saveProcessData(processId, transition.target_id, defaults);
+                    }
+
+                    // Fetch all current process data for condition evaluation
+                    const { data: allData } = await supabase.from('process_data').select('field_name, value').eq('process_id', processId);
+                    const botContext: Record<string, any> = { ...instance, process_id: processId };
+                    allData?.forEach(d => botContext[d.field_name] = d.value);
+
+                    // Find outgoing transitions
+                    const { data: nextTransitions } = await supabase
+                        .from('transitions')
+                        .select('*')
+                        .eq('source_id', transition.target_id);
+
+                    if (nextTransitions && nextTransitions.length > 0) {
+                        // Evaluate conditions or pick the first one
+                        const nextTrans = nextTransitions.find(t => evaluateCondition(t.condition, botContext)) || nextTransitions[0];
+                        
+                        // Recursive call to advance from the BOT activity
+                        console.log(`[BOT] Auto-advancing from ${targetActivity.name} via transition ${nextTrans.id}`);
+                        return await advanceProcess(processId, nextTrans.id, 'Ejecución automática de Robot (BOT)');
+                    } else {
+                        console.warn('[BOT] No outgoing transitions found for BOT activity:', targetActivity.id);
+                    }
+                } catch (botErr: any) {
+                    console.error('[BOT] Error in auto-advance:', botErr);
+                    // We don't throw to avoid breaking the original advance, 
+                    // but it stays in the BOT node.
                 }
             }
 
