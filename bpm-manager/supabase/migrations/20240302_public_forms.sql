@@ -93,7 +93,8 @@ BEGIN
         current_activity_id,
         assigned_user_id,
         assigned_department_id,
-        assigned_position_id
+        assigned_position_id,
+        name
     ) VALUES (
         p_workflow_id,
         v_workflow.organization_id,
@@ -101,7 +102,8 @@ BEGIN
         COALESCE(v_next_activity.id, v_start_activity.id),
         NULL, -- Siempre Pooling para trámites externos, o requiere backend job para algoritmos complejos
         v_next_activity.assigned_department_id,
-        v_next_activity.assigned_position_id
+        v_next_activity.assigned_position_id,
+        v_workflow.name
     ) RETURNING id INTO v_instance_id;
 
     -- Auditoria
