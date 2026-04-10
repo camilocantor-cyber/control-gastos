@@ -806,9 +806,6 @@ export function useExecution() {
                     .single();
 
                 if (orgData?.settings?.NOSQL_URI) {
-                    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-                    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
                     // Enrich with activity and workflow names if available
                     const { data: actData } = await supabase.from('activities').select('name, workflow_id').eq('id', activityId).maybeSingle();
                     const { data: wfData } = actData?.workflow_id
