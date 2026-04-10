@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge, Database, Bot } from 'lucide-react';
+import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge, Database, Bot, ExternalLink } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy, Department, Position } from '../types';
 import { exportToBPMN, importFromBPMN } from '../utils/bpmnConverter';
@@ -483,8 +483,19 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
         setTransitions(prev => prev.filter(t => t.id !== id));
     }
 
-    async function handleSave(currentActs?: Activity[], currentTrans?: Transition[]) {
-        const { success, error } = await saveModel(currentActs || activities, currentTrans || transitions);
+    async function handleSave(currentActs?: Activity[], currentTrans?: Transition[], aiPrompt?: string) {
+        const acts = currentActs || activities;
+        const trans = currentTrans || transitions;
+        
+        // Sincronizar estado público del flujo si la actividad inicial cambió su estado
+        const startIndex = acts.findIndex(a => a.type === 'start');
+        if (startIndex !== -1) {
+            const startIsPublic = acts[startIndex].is_public;
+            // Si hay discrepancia, actualizamos el workflow (opcionalmente podríamos reflejar esto en la UI del builder si tuviéramos estado para el workflow completo)
+            await supabase.from('workflows').update({ is_public: !!startIsPublic }).eq('id', workflow.id);
+        }
+
+        const { success, error } = await saveModel(acts, trans, details, aiPrompt);
         if (success) {
             toast.success('Flujo guardado con éxito');
             setShowSaveSuccess(true);
@@ -1022,7 +1033,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                             <AIWorkflowGeneratorModal
                                 isOpen={showAIGenerator}
                                 onClose={() => setShowAIGenerator(false)}
-                                onGenerate={(generatedData, method) => {
+                                onGenerate={(generatedData, method, prompt) => {
                                     // Replace 'temp' workflow_id with the real workflow ID
                                     const fixedActivities = generatedData.activities.map(a => ({
                                         ...a,
@@ -1040,6 +1051,13 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                         setActivities(prev => [...prev, ...fixedActivities]);
                                         setTransitions(prev => [...prev, ...fixedTransitions]);
                                     }
+
+                                    // Persist immediately including the prompt
+                                    const nextActs = method === 'replace' ? fixedActivities : [...activities, ...fixedActivities];
+                                    const nextTrans = method === 'replace' ? fixedTransitions : [...transitions, ...fixedTransitions];
+                                    
+                                    handleSave(nextActs, nextTrans, prompt);
+
                                     // Auto layout to organize the newly generated flow
                                     setTimeout(() => handleAutoLayout(), 100);
                                 }}
@@ -1250,20 +1268,85 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                 </div>
 
                                                                 {/* Public Toggle */}
-                                                                <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-blue-300 dark:hover:border-blue-800 transition-colors">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className={`p-2 rounded-lg ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                                                            <Globe className="w-5 h-5" />
+                                                                <div className="space-y-3">
+                                                                    <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-blue-300 dark:hover:border-blue-800 transition-colors">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className={`p-2 rounded-lg ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                                                                <Globe className="w-5 h-5" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none mb-0.5">Actividad Pública</p>
+                                                                                <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+                                                                                    {activities.find(a => a.id === selectedActivityId)?.type === 'start' 
+                                                                                        ? 'Permitir iniciar un NUEVO proceso desde un formulario externo' 
+                                                                                        : 'Permitir completar esta actividad desde un enlace externo sin login'
+                                                                                    }
+                                                                                </p>
+                                                                            </div>
                                                                         </div>
-                                                                        <div>
-                                                                            <p className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none mb-0.5">Actividad Pública</p>
-                                                                            <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">Permitir completar esta actividad desde un enlace externo sin login</p>
+                                                                        <div className="flex items-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                className="sr-only"
+                                                                                checked={activities.find(a => a.id === selectedActivityId)?.is_public || false}
+                                                                                onChange={(e) => {
+                                                                                    const val = e.target.checked;
+                                                                                    setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, is_public: val } : a));
+                                                                                    
+                                                                                    // Si es la actividad de inicio, sincronizamos opcionalmente con el workflow? 
+                                                                                    // Por ahora solo actualizamos la actividad, pero si es start,
+                                                                                    // el sistema RPC get_public_workflow ya mira si el WF es público.
+                                                                                }}
+                                                                            />
+                                                                            <div className={`w-10 h-6 flex items-center bg-slate-200 dark:bg-slate-700 rounded-full p-1 transition-colors ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'bg-blue-600 dark:bg-blue-600' : ''}`}>
+                                                                                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'translate-x-4' : ''}`}></div>
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
-                                                                    <div className={`w-10 h-6 flex items-center bg-slate-200 dark:bg-slate-700 rounded-full p-1 transition-colors ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'bg-blue-600 dark:bg-blue-600' : ''}`}>
-                                                                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${activities.find(a => a.id === selectedActivityId)?.is_public ? 'translate-x-4' : ''}`}></div>
-                                                                    </div>
-                                                                </label>
+                                                                    </label>
+
+                                                                    {activities.find(a => a.id === selectedActivityId)?.is_public && (
+                                                                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-xl space-y-2 animate-in slide-in-from-top-2">
+                                                                            <p className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
+                                                                                <Globe className="w-3 h-3" />
+                                                                                {activities.find(a => a.id === selectedActivityId)?.type === 'start' ? 'Enlace de Inicio Público' : 'Enlace de Actividad Pública'}
+                                                                            </p>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <input 
+                                                                                    type="text" 
+                                                                                    readOnly 
+                                                                                    value={activities.find(a => a.id === selectedActivityId)?.type === 'start' 
+                                                                                        ? `${window.location.origin}?public_process=${workflow.id}`
+                                                                                        : `${window.location.origin}?public_activity=${selectedActivityId}&process_id={{id_proceso}}`
+                                                                                    }
+                                                                                    className="flex-1 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-lg px-2 py-1.5 text-[10px] font-mono text-blue-600 dark:text-blue-400"
+                                                                                />
+                                                                                <button 
+                                                                                    onClick={() => {
+                                                                                        const url = activities.find(a => a.id === selectedActivityId)?.type === 'start' 
+                                                                                            ? `${window.location.origin}?public_process=${workflow.id}`
+                                                                                            : `${window.location.origin}?public_activity=${selectedActivityId}&process_id={{id_proceso}}`;
+                                                                                        navigator.clipboard.writeText(url);
+                                                                                        toast.success('Enlace copiado');
+                                                                                    }}
+                                                                                    className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                                                >
+                                                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                                                </button>
+                                                                            </div>
+                                                                            {activities.find(a => a.id === selectedActivityId)?.type === 'start' && workflowStatus !== 'active' && (
+                                                                                <div className="flex gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+                                                                                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                                                                                    <div>
+                                                                                        <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Flujo en Borrador</p>
+                                                                                        <p className="text-[9px] text-amber-600 dark:text-amber-500/70 font-medium leading-tight">
+                                                                                            El enlace público no funcionará hasta que cambies el estado del flujo a <span className="font-black uppercase tracking-tighter">"Activo"</span> en la configuración general.
+                                                                                        </p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
 
                                                                 {/* Sincronización de Base de Datos */}
                                                                 <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50 space-y-4">

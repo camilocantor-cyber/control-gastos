@@ -60,6 +60,7 @@ export interface Workflow {
     is_public?: boolean;
     category_id?: string | null;
     category?: WorkflowCategory;
+    ai_prompt?: string;
     details?: WorkflowDetail[]; // List of available master-detail folders for this workflow
     organizations?: { name: string };
 }

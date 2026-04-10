@@ -68,9 +68,21 @@ export function useWorkflowModeler(workflowId: string) {
         }
     }
 
-    async function saveModel(newActivities: Activity[], newTransitions: Transition[], newDetails: WorkflowDetail[] = details) {
+    async function saveModel(newActivities: Activity[], newTransitions: Transition[], newDetails: WorkflowDetail[] = details, aiPrompt?: string) {
         try {
             setSaving(true);
+
+            // 0. Update Workflow Metadata (AI Prompt)
+            if (aiPrompt) {
+                const { error: updWfError } = await supabase
+                    .from('workflows')
+                    .update({ ai_prompt: aiPrompt })
+                    .eq('id', workflowId);
+                
+                if (updWfError) {
+                    console.warn('⚠️ Error al guardar el prompt de la IA (no crítico):', updWfError.message);
+                }
+            }
 
             // 1. Upsert Activities
             if (newActivities.length > 0) {

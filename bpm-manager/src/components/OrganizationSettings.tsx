@@ -1,4 +1,4 @@
-import { Building2, Shield, CreditCard, Users, CheckCircle2, Plus, Settings, Trash2, Package, Search, Play, Image as ImageIcon, Upload, X, Eraser } from 'lucide-react';
+import { Building2, Shield, CreditCard, Users, CheckCircle2, Plus, Settings, Trash2, Package, Search, Play, Image as ImageIcon, Upload, X, Eraser, Database, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
@@ -18,6 +18,9 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
     const [searchTerm, setSearchTerm] = useState('');
     const [sucursalSearch, setSucursalSearch] = useState('');
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [savingNoSQL, setSavingNoSQL] = useState(false);
+    const [showNoSQLUri, setShowNoSQLUri] = useState(false);
+    const [noSQLForm, setNoSQLForm] = useState({ provider: 'mongodb', uri: '', db: '', collection: 'process_data' });
 
     async function processImage(file: File, removeWhite: boolean): Promise<Blob> {
         return new Promise((resolve, reject) => {
@@ -116,6 +119,17 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
             setLoading(false);
         }
     }, [user, authLoading]);
+
+    useEffect(() => {
+        if (org?.settings) {
+            setNoSQLForm({
+                provider: org.settings.NOSQL_PROVIDER || 'mongodb',
+                uri: org.settings.NOSQL_URI || '',
+                db: org.settings.NOSQL_DB || '',
+                collection: org.settings.NOSQL_COLLECTION || 'process_data',
+            });
+        }
+    }, [org?.settings]);
 
     async function fetchSucursales() {
         if (!user?.available_organizations) return;
@@ -270,6 +284,44 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
             if (s.id === org?.id) window.location.reload();
         } catch (err: any) {
             toast.error('Error: ' + err.message);
+        }
+    }
+
+    async function saveNoSQLConfig() {
+        if (!org) return;
+        setSavingNoSQL(true);
+        try {
+            const newSettings = {
+                ...org.settings,
+                NOSQL_PROVIDER: noSQLForm.provider,
+                NOSQL_URI: noSQLForm.uri,
+                NOSQL_DB: noSQLForm.db,
+                NOSQL_COLLECTION: noSQLForm.collection || 'process_data',
+            };
+            const { error } = await supabase.from('organizations').update({ settings: newSettings }).eq('id', org.id);
+            if (error) throw error;
+            setOrg({ ...org, settings: newSettings });
+            toast.success('Configuración NoSQL guardada correctamente');
+        } catch (err: any) {
+            toast.error('Error al guardar: ' + err.message);
+        } finally {
+            setSavingNoSQL(false);
+        }
+    }
+
+    async function clearNoSQLConfig() {
+        if (!org) return;
+        if (!confirm('¿Deshabilitar la integración NoSQL? Los datos seguirán guardándose en Supabase.')) return;
+        const newSettings = { ...org.settings };
+        delete newSettings.NOSQL_PROVIDER;
+        delete newSettings.NOSQL_URI;
+        delete newSettings.NOSQL_DB;
+        delete newSettings.NOSQL_COLLECTION;
+        const { error } = await supabase.from('organizations').update({ settings: newSettings }).eq('id', org.id);
+        if (!error) {
+            setOrg({ ...org, settings: newSettings });
+            setNoSQLForm({ provider: 'mongodb', uri: '', db: '', collection: 'process_data' });
+            toast.success('Integración NoSQL deshabilitada');
         }
     }
 
@@ -679,6 +731,124 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
                     </div>
                 </div>
             )}
+
+            {/* ── NoSQL Integration Panel ─────────────────────────────── */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm p-8 mt-8">
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl text-emerald-600">
+                            <Database className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Integración NoSQL</h3>
+                            <p className="text-sm text-slate-400 font-medium">
+                                Los datos de trámites se escribirán <strong>también</strong> en tu BD NoSQL.
+                                {org.settings?.NOSQL_URI && (
+                                    <span className="ml-2 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest rounded-full">Activo</span>
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                    {org.settings?.NOSQL_URI && (
+                        <button
+                            onClick={clearNoSQLConfig}
+                            className="px-4 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-rose-200 dark:border-rose-800"
+                        >
+                            Deshabilitar
+                        </button>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Provider */}
+                    <div className="md:col-span-2">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Proveedor</label>
+                        <div className="flex gap-3">
+                            {(['mongodb', 'cosmosdb'] as const).map(prov => (
+                                <button
+                                    key={prov}
+                                    type="button"
+                                    onClick={() => setNoSQLForm(f => ({ ...f, provider: prov }))}
+                                    className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all ${noSQLForm.provider === prov
+                                        ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+                                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-slate-300'
+                                    }`}
+                                >
+                                    {prov === 'mongodb' ? '🍃 MongoDB Atlas' : '🔷 Azure CosmosDB'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Connection URI */}
+                    <div className="md:col-span-2">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            {noSQLForm.provider === 'mongodb' ? 'Data API URL (con ?apiKey=...)' : 'Account Endpoint (con ?key=...)'}
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showNoSQLUri ? 'text' : 'password'}
+                                value={noSQLForm.uri}
+                                onChange={e => setNoSQLForm(f => ({ ...f, uri: e.target.value }))}
+                                placeholder={noSQLForm.provider === 'mongodb'
+                                    ? 'https://data.mongodb-api.com/app/APP_ID/endpoint/data/v1?apiKey=...'
+                                    : 'https://mi-cuenta.documents.azure.com?key=...'
+                                }
+                                className="w-full px-4 py-3 pr-10 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:outline-none focus:border-emerald-400 transition-all text-slate-700 dark:text-slate-300 placeholder:text-slate-300"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowNoSQLUri(v => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                                {showNoSQLUri ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Database */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nombre de la Base de Datos</label>
+                        <input
+                            type="text"
+                            value={noSQLForm.db}
+                            onChange={e => setNoSQLForm(f => ({ ...f, db: e.target.value }))}
+                            placeholder="mi_empresa_db"
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:outline-none focus:border-emerald-400 transition-all text-slate-700 dark:text-slate-300 placeholder:text-slate-300"
+                        />
+                    </div>
+
+                    {/* Collection */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Colección / Contenedor</label>
+                        <input
+                            type="text"
+                            value={noSQLForm.collection}
+                            onChange={e => setNoSQLForm(f => ({ ...f, collection: e.target.value }))}
+                            placeholder="process_data"
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:outline-none focus:border-emerald-400 transition-all text-slate-700 dark:text-slate-300 placeholder:text-slate-300"
+                        />
+                    </div>
+
+                    {/* Info */}
+                    <div className="md:col-span-2 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+                        <p className="text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed">
+                            <strong>Documento guardado por trámite:</strong> cada vez que un usuario guarda datos en un formulario, se hace un upsert en tu colección con la clave <code className="bg-blue-100 dark:bg-blue-900/40 px-1 rounded font-mono text-[11px]">process_id + activity_id</code>. Supabase no se modifica.
+                        </p>
+                    </div>
+
+                    {/* Save button */}
+                    <div className="md:col-span-2 flex justify-end">
+                        <button
+                            onClick={saveNoSQLConfig}
+                            disabled={savingNoSQL || !noSQLForm.uri.trim() || !noSQLForm.db.trim()}
+                            className="px-8 py-3 bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-200 dark:shadow-none"
+                        >
+                            {savingNoSQL ? 'Guardando...' : 'Guardar Configuración NoSQL'}
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             {/* Plan Info & Sidebar (Summary for Active Org) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">

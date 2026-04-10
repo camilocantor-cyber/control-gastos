@@ -794,6 +794,49 @@ export function useExecution() {
             }
             // ----------------------------------
 
+            // ── NoSQL Write Sink (fire-and-forget) ──────────────────────
+            // If the org has a NoSQL connection configured, push the data
+            // there as well. This never blocks or throws — Supabase is always
+            // the source of truth.
+            try {
+                const { data: orgData } = await supabase
+                    .from('organizations')
+                    .select('settings, id')
+                    .eq('id', user?.organization_id)
+                    .single();
+
+                if (orgData?.settings?.NOSQL_URI) {
+                    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+                    // Enrich with activity and workflow names if available
+                    const { data: actData } = await supabase.from('activities').select('name, workflow_id').eq('id', activityId).maybeSingle();
+                    const { data: wfData } = actData?.workflow_id
+                        ? await supabase.from('workflows').select('name').eq('id', actData.workflow_id).maybeSingle()
+                        : { data: null };
+
+                    // Use the official Supabase SDK to call the function
+                    supabase.functions.invoke('nosql-sync', {
+                        body: {
+                            org_id: orgData.id,
+                            process_id: processId,
+                            workflow_id: actData?.workflow_id || '',
+                            workflow_name: wfData?.name || '',
+                            activity_id: activityId,
+                            activity_name: actData?.name || '',
+                            fields,
+                            saved_at: new Date().toISOString(),
+                        }
+                    }).then(({ data, error }) => {
+                        if (error) console.warn('[nosql-sync] Function error:', error);
+                        else console.log('[nosql-sync] Sync successful to:', (data as any)?.collection);
+                    });
+                }
+            } catch (nosqlErr) {
+                console.warn('[nosql-sync] Error preparing sync, skipping:', nosqlErr);
+            }
+            // ────────────────────────────────────────────────────────────
+
             return { success: true };
         } catch (err: any) {
             console.error('Error saving process data:', err);

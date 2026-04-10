@@ -11,7 +11,7 @@ export type AIProviderName = 'openai' | 'gemini';
 interface AIWorkflowGeneratorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onGenerate: (data: AIGeneratedWorkflow, method: 'replace' | 'append') => void;
+    onGenerate: (data: AIGeneratedWorkflow, method: 'replace' | 'append', prompt: string) => void;
 }
 
 export function AIWorkflowGeneratorModal({ isOpen, onClose, onGenerate }: AIWorkflowGeneratorModalProps) {
@@ -79,7 +79,7 @@ export function AIWorkflowGeneratorModal({ isOpen, onClose, onGenerate }: AIWork
             const { generateWorkflowWithAI } = await import('../services/aiService');
 
             const generatedData = await generateWorkflowWithAI(prompt, currentKey, provider);
-            onGenerate(generatedData, method);
+            onGenerate(generatedData, method, prompt);
             onClose();
             setPrompt('');
         } catch (err: any) {
@@ -243,7 +243,7 @@ export function AIWorkflowGeneratorModal({ isOpen, onClose, onGenerate }: AIWork
                     </button>
                     <button
                         onClick={handleGenerate}
-                        disabled={isGenerating || !prompt.trim() || !apiKey.trim()}
+                        disabled={isGenerating || !prompt.trim() || !currentKey.trim()}
                         className={cn(
                             "px-6 py-2.5 text-sm font-semibold text-white rounded-xl transition-all shadow-md flex items-center gap-2",
                             isGenerating
