@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge, Database, Bot, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Save, Plus, GitBranch, Play, Square, AlertCircle, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, X, Edit2, CheckCircle2, ChevronUp, ChevronDown, Eye, Activity as ActivityIcon, Download, FileUp, Users, Zap, Dices, BarChart2, Inbox, Link, Code, Mail, Settings2, Clock, FolderOpen, Wand2, Lock, Unlock, MessageSquare, Coins, Target, Award, Scale, Globe, FileSignature, HelpCircle, GitMerge, Database, Bot, ExternalLink, BookMarked } from 'lucide-react';
 import { cn } from '../utils/cn';
 import type { Workflow, Activity, Transition, ActivityType, FieldDefinition, AutomatedAction, AutomatedActionType, AssignmentType, AssignmentStrategy, Department, Position } from '../types';
+import type { AccountingOperation } from '../types/accounting';
 import { exportToBPMN, importFromBPMN } from '../utils/bpmnConverter';
 import { translateCondition } from '../utils/conditions';
 
@@ -163,7 +164,8 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
     const [zoom, setZoom] = useState(0.7);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
 
-    const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'transitions' | 'assignment' | 'actions' | 'details' | 'config'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'fields' | 'transitions' | 'assignment' | 'actions' | 'details' | 'config' | 'accounting'>('general');
+    const [accountingOperations, setAccountingOperations] = useState<AccountingOperation[]>([]);
     const [lookupData, setLookupData] = useState<{
         departments: Department[],
         positions: Position[],
@@ -173,6 +175,17 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
     const [tableColumnsMap, setTableColumnsMap] = useState<Record<string, string[]>>({});
     const [editingActionId, setEditingActionId] = useState<string | null>(null);
     const [testingEmail, setTestingEmail] = useState<boolean>(false);
+
+    useEffect(() => {
+        const fetchAccountingOperations = async () => {
+            const { data } = await supabase
+                .from('accounting_operations')
+                .select('*')
+                .eq('organization_id', workflow.organization_id);
+            if (data) setAccountingOperations(data);
+        };
+        fetchAccountingOperations();
+    }, [workflow.organization_id]);
 
     useEffect(() => {
         const fetchLookupData = async () => {
@@ -1138,6 +1151,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                             { id: 'fields', label: 'Campos', icon: Plus },
                                                             { id: 'assignment', label: 'Asignación', icon: Users },
                                                             { id: 'actions', label: 'Acciones', icon: Zap },
+                                                            { id: 'accounting', label: 'Contabilidad', icon: BookMarked },
                                                             { id: 'details', label: 'Detalles', icon: FolderOpen },
                                                             { id: 'transitions', label: 'Salidas', icon: GitBranch },
                                                         ].map(tab => (
@@ -1542,7 +1556,128 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                     </div>
                                                                 )}
 
-                                                                {['start', 'task', 'decision', 'bot', 'end'].includes(activities.find(a => a.id === selectedActivityId)?.type || '') && (
+                                                                {activeTab === 'accounting' && (
+                                                             <div className="space-y-8 animate-fadeIn max-w-4xl">
+                                                                 <div className="flex items-center gap-4 p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-3xl border border-emerald-100 dark:border-emerald-800">
+                                                                     <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm text-emerald-600">
+                                                                         <BookMarked className="w-6 h-6" />
+                                                                     </div>
+                                                                     <div className="flex-1">
+                                                                         <h4 className="text-lg font-black text-emerald-900 dark:text-emerald-100 uppercase tracking-tight">Automatización Contable</h4>
+                                                                         <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium italic">Configura este paso para generar asientos automáticos en el Libro Diario.</p>
+                                                                     </div>
+                                                                 </div>
+
+                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                                     <div className="space-y-6">
+                                                                         <div>
+                                                                             <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3 ml-1">Operación a Ejecutar</label>
+                                                                             <select
+                                                                                 value={activities.find(a => a.id === selectedActivityId)?.accounting_config?.operation_id || ''}
+                                                                                 onChange={(e) => {
+                                                                                     const opId = e.target.value;
+                                                                                     setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                         ...a,
+                                                                                         accounting_config: {
+                                                                                             ...(a.accounting_config || { mapping: {}, trigger: 'on_complete' }),
+                                                                                             operation_id: opId
+                                                                                         }
+                                                                                     } : a));
+                                                                                 }}
+                                                                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-900 dark:text-white"
+                                                                             >
+                                                                                 <option value="">Ninguna operación vinculada</option>
+                                                                                 {accountingOperations.map(op => (
+                                                                                     <option key={op.id} value={op.id}>{op.name}</option>
+                                                                                 ))}
+                                                                             </select>
+                                                                         </div>
+
+                                                                         <div>
+                                                                             <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3 ml-1">Disparador (Trigger)</label>
+                                                                             <div className="grid grid-cols-2 gap-3">
+                                                                                 <button
+                                                                                     onClick={() => setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                         ...a,
+                                                                                         accounting_config: { ...(a.accounting_config || { operation_id: '', mapping: {} }), trigger: 'on_complete' }
+                                                                                     } : a))}
+                                                                                     className={cn(
+                                                                                         "px-4 py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                                                                                         activities.find(a => a.id === selectedActivityId)?.accounting_config?.trigger === 'on_complete'
+                                                                                             ? "bg-emerald-50 border-emerald-500 text-emerald-600 dark:bg-emerald-900/20"
+                                                                                             : "bg-white border-slate-100 text-slate-400 dark:bg-slate-950 dark:border-slate-800"
+                                                                                     )}
+                                                                                 >
+                                                                                     Al Completar
+                                                                                 </button>
+                                                                                 <button
+                                                                                     onClick={() => setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                         ...a,
+                                                                                         accounting_config: { ...(a.accounting_config || { operation_id: '', mapping: {} }), trigger: 'on_start' }
+                                                                                     } : a))}
+                                                                                     className={cn(
+                                                                                         "px-4 py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                                                                                         activities.find(a => a.id === selectedActivityId)?.accounting_config?.trigger === 'on_start'
+                                                                                             ? "bg-emerald-50 border-emerald-500 text-emerald-600 dark:bg-emerald-900/20"
+                                                                                             : "bg-white border-slate-100 text-slate-400 dark:bg-slate-950 dark:border-slate-800"
+                                                                                     )}
+                                                                                 >
+                                                                                     Al Iniciar
+                                                                                 </button>
+                                                                             </div>
+                                                                         </div>
+                                                                     </div>
+
+                                                                     <div className="space-y-4">
+                                                                         <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1 ml-1">Mapeo de Parámetros</label>
+                                                                         <p className="text-[10px] text-slate-500 italic mb-4">Vincula los parámetros de la operación con los campos de este formulario.</p>
+                                                                         
+                                                                         {(() => {
+                                                                             const currentOp = accountingOperations.find(op => op.id === activities.find(a => a.id === selectedActivityId)?.accounting_config?.operation_id);
+                                                                             if (!currentOp) return (
+                                                                                 <div className="p-8 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl text-center">
+                                                                                     <p className="text-xs text-slate-400">Selecciona una operación para configurar el mapeo.</p>
+                                                                                 </div>
+                                                                             );
+
+                                                                             return (
+                                                                                 <div className="space-y-3">
+                                                                                     {currentOp.parameters.map(param => (
+                                                                                         <div key={param.name} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                                                                                             <div className="flex-1">
+                                                                                                 <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-wider">{param.label || param.name}</p>
+                                                                                                 <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Tipo: {param.type}</p>
+                                                                                             </div>
+                                                                                             <select
+                                                                                                 value={activities.find(a => a.id === selectedActivityId)?.accounting_config?.mapping?.[param.name] || ''}
+                                                                                                 onChange={(e) => {
+                                                                                                     const fieldName = e.target.value;
+                                                                                                     setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                         ...a,
+                                                                                                         accounting_config: {
+                                                                                                             ...(a.accounting_config || { operation_id: '', trigger: 'on_complete', mapping: {} }),
+                                                                                                             mapping: { ...(a.accounting_config?.mapping || {}), [param.name]: fieldName }
+                                                                                                         }
+                                                                                                     } : a));
+                                                                                                 }}
+                                                                                                 className="min-w-[160px] px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                                                                             >
+                                                                                                 <option value="">No mapeado</option>
+                                                                                                 {activities.find(a => a.id === selectedActivityId)?.fields?.map(f => (
+                                                                                                     <option key={f.id} value={f.name}>{f.label || f.name}</option>
+                                                                                                 ))}
+                                                                                             </select>
+                                                                                         </div>
+                                                                                     ))}
+                                                                                 </div>
+                                                                             );
+                                                                         })()}
+                                                                     </div>
+                                                                 </div>
+                                                             </div>
+                                                         )}
+
+                                                         {['start', 'task', 'decision', 'bot', 'end'].includes(activities.find(a => a.id === selectedActivityId)?.type || '') && (
                                                                     <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center text-center bg-slate-50/30 dark:bg-slate-900/10">
                                                                         <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
                                                                             <Settings2 className="w-8 h-8 text-slate-300 opacity-50" />

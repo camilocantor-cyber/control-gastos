@@ -325,6 +325,11 @@ export interface Activity {
     sync_config?: {
         mode: 'synchronous' | 'async_single' | 'async_multiple';
     };
+    accounting_config?: {
+        operation_id: string;
+        mapping: Record<string, string>; // Maps parameter name to activity field name or fixed value
+        trigger: 'on_complete' | 'on_start';
+    };
 }
 
 export interface Provider {

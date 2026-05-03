@@ -33,6 +33,7 @@ import { WorkloadMap } from './components/WorkloadMap';
 import { AdvancedReports } from './components/AdvancedReports';
 import { useScheduler } from './hooks/useScheduler';
 import { CRMDashboard } from './components/crm/CRMDashboard';
+import { PUCManager } from './components/PUCManager';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -242,6 +243,7 @@ function AppContent() {
       {activeSection === 'roles' && <RoleManager />}
       {activeSection === 'monitor' && <IntegrationMonitor />}
       {activeSection === 'crm' && <CRMDashboard />}
+      {activeSection === 'puc' && <PUCManager />}
       {/* help section removed from here */}
 
       {showStartProcess && (

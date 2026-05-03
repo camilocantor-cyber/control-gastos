@@ -2,7 +2,7 @@ import React, { type ReactNode, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../contexts/ThemeContext';
-import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen, Shield, Columns, Activity, FileSpreadsheet, Megaphone } from 'lucide-react';
+import { LayoutDashboard, GitBranch, Users, LogOut, ChevronRight, Search, BarChart3, Building2, Package, Moon, Sun, Calendar, ChevronDown, Network, Menu, Fingerprint, Zap, Settings, Plus, HelpCircle, BookOpen, Shield, Columns, Activity, FileSpreadsheet, Megaphone, Wallet, Terminal, Briefcase } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { usePermissions } from '../hooks/usePermissions';
@@ -49,8 +49,8 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, isCollapsed }: Sideba
             "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200",
             isCollapsed && "justify-center px-0",
             active
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20"
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/40"
+                : "text-slate-400 hover:bg-white/5 hover:text-white"
         )}
     >
         <Icon className="w-5 h-5 flex-shrink-0" />
@@ -61,6 +61,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, isCollapsed }: Sideba
 
 const CollapsibleSection = ({
     label,
+    icon: Icon,
     isOpen,
     onToggle,
     children,
@@ -68,6 +69,7 @@ const CollapsibleSection = ({
     isCollapsed
 }: {
     label: string,
+    icon: React.ElementType,
     isOpen: boolean,
     onToggle: () => void,
     children: React.ReactNode,
@@ -80,38 +82,61 @@ const CollapsibleSection = ({
                 <button
                     onClick={onToggle}
                     className={cn(
-                        "w-full flex items-center justify-between px-4 py-2 rounded-xl transition-all duration-200 group",
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
                         isActive
-                            ? "bg-slate-50 dark:bg-slate-800/50"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                            ? "bg-white/5"
+                            : "hover:bg-white/5"
                     )}
                 >
-                    <span className={cn(
-                        "text-[10px] font-black uppercase tracking-[0.2em] transition-colors",
+                    <div className={cn(
+                        "p-1.5 rounded-lg transition-colors",
                         isActive || isOpen
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-slate-400 dark:text-slate-600 group-hover:text-slate-600 dark:group-hover:text-slate-400"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-white/5 text-slate-500 group-hover:text-slate-300"
+                    )}>
+                        <Icon className="w-4 h-4" />
+                    </div>
+                    <span className={cn(
+                        "text-[10px] font-black uppercase tracking-[0.2em] transition-colors flex-1 text-left",
+                        isActive || isOpen
+                            ? "text-blue-400"
+                            : "text-slate-500 group-hover:text-slate-300"
                     )}>
                         {label}
                     </span>
                     <ChevronDown className={cn(
                         "w-3 h-3 transition-transform duration-300",
-                        isOpen ? "rotate-180 text-blue-500" : "text-slate-300 dark:text-slate-700"
+                        isOpen ? "rotate-180 text-blue-400" : "text-slate-600"
                     )} />
                 </button>
                 <div className={cn(
                     "overflow-hidden transition-all duration-300 ease-in-out",
-                    isOpen ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0"
+                    isOpen ? "max-h-[500px] opacity-100 mt-1" : "max-h-0 opacity-0"
                 )}>
-                    <div className="pl-2 space-y-1 border-l-2 border-slate-50 dark:border-slate-800 ml-4 py-1">
+                    <div className="pl-4 space-y-1 border-l border-white/5 ml-5 py-1">
                         {children}
                     </div>
                 </div>
             </>
         ) : (
             <div className="flex flex-col items-center gap-2 py-2">
-                <div className="w-8 h-px bg-slate-100 dark:bg-slate-800 my-1" />
-                {children}
+                <button
+                    onClick={onToggle}
+                    title={label}
+                    className={cn(
+                        "p-2 rounded-xl transition-all",
+                        isActive || isOpen
+                            ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                            : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    )}
+                >
+                    <Icon className="w-5 h-5" />
+                </button>
+                {isOpen && (
+                    <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                        {children}
+                    </div>
+                )}
             </div>
         )}
     </div>
@@ -128,7 +153,7 @@ interface SidebarProps {
 export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapsed }: SidebarProps) {
     const { user, signOut, switchOrganization } = useAuth();
     const { hasPermission, hasAnyPermission, isKommandant } = usePermissions();
-    const [openSections, setOpenSections] = useState<Set<string>>(new Set(['configuracion']));
+    const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
     const currentOrg = user?.available_organizations?.find(o => o.id === user.organization_id);
 
@@ -142,43 +167,53 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
         setOpenSections(newOpen);
     };
 
-    const isHerramientasActive = ['calendar', 'search'].includes(activeSection);
-    const isReportesActive = ['reports', 'monitor', 'kanban', 'workload', 'advanced-reports'].includes(activeSection);
-    const isConfigActive = ['workflows', 'users', 'organization', 'accounts', 'parameters', 'providers', 'orgchart'].includes(activeSection);
+    const isOperacionesActive = ['workflows', 'kanban', 'workload', 'calendar'].includes(activeSection);
+    const isFinanzasActive = ['puc', 'accounts'].includes(activeSection);
+    const isConfigActive = ['users', 'roles', 'organization', 'parameters', 'providers', 'orgchart'].includes(activeSection);
+    const isReportesActive = ['reports', 'advanced-reports'].includes(activeSection);
+    const isSistemaActive = ['monitor'].includes(activeSection);
 
     React.useEffect(() => {
-        if (isHerramientasActive) {
-            setOpenSections(prev => new Set(prev).add('herramientas'));
+        if (isOperacionesActive) {
+            setOpenSections(prev => new Set(prev).add('operaciones'));
         }
-        if (isReportesActive) {
-            setOpenSections(prev => new Set(prev).add('reportes'));
+        if (isFinanzasActive) {
+            setOpenSections(prev => new Set(prev).add('finanzas'));
         }
         if (isConfigActive) {
             setOpenSections(prev => new Set(prev).add('configuracion'));
         }
-    }, [activeSection, isHerramientasActive, isReportesActive, isConfigActive]);
+        if (isReportesActive) {
+            setOpenSections(prev => new Set(prev).add('reportes'));
+        }
+        if (isSistemaActive) {
+            setOpenSections(prev => new Set(prev).add('sistema'));
+        }
+    }, [activeSection, isOperacionesActive, isFinanzasActive, isConfigActive, isReportesActive, isSistemaActive]);
 
     return (
         <aside className={cn(
-            "bg-white dark:bg-[#080a14] border-r border-slate-100 dark:border-slate-800 flex flex-col sticky top-0 h-screen z-20 transition-all duration-300 ease-in-out",
+            "bg-slate-900 border-r border-slate-800 flex flex-col sticky top-0 h-screen z-20 transition-all duration-300 ease-in-out",
             isCollapsed ? "w-20" : "w-64"
         )}>
             <div className={cn("p-5 h-full flex flex-col", isCollapsed && "p-4")}>
                 <div className={cn("mb-6 relative group", isCollapsed && "mb-5")}>
                     <button className={cn(
-                        "w-full flex items-center gap-3 p-2 -ml-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left",
+                        "w-full flex items-center gap-3 p-2 -ml-2 rounded-xl hover:bg-white/5 transition-colors text-left",
                         isCollapsed && "ml-0 justify-center p-0"
                     )}>
                         <div className={cn(
                             "w-9 h-9 flex items-center justify-center rounded-xl shadow-lg border flex-shrink-0 overflow-hidden",
                             isKommandant 
                                 ? "bg-indigo-600 border-indigo-500 shadow-indigo-500/20" 
-                                : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800"
+                                : "bg-white/5 border-slate-800"
                         )}>
                             {isKommandant ? (
                                 <Zap className="text-white w-5 h-5 fill-white" />
                             ) : currentOrg?.logo_url ? (
-                                <img src={currentOrg.logo_url} alt="Logo" className="w-full h-full object-contain p-1" />
+                                <div className="w-full h-full bg-white flex items-center justify-center">
+                                    <img src={currentOrg.logo_url} alt="Logo" className="w-full h-full object-contain p-1" />
+                                </div>
                             ) : (
                                 <div className="w-full h-full bg-blue-600 flex items-center justify-center">
                                     <GitBranch className="text-white w-5 h-5" />
@@ -190,20 +225,20 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                 <div className="flex-1 overflow-hidden">
                                     <h1 className={cn(
                                         "text-sm font-black leading-tight truncate",
-                                        isKommandant ? "text-indigo-600 dark:text-indigo-400 italic" : "text-slate-900 dark:text-slate-100"
+                                        isKommandant ? "text-indigo-400 italic" : "text-white"
                                     )}>
                                         {isKommandant ? 'Her Kommandant' : (currentOrg?.name || 'BPM FLOW')}
                                     </h1>
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:rotate-90 transition-transform" />
+                                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:rotate-90 transition-transform" />
                             </>
                         )}
                     </button>
 
                     {/* Dropdown - only show if not collapsed or handle differently */}
                     {!isCollapsed && (
-                        <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#0d111d] border border-slate-100 dark:border-slate-800 rounded-[1.5rem] shadow-xl dark:shadow-2xl dark:shadow-slate-950 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 backdrop-blur-xl">
-                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] px-3 py-3">Mis Sucursales</p>
+                        <div className="absolute top-full left-0 w-full mt-2 bg-slate-800 border border-slate-700 rounded-[1.5rem] shadow-2xl p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 backdrop-blur-xl">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-3 py-3">Mis Sucursales</p>
                             <div className="space-y-1">
                                 {user?.available_organizations?.map(org => (
                                     <button
@@ -212,13 +247,13 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                         className={cn(
                                             "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95",
                                             org.id === user?.organization_id
-                                                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800"
-                                                : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 border border-transparent"
+                                                ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                                : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"
                                         )}
                                     >
                                         <div className={cn(
                                             "w-2 h-2 rounded-full",
-                                            org.id === user?.organization_id ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-700"
+                                            org.id === user?.organization_id ? "bg-blue-500" : "bg-slate-700"
                                         )} />
                                         {org.name}
                                     </button>
@@ -228,28 +263,22 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                     )}
                 </div>
 
-                <nav className="space-y-4 flex-1">
-                    <SidebarItem
-                        icon={LayoutDashboard}
-                        label="Dashboard"
-                        active={activeSection === 'dashboard'}
-                        onClick={() => onSectionChange('dashboard')}
-                        isCollapsed={isCollapsed}
-                    />
-                    <SidebarItem
-                        icon={Megaphone}
-                        label="CRM"
-                        active={activeSection === 'crm'}
-                        onClick={() => onSectionChange('crm')}
-                        isCollapsed={isCollapsed}
-                    />
+                <nav className="space-y-4 flex-1 overflow-y-auto custom-scrollbar-thin pr-1 -mr-1">
+                    <div className="space-y-1">
+                        <SidebarItem
+                            icon={LayoutDashboard}
+                            label="Dashboard"
+                            active={activeSection === 'dashboard'}
+                            onClick={() => onSectionChange('dashboard')}
+                            isCollapsed={isCollapsed}
+                        />
 
-                    {hasAnyPermission(['edit_workflows', 'manage_users', 'access_settings']) && (
                         <CollapsibleSection
-                            label="Configuración"
-                            isOpen={openSections.has('configuracion')}
-                            onToggle={() => toggleSection('configuracion')}
-                            isActive={isConfigActive}
+                            label="Operaciones"
+                            icon={Briefcase}
+                            isOpen={openSections.has('operaciones')}
+                            onToggle={() => toggleSection('operaciones')}
+                            isActive={isOperacionesActive}
                             isCollapsed={isCollapsed}
                         >
                             {hasPermission('edit_workflows') && (
@@ -261,76 +290,6 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                     isCollapsed={isCollapsed}
                                 />
                             )}
-                            {hasPermission('manage_users') && (
-                                <SidebarItem
-                                    icon={Users}
-                                    label="Usuarios"
-                                    active={activeSection === 'users'}
-                                    onClick={() => onSectionChange('users')}
-                                    isCollapsed={isCollapsed}
-                                />
-                            )}
-                            {hasPermission('access_settings') && (
-                                <SidebarItem
-                                    icon={Building2}
-                                    label="Mi Empresa"
-                                    active={activeSection === 'organization'}
-                                    onClick={() => onSectionChange('organization')}
-                                    isCollapsed={isCollapsed}
-                                />
-                            )}
-                            {hasPermission('manage_users') && (
-                                <SidebarItem
-                                    icon={Shield}
-                                    label="Roles y Permisos"
-                                    active={activeSection === 'roles'}
-                                    onClick={() => onSectionChange('roles')}
-                                    isCollapsed={isCollapsed}
-                                />
-                            )}
-                            {hasPermission('access_settings') && (
-                                <SidebarItem
-                                    icon={Settings}
-                                    label="Parámetros"
-                                    active={activeSection === 'parameters'}
-                                    onClick={() => onSectionChange('parameters')}
-                                    isCollapsed={isCollapsed}
-                                />
-                            )}
-                            {hasPermission('access_settings') && (
-                                <SidebarItem
-                                    icon={Package}
-                                    label="Proveedores"
-                                    active={activeSection === 'providers'}
-                                    onClick={() => onSectionChange('providers')}
-                                    isCollapsed={isCollapsed}
-                                />
-                            )}
-                            <SidebarItem
-                                icon={Network}
-                                label="Organigrama"
-                                active={activeSection === 'orgchart'}
-                                onClick={() => onSectionChange('orgchart')}
-                                isCollapsed={isCollapsed}
-                            />
-                            <SidebarItem
-                                icon={Fingerprint}
-                                label="Cuentas"
-                                active={activeSection === 'accounts'}
-                                onClick={() => onSectionChange('accounts')}
-                                isCollapsed={isCollapsed}
-                            />
-                        </CollapsibleSection>
-                    )}
-
-                    <div className="space-y-3">
-                        <CollapsibleSection
-                            label="Reportes"
-                            isOpen={openSections.has('reportes')}
-                            onToggle={() => toggleSection('reportes')}
-                            isActive={isReportesActive}
-                            isCollapsed={isCollapsed}
-                        >
                             <SidebarItem
                                 icon={Columns}
                                 label="Tablero Kanban"
@@ -345,6 +304,111 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                 onClick={() => onSectionChange('workload')}
                                 isCollapsed={isCollapsed}
                             />
+                            <SidebarItem
+                                icon={Calendar}
+                                label="Calendario"
+                                active={activeSection === 'calendar'}
+                                onClick={() => onSectionChange('calendar')}
+                                isCollapsed={isCollapsed}
+                            />
+                        </CollapsibleSection>
+
+                        <CollapsibleSection
+                            label="Finanzas"
+                            icon={Wallet}
+                            isOpen={openSections.has('finanzas')}
+                            onToggle={() => toggleSection('finanzas')}
+                            isActive={isFinanzasActive}
+                            isCollapsed={isCollapsed}
+                        >
+                            {hasPermission('access_settings') && (
+                                <SidebarItem
+                                    icon={FileSpreadsheet}
+                                    label="PUC Contable"
+                                    active={activeSection === 'puc'}
+                                    onClick={() => onSectionChange('puc')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            <SidebarItem
+                                icon={Fingerprint}
+                                label="Cuentas"
+                                active={activeSection === 'accounts'}
+                                onClick={() => onSectionChange('accounts')}
+                                isCollapsed={isCollapsed}
+                            />
+                        </CollapsibleSection>
+
+                        <CollapsibleSection
+                            label="Administración"
+                            icon={Building2}
+                            isOpen={openSections.has('configuracion')}
+                            onToggle={() => toggleSection('configuracion')}
+                            isActive={isConfigActive}
+                            isCollapsed={isCollapsed}
+                        >
+                            {hasPermission('manage_users') && (
+                                <SidebarItem
+                                    icon={Users}
+                                    label="Usuarios"
+                                    active={activeSection === 'users'}
+                                    onClick={() => onSectionChange('users')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('manage_users') && (
+                                <SidebarItem
+                                    icon={Shield}
+                                    label="Roles y Permisos"
+                                    active={activeSection === 'roles'}
+                                    onClick={() => onSectionChange('roles')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('access_settings') && (
+                                <SidebarItem
+                                    icon={Building2}
+                                    label="Mi Empresa"
+                                    active={activeSection === 'organization'}
+                                    onClick={() => onSectionChange('organization')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            <SidebarItem
+                                icon={Network}
+                                label="Organigrama"
+                                active={activeSection === 'orgchart'}
+                                onClick={() => onSectionChange('orgchart')}
+                                isCollapsed={isCollapsed}
+                            />
+                            {hasPermission('access_settings') && (
+                                <SidebarItem
+                                    icon={Package}
+                                    label="Proveedores"
+                                    active={activeSection === 'providers'}
+                                    onClick={() => onSectionChange('providers')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                            {hasPermission('access_settings') && (
+                                <SidebarItem
+                                    icon={Settings}
+                                    label="Parámetros"
+                                    active={activeSection === 'parameters'}
+                                    onClick={() => onSectionChange('parameters')}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )}
+                        </CollapsibleSection>
+
+                        <CollapsibleSection
+                            label="Reportes"
+                            icon={BarChart3}
+                            isOpen={openSections.has('reportes')}
+                            onToggle={() => toggleSection('reportes')}
+                            isActive={isReportesActive}
+                            isCollapsed={isCollapsed}
+                        >
                             {hasPermission('view_reports') && (
                                 <>
                                     <SidebarItem
@@ -363,6 +427,16 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                                     />
                                 </>
                             )}
+                        </CollapsibleSection>
+
+                        <CollapsibleSection
+                            label="Sistema"
+                            icon={Terminal}
+                            isOpen={openSections.has('sistema')}
+                            onToggle={() => toggleSection('sistema')}
+                            isActive={isSistemaActive}
+                            isCollapsed={isCollapsed}
+                        >
                             {hasPermission('access_settings') && (
                                 <SidebarItem
                                     icon={Zap}
@@ -375,50 +449,25 @@ export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapse
                         </CollapsibleSection>
 
                         <CollapsibleSection
-                            label="Herramientas"
-                            isOpen={openSections.has('herramientas')}
-                            onToggle={() => toggleSection('herramientas')}
-                            isActive={isHerramientasActive}
+                            label="Comercial"
+                            icon={Megaphone}
+                            isOpen={openSections.has('comercial')}
+                            onToggle={() => toggleSection('comercial')}
+                            isActive={activeSection === 'crm'}
                             isCollapsed={isCollapsed}
                         >
                             <SidebarItem
-                                icon={Calendar}
-                                label="Calendario"
-                                active={activeSection === 'calendar'}
-                                onClick={() => onSectionChange('calendar')}
+                                icon={Megaphone}
+                                label="CRM"
+                                active={activeSection === 'crm'}
+                                onClick={() => onSectionChange('crm')}
                                 isCollapsed={isCollapsed}
                             />
                         </CollapsibleSection>
                     </div>
                 </nav>
 
-                <div className={cn("pt-4 border-t border-slate-50 dark:border-slate-800 space-y-1", isCollapsed && "mt-auto pt-2")}>
-                    <button
-                        onClick={() => onOpenHelp ? onOpenHelp('') : onSectionChange('help')}
-                        title={isCollapsed ? "Centro de Ayuda" : undefined}
-                        className={cn(
-                            "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group",
-                            isCollapsed && "justify-center px-0",
-                            activeSection === 'help'
-                                ? "bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20"
-                                : "text-slate-400 dark:text-slate-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400"
-                        )}
-                    >
-                        <HelpCircle className="w-5 h-5 flex-shrink-0" />
-                        {!isCollapsed && <span className="font-semibold text-sm truncate">Centro de Ayuda</span>}
-                    </button>
-                    <button
-                        onClick={signOut}
-                        title={isCollapsed ? "Cerrar Sesión" : undefined}
-                         className={cn(
-                             "w-full flex items-center gap-3 p-4 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl transition-all group",
-                             isCollapsed && "p-2 justify-center"
-                         )}
-                    >
-                        <LogOut className="w-4.5 h-4.5 group-hover:rotate-12 transition-transform" />
-                        {!isCollapsed && <span className="font-bold text-[13px]">Cerrar Sesión</span>}
-                    </button>
-                </div>
+                <div className="mt-auto" />
             </div>
         </aside>
     );
@@ -454,13 +503,16 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                     isCollapsed={isCollapsed}
                 />
             )}
-            <main className="flex-1 overflow-y-auto custom-scrollbar">
-                <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-slate-100 bg-white/80 dark:bg-[#080a14]/80 backdrop-blur-md px-4 md:px-8 dark:border-slate-800 shadow-sm">
+            <main className="flex-1 overflow-y-auto custom-scrollbar relative bg-[#f8fafc] dark:bg-[#02040a]">
+                {/* Subtle Ambient Background Gradient for Light Mode */}
+                <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-100/30 via-transparent to-transparent pointer-events-none dark:hidden" />
+                
+                <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-slate-800/50 bg-slate-900/95 backdrop-blur-md px-4 md:px-8 shadow-lg shadow-slate-950/20">
                     <div className="flex items-center gap-4">
                         {!isTurista && (
                             <button
                                 onClick={() => setIsCollapsed(!isCollapsed)}
-                                className="p-2 -ml-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 hidden lg:block"
+                                className="p-2 -ml-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95 hidden lg:block"
                                 title={isCollapsed ? "Expandir Menú" : "Contraer Menú"}
                             >
                                 <Menu className="w-5 h-5" />
@@ -468,10 +520,10 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                         )}
                         <div className="flex items-center gap-3">
                             <div>
-                                <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-0.5 leading-none">
+                                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-0.5 leading-none">
                                     {isTurista ? currentOrg?.name : 'Módulo Principal'}
                                 </p>
-                                <h2 className="text-lg font-black text-slate-900 dark:text-white capitalize leading-none">
+                                <h2 className="text-lg font-black text-white capitalize leading-none">
                                     {isTurista ? profile?.full_name : (
                                         activeSection === 'orgchart' ? 'Organigrama' :
                                             activeSection === 'workflows' ? 'Flujos de Trabajo' :
@@ -483,8 +535,9 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                                                                     activeSection === 'users' ? 'Colaboradores' :
                                                                         activeSection === 'accounts' ? 'Cuentas de Sistema' :
                                                                             activeSection === 'monitor' ? 'Monitor de API' :
-                                                                                activeSection === 'help' ? 'Centro de Ayuda' : // Added help display name
-                                                                                    activeSection
+                                                                                activeSection === 'puc' ? 'Plan Único de Cuentas (PUC)' :
+                                                                                    activeSection === 'help' ? 'Centro de Ayuda' : // Added help display name
+                                                                                        activeSection
                                     )}
                                 </h2>
                             </div>
@@ -533,7 +586,7 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
 
                         {/* Navigation Actions */}
                         {!isTurista && (
-                            <div className="hidden md:flex items-center gap-2 ml-4 px-4 border-l border-slate-100 dark:border-slate-800">
+                            <div className="hidden md:flex items-center gap-2 ml-4 px-4 border-l border-slate-800">
                                 {hasPermission('edit_workflows') && (
                                     <HeaderNavButton
                                         onClick={onNewProcess || (() => { })}
@@ -556,7 +609,7 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                         {/* Help Quick Access */}
                         <button
                             onClick={() => onOpenHelp('')}
-                            className="hidden md:flex p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all active:scale-95"
+                            className="hidden md:flex p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
                             title="Centro de Ayuda"
                         >
                             <HelpCircle className="w-5 h-5" />
@@ -565,13 +618,13 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                         {/* Theme Toggle */}
                         <button
                             onClick={toggleTheme}
-                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                             title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
                         >
                             {theme === 'light' ? (
-                                <Moon className="w-5 h-5 text-slate-600" />
+                                <Moon className="w-5 h-5 text-slate-300" />
                             ) : (
-                                <Sun className="w-5 h-5 text-slate-400" />
+                                <Sun className="w-5 h-5 text-yellow-400" />
                             )}
                         </button>
 
@@ -589,7 +642,7 @@ export function MainLayout({ children, activeSection, onSectionChange, onOpenHel
                                     <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
                                     <div className="absolute top-full right-0 mt-3 w-64 bg-white dark:bg-[#0d111d] border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl p-6 z-50 animate-in fade-in zoom-in duration-200">
                                         <div className="flex flex-col items-center text-center mb-6">
-                                            <div className="w-16 h-16 rounded-[2rem] bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-2xl mb-4 border border-blue-100 dark:border-blue-800/50 overflow-hidden shadow-inner">
+                                            <div className="w-16 h-16 rounded-[2rem] bg-white flex items-center justify-center text-blue-600 font-black text-2xl mb-4 border border-slate-100 overflow-hidden shadow-inner">
                                                 {currentOrg?.logo_url ? (
                                                     <img src={currentOrg.logo_url} alt="Logo" className="w-full h-full object-contain p-2" />
                                                 ) : (

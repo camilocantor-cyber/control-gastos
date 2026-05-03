@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 
 import { useAuth } from './useAuth';
 import { executeServiceTask, evaluateCondition } from '../utils/actionRunner';
+import { executeAccountingOperation } from '../utils/accountingExecutor';
 
 export function useExecution() {
     const { user } = useAuth();
@@ -128,6 +129,43 @@ export function useExecution() {
         }
     }
 
+    async function triggerAccounting(activity: any, processId: string, trigger: 'on_start' | 'on_complete') {
+        const config = activity.accounting_config;
+        if (!config || !config.operation_id || config.trigger !== trigger) return;
+
+        try {
+            const { data: processData } = await supabase.from('process_data').select('field_name, value').eq('process_id', processId);
+            const context: Record<string, any> = {};
+            processData?.forEach(d => context[d.field_name] = d.value);
+
+            const params: Record<string, any> = {};
+            if (config.mapping) {
+                Object.entries(config.mapping).forEach(([paramName, fieldName]) => {
+                    params[paramName] = context[fieldName as string] || '';
+                });
+            }
+
+            const result = await executeAccountingOperation(config.operation_id, params, {
+                organization_id: user?.organization_id || '',
+                user_id: user?.id || '',
+                reference: `BPM-${processId.split('-')[0].toUpperCase()}`,
+                description: `Asiento automático desde BPM: ${activity.name}`
+            });
+
+            if (result.success) {
+                await supabase.from('process_history').insert({
+                    process_id: processId,
+                    activity_id: activity.id,
+                    action: 'commented',
+                    comment: `🏦 Integración Contable: Asiento generado exitosamente (${result.isBalanced ? 'Cuadrado' : 'Descuadrado'}).`,
+                    user_id: user?.id
+                });
+            }
+        } catch (e) {
+            console.error('Error triggering accounting:', e);
+        }
+    }
+
     // Start a new process instance
     async function startProcess(workflowId: string, name: string, organizationId: string) {
         try {
@@ -181,6 +219,9 @@ export function useExecution() {
                 });
 
             if (histError) throw histError;
+ 
+             // Trigger Accounting (On Start)
+             await triggerAccounting(activities, instance.id, 'on_start');
 
             // 4. Auto-advance if the starting node is a BOT or connects to one
             try {
@@ -422,6 +463,10 @@ export function useExecution() {
                 });
 
             if (histError) throw histError;
+ 
+             // Trigger Accounting
+             if (sourceActivity) await triggerAccounting(sourceActivity, processId, 'on_complete');
+             if (targetActivity) await triggerAccounting(targetActivity, processId, 'on_start');
 
             // 4. Trigger Automatic Actions for the SOURCE activity (On-Exit)
             const actionsToTrace = (sourceActivity as any)?.actions || [];
