@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAccountingReports } from '../hooks/useAccountingReports';
-import { PieChart, TrendingUp, DollarSign, ArrowUpRight, ArrowDownLeft, FileSpreadsheet, Download } from 'lucide-react';
+import { PieChart, TrendingUp, DollarSign, ArrowUpRight, FileSpreadsheet, Download } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 
 export function BalanceReport() {
-    const { balances, loading, error, loadBalanceReport } = useAccountingReports();
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
+    const { balances, loading, loadBalanceReport } = useAccountingReports();
 
     useEffect(() => {
         loadBalanceReport();

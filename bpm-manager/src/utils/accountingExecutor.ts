@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { AccountingOperation, JournalEntry, JournalEntryDetail } from '../types/accounting';
+import type { AccountingOperation } from '../types/accounting';
 
 /**
  * Evalúa una fórmula simple reemplazando variables {{VAR}} con valores del contexto
@@ -8,7 +8,7 @@ function evaluateFormula(formula: string | null, context: Record<string, any>): 
     if (!formula) return null;
     
     // Reemplazar variables {{variable}}
-    const resolved = formula.replace(/{{(.*?)}}/g, (match, varName) => {
+    const resolved = formula.replace(/{{(.*?)}}/g, (_match, varName) => {
         const val = context[varName.trim()];
         return val !== undefined ? val : '0';
     });

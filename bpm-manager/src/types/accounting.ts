@@ -104,6 +104,8 @@ export interface JournalEntryDetail {
     provider_id: string | null;
 }
 
-export type JournalEntryFormData = Omit<JournalEntry, 'id' | 'entry_number' | 'status' | 'total_debit' | 'total_credit' | 'is_balanced' | 'created_at'>;
+export type JournalEntryFormData = Omit<JournalEntry, 'id' | 'entry_number' | 'status' | 'total_debit' | 'total_credit' | 'is_balanced' | 'created_at' | 'details'> & {
+    details: JournalEntryDetailFormData[];
+};
 export type JournalEntryDetailFormData = Omit<JournalEntryDetail, 'id' | 'journal_entry_id'>;
 

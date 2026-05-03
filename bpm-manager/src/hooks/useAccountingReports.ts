@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 
@@ -18,7 +18,7 @@ export function useAccountingReports() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    async function loadBalanceReport(dateFrom?: string, dateTo?: string) {
+    async function loadBalanceReport(_dateFrom?: string, _dateTo?: string) {
         if (!user?.organization_id) return;
         try {
             setLoading(true);

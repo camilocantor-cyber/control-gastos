@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useJournalEntries } from '../hooks/useJournalEntries';
-import { BookMarked, Search, Filter, Eye, CheckCircle, XCircle, Calendar, FileText, Trash2, Download } from 'lucide-react';
+import { BookMarked, Search, Eye, XCircle, Calendar, Trash2, Download } from 'lucide-react';
 import type { JournalEntry, JournalEntryDetail } from '../types/accounting';
 import { exportToExcel } from '../utils/excelExport';
 

@@ -1,0 +1,7 @@
+﻿SoftMaker Office utiliza la librería Hunspell para proporcionar la función de corrección ortográfica en aquellas lenguas que los diccionarios de SoftMaker no admiten. Nuestro agradecimiento al grupo de desarrolladores de Hunspell por su gran trabajo.
+
+Hunspell tiene triple licencia: GPL, LGPL y MPL. SoftMaker otorga la licencia MPL (Mozilla Public License) a Hunspell a través de sus desarrolladores.
+
+Tenga en cuenta que la licencia MPL solo se aplica a Hunspell y no a ningún otro elemento de SoftMaker Office, que es un software de código cerrado.
+
+SoftMaker no ha hecho ninguna modificación en el código fuente de Hunspell. Eso significa que puede descargar el código fuente más reciente de Hunspell directamente desde su sitio web: http://hunspell.sourceforge.net.

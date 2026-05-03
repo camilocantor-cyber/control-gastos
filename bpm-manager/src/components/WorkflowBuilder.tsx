@@ -1554,9 +1554,20 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                             </select>
                                                                         </div>
                                                                     </div>
-                                                                )}
+                                                                 )}
+                                                                 {['start', 'task', 'decision', 'bot', 'end'].includes(activities.find(a => a.id === selectedActivityId)?.type || '') && (
+                                                                     <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center text-center bg-slate-50/30 dark:bg-slate-900/10">
+                                                                         <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
+                                                                             <Settings2 className="w-8 h-8 text-slate-300 opacity-50" />
+                                                                         </div>
+                                                                         <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">Sin ajustes adicionales</h4>
+                                                                         <p className="text-sm text-slate-500 max-w-sm">Esta actividad utiliza la configuración estándar. Ajusta el nombre, asignación o campos en las otras pestañas.</p>
+                                                                     </div>
+                                                                 )}
+                                                             </div>
+                                                         )}
 
-                                                                {activeTab === 'accounting' && (
+                                                         {activeTab === 'accounting' && (
                                                              <div className="space-y-8 animate-fadeIn max-w-4xl">
                                                                  <div className="flex items-center gap-4 p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-3xl border border-emerald-100 dark:border-emerald-800">
                                                                      <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm text-emerald-600">
@@ -1642,11 +1653,11 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
 
                                                                              return (
                                                                                  <div className="space-y-3">
-                                                                                     {currentOp.parameters.map(param => (
+                                                                                     {currentOp.parameters?.map(param => (
                                                                                          <div key={param.name} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl">
                                                                                              <div className="flex-1">
                                                                                                  <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-wider">{param.label || param.name}</p>
-                                                                                                 <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Tipo: {param.type}</p>
+                                                                                                 <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Tipo: {param.data_type}</p>
                                                                                              </div>
                                                                                              <select
                                                                                                  value={activities.find(a => a.id === selectedActivityId)?.accounting_config?.mapping?.[param.name] || ''}
@@ -1676,18 +1687,6 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                  </div>
                                                              </div>
                                                          )}
-
-                                                         {['start', 'task', 'decision', 'bot', 'end'].includes(activities.find(a => a.id === selectedActivityId)?.type || '') && (
-                                                                    <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center text-center bg-slate-50/30 dark:bg-slate-900/10">
-                                                                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
-                                                                            <Settings2 className="w-8 h-8 text-slate-300 opacity-50" />
-                                                                        </div>
-                                                                        <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">Sin ajustes adicionales</h4>
-                                                                        <p className="text-sm text-slate-500 max-w-sm">Esta actividad utiliza la configuración estándar. Ajusta el nombre, asignación o campos en las otras pestañas.</p>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )}
 
                                                         {activeTab === 'details' && (
                                                             <div className="space-y-6 animate-fadeIn">

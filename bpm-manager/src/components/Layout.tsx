@@ -150,9 +150,9 @@ interface SidebarProps {
     isCollapsed?: boolean;
 }
 
-export function Sidebar({ activeSection, onSectionChange, onOpenHelp, isCollapsed }: SidebarProps) {
-    const { user, signOut, switchOrganization } = useAuth();
-    const { hasPermission, hasAnyPermission, isKommandant } = usePermissions();
+export function Sidebar({ activeSection, onSectionChange, isCollapsed }: SidebarProps) {
+    const { user, switchOrganization } = useAuth();
+    const { hasPermission, isKommandant } = usePermissions();
     const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
     const currentOrg = user?.available_organizations?.find(o => o.id === user.organization_id);

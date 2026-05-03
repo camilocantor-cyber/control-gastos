@@ -1,0 +1,766 @@
+[     0ms][     0ms]: Date 17.04.2026, 14:30
+[     0ms][     0ms]: Windows 10.0, Build 26200 8246
+[    16ms][    16ms]: TextMaker free, Revision 1230.1206 (32 Bit)
+[    32ms][    16ms]:  
+[    47ms][    15ms]: Windows: C:\WINDOWS\system32 (18532 MBytes free)
+[    47ms][     0ms]: Tempfiles: C:\Users\CAMILO~1\AppData\Local\Temp\ (18532 MBytes free)
+[    63ms][    16ms]: TEMP: C:\Users\CAMILO~1\AppData\Local\Temp
+[    79ms][    16ms]: TMP: C:\Users\CAMILO~1\AppData\Local\Temp
+[    94ms][    15ms]: Application: C:\Program Files (x86)\SoftMaker FreeOffice 2024\TextMaker.exe (18532 MBytes free)
+[   110ms][    16ms]: License: C:\ProgramData\SoftMaker\offree2024.lic 0 bytes
+[   110ms][     0ms]: Memory: 47/100 of 3966648 MBytes used
+[   125ms][    15ms]: Screensize 1366x768
+[   141ms][    16ms]: Printers:
+[   157ms][    16ms]: Windows printer <Microsoft Print to PDF,winspool,Ne00:>
+[   172ms][    15ms]: Printer <OneNote for Windows 10,Microsoft Software Printer Driver,>
+[   188ms][    16ms]: Printer <OneNote (Desktop),Send to Microsoft OneNote 16 Driver,>
+[   204ms][    16ms]: Printer <Microsoft Print to PDF,Microsoft Print To PDF,>
+[   219ms][    15ms]: Printer <HP Ink Tank Wireless 410 series PCL-3 (Red),HP Ink Tank Wireless 410 series PCL-3,http://192.168.1.101:3911/>
+[   235ms][    16ms]: Printer <Fax,Microsoft Shared Fax Driver,>
+[   250ms][    15ms]:  
+[   266ms][    16ms]: Resource files:
+[   282ms][    16ms]: TextMaker_ar.dwr : 166527 bytes : [6.12.2025 2:0.58 GMT]
+[   297ms][    15ms]: TextMaker_bg.dwr : 175296 bytes : [6.12.2025 2:0.56 GMT]
+[   313ms][    16ms]: TextMaker_cz.dwr : 161001 bytes : [6.12.2025 2:0.52 GMT]
+[   329ms][    16ms]: TextMaker_de.dwr : 157501 bytes : [6.12.2025 2:0.50 GMT]
+[   344ms][    15ms]: TextMaker_dk.dwr : 153172 bytes : [6.12.2025 2:0.56 GMT]
+[   360ms][    16ms]: TextMaker_ee.dwr : 156981 bytes : [6.12.2025 2:0.56 GMT]
+[   375ms][    15ms]: TextMaker_es.dwr : 159198 bytes : [6.12.2025 2:0.50 GMT]
+[   391ms][    16ms]: TextMaker_fi.dwr : 156328 bytes : [6.12.2025 2:0.56 GMT]
+[   407ms][    16ms]: TextMaker_fr.dwr : 161311 bytes : [6.12.2025 2:0.50 GMT]
+[   422ms][    15ms]: TextMaker_gr.dwr : 181032 bytes : [6.12.2025 2:0.58 GMT]
+[   438ms][    16ms]: TextMaker_hu.dwr : 163569 bytes : [6.12.2025 2:0.54 GMT]
+[   454ms][    16ms]: TextMaker_id.dwr : 153922 bytes : [6.12.2025 2:0.58 GMT]
+[   485ms][    31ms]: TextMaker_it.dwr : 157051 bytes : [6.12.2025 2:0.54 GMT]
+[   485ms][     0ms]: TextMaker_jp.dwr : 161745 bytes : [6.12.2025 2:0.54 GMT]
+[   516ms][    31ms]: TextMaker_kr.dwr : 157759 bytes : [6.12.2025 2:0.54 GMT]
+[   532ms][    16ms]: TextMaker_kz.dwr : 173602 bytes : [6.12.2025 2:0.52 GMT]
+[   532ms][     0ms]: TextMaker_lt.dwr : 159490 bytes : [6.12.2025 2:0.56 GMT]
+[   563ms][    31ms]: TextMaker_lv.dwr : 159293 bytes : [6.12.2025 2:0.56 GMT]
+[   579ms][    16ms]: TextMaker_nl.dwr : 156564 bytes : [6.12.2025 2:0.56 GMT]
+[   594ms][    15ms]: TextMaker_pb.dwr : 159022 bytes : [6.12.2025 2:0.52 GMT]
+[   610ms][    16ms]: TextMaker_pl.dwr : 161356 bytes : [6.12.2025 2:0.52 GMT]
+[   610ms][     0ms]: TextMaker_pt.dwr : 159209 bytes : [6.12.2025 2:0.52 GMT]
+[   641ms][    31ms]: TextMaker_ro.dwr : 157599 bytes : [6.12.2025 2:0.54 GMT]
+[   641ms][     0ms]: TextMaker_ru.dwr : 177775 bytes : [6.12.2025 2:0.52 GMT]
+[   672ms][    31ms]: TextMaker_se.dwr : 154871 bytes : [6.12.2025 2:0.56 GMT]
+[   672ms][     0ms]: TextMaker_si.dwr : 158491 bytes : [6.12.2025 2:0.52 GMT]
+[   688ms][    16ms]: TextMaker_sk.dwr : 162116 bytes : [6.12.2025 2:0.54 GMT]
+[   704ms][    16ms]: TextMaker_tr.dwr : 159091 bytes : [6.12.2025 2:0.54 GMT]
+[   719ms][    15ms]: TextMaker_ua.dwr : 175370 bytes : [6.12.2025 2:0.52 GMT]
+[   750ms][    31ms]: TextMaker_uk.dwr : 150845 bytes : [6.12.2025 2:0.50 GMT]
+[   766ms][    16ms]: TextMaker_us.dwr : 150732 bytes : [6.12.2025 2:0.50 GMT]
+[   766ms][     0ms]: TextMaker_zh.dwr : 154027 bytes : [6.12.2025 2:0.54 GMT]
+[   782ms][    16ms]: Currently running jobs:
+[   797ms][    15ms]: Executable C:\Program Files (x86)\SoftMaker FreeOffice 2024\TextMaker.exe
+[   813ms][    16ms]: InitColors
+[   829ms][    16ms]: InitMouseWheel
+[   844ms][    15ms]: StartMain
+[   860ms][    16ms]: comInit: Ole2
+[   875ms][    15ms]: comInit: TmpSystemInit
+[   922ms][    47ms]: RibbonInit
+[   938ms][    16ms]: initFontKernel font metrics info [A]: (12) --- 7 ; 15
+[   938ms][     0ms]: initFontKernel font metrics info [B]: (12) --- 7 ; 15
+[   954ms][    16ms]: Dpi info: 96 ; 96 --- 96 ; 96 --- 96 ; 96 ; 96
+[   969ms][    15ms]: OnePix info: 1 ; 1 ; 0 --- 1 ; 1 ; 0
+[   985ms][    16ms]: Dialog font final metrics info: (12) --- 7 ; 15 --- 7 ; 15
+[  1016ms][    31ms]: comInit: CmdLine
+[  1032ms][    16ms]: CmdLine </Shell "C:\Users\CAMILO CANTOR\Downloads\Plan Ejecucion ALMACEN (1).docx">
+[  1063ms][    31ms]: comInit: OleAutomation
+[  1110ms][    47ms]: comInit: Address
+[  1125ms][    15ms]: comInit: DDE
+[  1141ms][    16ms]: comInit: InitCountry
+[  1157ms][    16ms]: Country Settings1: ID:39 CP:4e4 Lid:240a Curr:$ CF:900 NF:12 TS:. DS:,
+[  1172ms][    15ms]: Country Settings2: MS:4 LS:; Lng:Español
+[  1188ms][    16ms]: Country Settings Date: DF:5f32 DS:/ DW:,  D1S: de  D2S: de 
+[  1204ms][    16ms]: Country Settings Time: TF:0 TS:: TA:a. m. TP:p. m.
+[  1219ms][    15ms]: comInit: InitComPrefs
+[  1422ms][   203ms]: comInit: Install
+[  1438ms][    16ms]: comInit: InitSpellcheck
+[  1454ms][    16ms]: comInit: InitAppPrefs
+[  1469ms][    15ms]: InitOpenGlAfs - Going in.
+[  1485ms][    16ms]: OpenGL autoforms graphica synchronized init [0]: 0 -> 1
+[  1500ms][    15ms]: CreateWindowExSm <Graphica FGN><Graphica FGN>
+[  1641ms][   141ms]: GraphicaOpenGL - Generic Version String: 4.6.0 - Build 27.20.100.9079
+[  1641ms][     0ms]: GraphicaOpenGL - GLSL Version String: 4.60 - Build 27.20.100.9079
+[  1657ms][    16ms]: GraphicaOpenGL - Numeric Detected Version: 4006
+[  1672ms][    15ms]: CreateWindowExSm <Graphica FGN><Graphica FGN>
+[  1907ms][   235ms]: GraphicaOpenGL - Successful Init Reached.
+[  1938ms][    31ms]: OpenGL autoforms graphica synchronized init [0]: 1 -> 2
+[  2219ms][   281ms]: OpenGL autoforms graphica synchronized init [0]: 4 -> 6
+[  2219ms][     0ms]: InitOpenGlAfs - Going out: Success - [16384]
+[  2235ms][    16ms]: comInit: Controls
+[  2266ms][    31ms]: comInit: Icons
+[  2266ms][     0ms]: comInit: Res
+[  2282ms][    16ms]: comInit: AppWindows
+[  2313ms][    31ms]: comInit: Frame
+[  2313ms][     0ms]: comInit: CreateFrameMenus
+[  2329ms][    16ms]: comInit: CreateFrameWindow
+[  2344ms][    15ms]: CreateWindowExSm <tmwMdiFrame><TextMaker>
+[  2360ms][    16ms]: CreateWindowExSm <SMMDICLIENT>
+[  2454ms][    94ms]: comInit: CreateFrameStrips
+[  2454ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2469ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2485ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2500ms][    15ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[  2532ms][    32ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2547ms][    15ms]: CreateWindowExSm <SMCOMBOLB>
+[  2547ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2579ms][    32ms]: CreateWindowExSm <SMCOMBOLB>
+[  2594ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2610ms][    16ms]: CreateWindowExSm <SMCOMBOLB>
+[  2625ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2641ms][    16ms]: CreateWindowExSm <SMCOMBOLB>
+[  2657ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2688ms][    31ms]: CreateWindowExSm <SMCOMBOLB>
+[  2704ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2719ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2735ms][    16ms]: CreateWindowExSm <SMCTLSTRIP><Strip>
+[  2750ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2766ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2782ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2797ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2813ms][    16ms]: CreateWindowExSm <SMCTLSTRIP><Strip>
+[  2829ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2860ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2875ms][    15ms]: CreateWindowExSm <SMCOMBOLB>
+[  2891ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2907ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2938ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2938ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2954ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2969ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[  2985ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3016ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3016ms][     0ms]: CreateWindowExSm <SMCOMBOLB>
+[  3032ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3063ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3063ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3079ms][    16ms]: CreateWindowExSm <SMCOMBOLB>
+[  3110ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3110ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3125ms][    15ms]: CreateWindowExSm <SMCOMBOLB>
+[  3141ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3157ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3188ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3204ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3219ms][    15ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[  3219ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[  3235ms][    16ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[  3266ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3266ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[  3266ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[  3282ms][    16ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[  3313ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3313ms][     0ms]: CreateWindowExSm <SMCOMBOLB>
+[  3344ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3344ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3360ms][    16ms]: CreateWindowExSm <SMCOMBOLB>
+[  3360ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[  3391ms][    31ms]: CreateWindowExSm <SMTOOLTIP>
+[  3391ms][     0ms]: comInit: Colors
+[  3407ms][    16ms]: comInit: ThemeSelect
+[  3422ms][    15ms]: comInit: WindowSize
+[  3438ms][    16ms]: CreateWindowExSm <SMRIBBONHEADER>
+[  3454ms][    16ms]: comInit: Treeview
+[  3469ms][    15ms]: comInit: Cursors
+[  3500ms][    31ms]: comInit: AppBrushes
+[  3516ms][    16ms]: comInit: AppFormat
+[  3532ms][    16ms]: comInit: AppIcons
+[  3547ms][    15ms]: comInit: AppBuffer
+[  3563ms][    16ms]: comInit: BrushCache
+[  3579ms][    16ms]: comInit: AppFonts
+[  3579ms][     0ms]: comInit: AppLFile
+[  3594ms][    15ms]: comInit: Timer
+[  3594ms][     0ms]: comInit: Active
+[  3625ms][    31ms]: CreateWindowExSm <SMDIALOG><->
+[  3672ms][    47ms]: DDECallback 80a2
+[  5657ms][  1985ms]: comInit: Accelerators
+[  5672ms][    15ms]: comInit: History
+[  5688ms][    16ms]: comInit: appData
+[  5688ms][     0ms]: spInitCountryInfo(0): ID:39 Date:DMAhmsT TS:. DS:,
+[  5704ms][    16ms]: spInitCountryInfo(1): ID:1 Date:DMYhmsQ TS:, DS:.
+[  5750ms][    46ms]: GetMRULanguages
+[  5750ms][     0ms]: InitOpenGlAfs - RenderCheck - Going In.
+[  6360ms][   610ms]: InitOpenGlAfs - RenderCheck - Success.
+[  6360ms][     0ms]: comInit: Printer
+[  7344ms][   984ms]: Hidden fonts (OS): 0
+[  8391ms][  1047ms]: Restricted fonts (App): 0
+[  8407ms][    16ms]: Used fonts: 269
+[  8422ms][    15ms]: Font <Agency FB>
+[  8438ms][    16ms]: Font <Algerian>
+[  8454ms][    16ms]: Font <Arial>
+[  8469ms][    15ms]: Font <Arial Black>
+[  8485ms][    16ms]: Font <Arial Narrow>
+[  8500ms][    15ms]: Font <Arial Rounded MT Bold>
+[  8516ms][    16ms]: Font <Arial Unicode MS>
+[  8532ms][    16ms]: Font <Avignon Pro>
+[  8547ms][    15ms]: Font <Avignon Pro Demi>
+[  8563ms][    16ms]: Font <Avignon Pro Medium>
+[  8579ms][    16ms]: Font <Avignon Pro Xlight>
+[  8594ms][    15ms]: Font <Bahnschrift>
+[  8610ms][    16ms]: Font <Bahnschrift Condensed>
+[  8625ms][    15ms]: Font <Bahnschrift Light>
+[  8641ms][    16ms]: Font <Bahnschrift Light Condensed>
+[  8657ms][    16ms]: Font <Bahnschrift Light SemiCondensed>
+[  8657ms][     0ms]: Font <Bahnschrift SemiBold>
+[  8672ms][    15ms]: Font <Bahnschrift SemiBold Condensed>
+[  8688ms][    16ms]: Font <Bahnschrift SemiBold SemiConden>
+[  8704ms][    16ms]: Font <Bahnschrift SemiCondensed>
+[  8719ms][    15ms]: Font <Bahnschrift SemiLight>
+[  8735ms][    16ms]: Font <Bahnschrift SemiLight Condensed>
+[  8750ms][    15ms]: Font <Bahnschrift SemiLight SemiConde>
+[  8750ms][     0ms]: Font <Baskerville Old Face>
+[  8766ms][    16ms]: Font <Bauhaus 93>
+[  8782ms][    16ms]: Font <Bell MT>
+[  8797ms][    15ms]: Font <Berlin Sans FB>
+[  8813ms][    16ms]: Font <Berlin Sans FB Demi>
+[  8829ms][    16ms]: Font <Bernard MT Condensed>
+[  8844ms][    15ms]: Font <Blackadder ITC>
+[  8844ms][     0ms]: Font <Bodoni MT>
+[  8860ms][    16ms]: Font <Bodoni MT Black>
+[  8875ms][    15ms]: Font <Bodoni MT Condensed>
+[  8891ms][    16ms]: Font <Bodoni MT Poster Compressed>
+[  8907ms][    16ms]: Font <Book Antiqua>
+[  8922ms][    15ms]: Font <Bookman Old Style>
+[  8922ms][     0ms]: Font <Bradley Hand ITC>
+[  8938ms][    16ms]: Font <Britannic Bold>
+[  8954ms][    16ms]: Font <Broadway>
+[  8969ms][    15ms]: Font <Brush Script MT>
+[  8969ms][     0ms]: Font <Calibri>
+[  8985ms][    16ms]: Font <Calibri Light>
+[  9000ms][    15ms]: Font <Californian FB>
+[  9016ms][    16ms]: Font <Calisto MT>
+[  9032ms][    16ms]: Font <Cambria>
+[  9047ms][    15ms]: Font <Cambria Math>
+[  9047ms][     0ms]: Font <Candara>
+[  9063ms][    16ms]: Font <Candara Light>
+[  9079ms][    16ms]: Font <Cascadia Code>
+[  9094ms][    15ms]: Font <Cascadia Code ExtraLight>
+[  9110ms][    16ms]: Font <Cascadia Code Light>
+[  9125ms][    15ms]: Font <Cascadia Code SemiBold>
+[  9141ms][    16ms]: Font <Cascadia Code SemiLight>
+[  9141ms][     0ms]: Font <Cascadia Mono>
+[  9157ms][    16ms]: Font <Cascadia Mono ExtraLight>
+[  9172ms][    15ms]: Font <Cascadia Mono Light>
+[  9188ms][    16ms]: Font <Cascadia Mono SemiBold>
+[  9204ms][    16ms]: Font <Cascadia Mono SemiLight>
+[  9219ms][    15ms]: Font <Castellar>
+[  9235ms][    16ms]: Font <Centaur>
+[  9250ms][    15ms]: Font <Century>
+[  9250ms][     0ms]: Font <Century Gothic>
+[  9266ms][    16ms]: Font <Century Schoolbook>
+[  9282ms][    16ms]: Font <Chiller>
+[  9297ms][    15ms]: Font <Colonna MT>
+[  9297ms][     0ms]: Font <Comic Sans MS>
+[  9329ms][    32ms]: Font <Consolas>
+[  9344ms][    15ms]: Font <Constantia>
+[  9344ms][     0ms]: Font <Cooper Black>
+[  9360ms][    16ms]: Font <Copperplate Gothic Bold>
+[  9360ms][     0ms]: Font <Copperplate Gothic Light>
+[  9391ms][    31ms]: Font <Corbel>
+[  9407ms][    16ms]: Font <Corbel Light>
+[  9422ms][    15ms]: Font <Courier New>
+[  9438ms][    16ms]: Font <Curlz MT>
+[  9454ms][    16ms]: Font <Ebrima>
+[  9469ms][    15ms]: Font <Edwardian Script ITC>
+[  9469ms][     0ms]: Font <Elephant>
+[  9485ms][    16ms]: Font <Engravers MT>
+[  9500ms][    15ms]: Font <Eras Bold ITC>
+[  9516ms][    16ms]: Font <Eras Demi ITC>
+[  9516ms][     0ms]: Font <Eras Light ITC>
+[  9532ms][    16ms]: Font <Eras Medium ITC>
+[  9547ms][    15ms]: Font <Felix Titling>
+[  9547ms][     0ms]: Font <Footlight MT Light>
+[  9563ms][    16ms]: Font <Forte>
+[  9579ms][    16ms]: Font <Franklin Gothic Book>
+[  9594ms][    15ms]: Font <Franklin Gothic Demi>
+[  9610ms][    16ms]: Font <Franklin Gothic Demi Cond>
+[  9625ms][    15ms]: Font <Franklin Gothic Heavy>
+[  9641ms][    16ms]: Font <Franklin Gothic Medium>
+[  9641ms][     0ms]: Font <Franklin Gothic Medium Cond>
+[  9657ms][    16ms]: Font <Franklin Gothic Pro>
+[  9672ms][    15ms]: Font <Franklin Gothic Pro Heavy>
+[  9688ms][    16ms]: Font <Franklin Gothic Pro Medium>
+[  9704ms][    16ms]: Font <Freestyle Script>
+[  9719ms][    15ms]: Font <French Script MT>
+[  9735ms][    16ms]: Font <Gabriola>
+[  9750ms][    15ms]: Font <Gadugi>
+[  9766ms][    16ms]: Font <Garamond>
+[  9782ms][    16ms]: Font <Georgia>
+[  9797ms][    15ms]: Font <Gigi>
+[  9813ms][    16ms]: Font <Gill Sans MT>
+[  9813ms][     0ms]: Font <Gill Sans MT Condensed>
+[  9829ms][    16ms]: Font <Gill Sans MT Ext Condensed Bold>
+[  9844ms][    15ms]: Font <Gill Sans Ultra Bold>
+[  9860ms][    16ms]: Font <Gill Sans Ultra Bold Condensed>
+[  9875ms][    15ms]: Font <Glasgow>
+[  9891ms][    16ms]: Font <Glasgow Heavy>
+[  9907ms][    16ms]: Font <Glasgow Light>
+[  9922ms][    15ms]: Font <Gloucester MT Extra Condensed>
+[  9938ms][    16ms]: Font <Goudy Old Style>
+[  9954ms][    16ms]: Font <Goudy Stout>
+[  9969ms][    15ms]: Font <Haettenschweiler>
+[  9985ms][    16ms]: Font <Harlow Solid Italic>
+[ 10000ms][    15ms]: Font <Harrington>
+[ 10016ms][    16ms]: Font <High Tower Text>
+[ 10032ms][    16ms]: Font <HP Simplified>
+[ 10032ms][     0ms]: Font <HP Simplified Light>
+[ 10047ms][    15ms]: Font <Impact>
+[ 10063ms][    16ms]: Font <Imprint MT Shadow>
+[ 10079ms][    16ms]: Font <Informal Roman>
+[ 10094ms][    15ms]: Font <Ink Free>
+[ 10110ms][    16ms]: Font <Javanese Text>
+[ 10125ms][    15ms]: Font <Jokerman>
+[ 10141ms][    16ms]: Font <Juice ITC>
+[ 10157ms][    16ms]: Font <Kristen ITC>
+[ 10172ms][    15ms]: Font <Kunstler Script>
+[ 10188ms][    16ms]: Font <Leelawadee UI>
+[ 10204ms][    16ms]: Font <Leelawadee UI Semilight>
+[ 10219ms][    15ms]: Font <Lucida Bright>
+[ 10235ms][    16ms]: Font <Lucida Calligraphy>
+[ 10250ms][    15ms]: Font <Lucida Console>
+[ 10266ms][    16ms]: Font <Lucida Fax>
+[ 10282ms][    16ms]: Font <Lucida Handwriting>
+[ 10297ms][    15ms]: Font <Lucida Sans>
+[ 10313ms][    16ms]: Font <Lucida Sans Typewriter>
+[ 10329ms][    16ms]: Font <Lucida Sans Unicode>
+[ 10329ms][     0ms]: Font <Magneto>
+[ 10344ms][    15ms]: Font <Maiandra GD>
+[ 10360ms][    16ms]: Font <Malgun Gothic>
+[ 10375ms][    15ms]: Font <Malgun Gothic Semilight>
+[ 10391ms][    16ms]: Font <Marlett> 2
+[ 10407ms][    16ms]: Font <Matura MT Script Capitals>
+[ 10422ms][    15ms]: Font <Microsoft Himalaya>
+[ 10438ms][    16ms]: Font <Microsoft JhengHei>
+[ 10454ms][    16ms]: Font <Microsoft JhengHei Light>
+[ 10454ms][     0ms]: Font <Microsoft JhengHei UI>
+[ 10485ms][    31ms]: Font <Microsoft JhengHei UI Light>
+[ 10500ms][    15ms]: Font <Microsoft New Tai Lue>
+[ 10500ms][     0ms]: Font <Microsoft PhagsPa>
+[ 10516ms][    16ms]: Font <Microsoft Sans Serif>
+[ 10532ms][    16ms]: Font <Microsoft Tai Le>
+[ 10547ms][    15ms]: Font <Microsoft YaHei>
+[ 10563ms][    16ms]: Font <Microsoft YaHei Light>
+[ 10579ms][    16ms]: Font <Microsoft YaHei UI>
+[ 10594ms][    15ms]: Font <Microsoft YaHei UI Light>
+[ 10610ms][    16ms]: Font <Microsoft Yi Baiti>
+[ 10625ms][    15ms]: Font <MicroSquare>
+[ 10641ms][    16ms]: Font <MingLiU-ExtB>
+[ 10657ms][    16ms]: Font <MingLiU_HKSCS-ExtB>
+[ 10672ms][    15ms]: Font <MingLiU_MSCS-ExtB>
+[ 10688ms][    16ms]: Font <Mistral>
+[ 10704ms][    16ms]: Font <Modern No. 20>
+[ 10719ms][    15ms]: Font <Mongolian Baiti>
+[ 10735ms][    16ms]: Font <Monotype Corsiva>
+[ 10750ms][    15ms]: Font <MS Gothic>
+[ 10766ms][    16ms]: Font <MS PGothic>
+[ 10782ms][    16ms]: Font <MS UI Gothic>
+[ 10797ms][    15ms]: Font <MV Boli>
+[ 10813ms][    16ms]: Font <Myanmar Text>
+[ 10813ms][     0ms]: Font <Niagara Engraved>
+[ 10829ms][    16ms]: Font <Niagara Solid>
+[ 10844ms][    15ms]: Font <Nirmala Text>
+[ 10875ms][    31ms]: Font <Nirmala Text Semilight>
+[ 10891ms][    16ms]: Font <Nirmala UI>
+[ 10907ms][    16ms]: Font <Nirmala UI Semilight>
+[ 10907ms][     0ms]: Font <NSimSun>
+[ 10922ms][    15ms]: Font <OCR A Extended>
+[ 10954ms][    32ms]: Font <Old English Text MT>
+[ 10969ms][    15ms]: Font <Onyx>
+[ 10985ms][    16ms]: Font <Palace Script MT>
+[ 11000ms][    15ms]: Font <Palatino Linotype>
+[ 11016ms][    16ms]: Font <Papyrus>
+[ 11016ms][     0ms]: Font <Parchment>
+[ 11047ms][    31ms]: Font <Perpetua>
+[ 11063ms][    16ms]: Font <Perpetua Titling MT>
+[ 11079ms][    16ms]: Font <Playbill>
+[ 11094ms][    15ms]: Font <PMingLiU-ExtB>
+[ 11094ms][     0ms]: Font <Poor Richard>
+[ 11125ms][    31ms]: Font <Pristina>
+[ 11125ms][     0ms]: Font <Rage Italic>
+[ 11141ms][    16ms]: Font <Ravie>
+[ 11157ms][    16ms]: Font <Rockwell>
+[ 11172ms][    15ms]: Font <Rockwell Condensed>
+[ 11188ms][    16ms]: Font <Rockwell Extra Bold>
+[ 11204ms][    16ms]: Font <Sans Serif Collection>
+[ 11219ms][    15ms]: Font <Script MT Bold>
+[ 11235ms][    16ms]: Font <Seagull>
+[ 11250ms][    15ms]: Font <Segoe Fluent Icons>
+[ 11266ms][    16ms]: Font <Segoe MDL2 Assets>
+[ 11297ms][    31ms]: Font <Segoe Print>
+[ 11329ms][    32ms]: Font <Segoe Script>
+[ 11360ms][    31ms]: Font <Segoe UI>
+[ 11375ms][    15ms]: Font <Segoe UI Black>
+[ 11407ms][    32ms]: Font <Segoe UI Emoji>
+[ 11438ms][    31ms]: Font <Segoe UI Historic>
+[ 11454ms][    16ms]: Font <Segoe UI Light>
+[ 11485ms][    31ms]: Font <Segoe UI Semibold>
+[ 11516ms][    31ms]: Font <Segoe UI Semilight>
+[ 11532ms][    16ms]: Font <Segoe UI Symbol>
+[ 11563ms][    31ms]: Font <Segoe UI Variable Display>
+[ 11594ms][    31ms]: Font <Segoe UI Variable Display Light>
+[ 11625ms][    31ms]: Font <Segoe UI Variable Display Semib>
+[ 11641ms][    16ms]: Font <Segoe UI Variable Display Semil>
+[ 11672ms][    31ms]: Font <Segoe UI Variable Small>
+[ 11704ms][    32ms]: Font <Segoe UI Variable Small Light>
+[ 11719ms][    15ms]: Font <Segoe UI Variable Small Semibol>
+[ 11750ms][    31ms]: Font <Segoe UI Variable Small Semilig>
+[ 11766ms][    16ms]: Font <Segoe UI Variable Text>
+[ 11797ms][    31ms]: Font <Segoe UI Variable Text Light>
+[ 11813ms][    16ms]: Font <Segoe UI Variable Text Semibold>
+[ 11829ms][    16ms]: Font <Segoe UI Variable Text Semiligh>
+[ 11844ms][    15ms]: Font <Showcard Gothic>
+[ 11860ms][    16ms]: Font <SimSun>
+[ 11875ms][    15ms]: Font <SimSun-ExtB>
+[ 11891ms][    16ms]: Font <SimSun-ExtG>
+[ 11907ms][    16ms]: Font <Sitka Banner>
+[ 11907ms][     0ms]: Font <Sitka Banner Semibold>
+[ 11922ms][    15ms]: Font <Sitka Display>
+[ 11938ms][    16ms]: Font <Sitka Display Semibold>
+[ 11969ms][    31ms]: Font <Sitka Heading>
+[ 11985ms][    16ms]: Font <Sitka Heading Semibold>
+[ 12000ms][    15ms]: Font <Sitka Small>
+[ 12016ms][    16ms]: Font <Sitka Small Semibold>
+[ 12047ms][    31ms]: Font <Sitka Subheading>
+[ 12110ms][    63ms]: Font <Sitka Subheading Semibold>
+[ 12157ms][    47ms]: Font <Sitka Text>
+[ 12219ms][    62ms]: Font <Sitka Text Semibold>
+[ 12235ms][    16ms]: Font <Snap ITC>
+[ 12266ms][    31ms]: Font <Stencil>
+[ 12282ms][    16ms]: Font <Sylfaen>
+[ 12313ms][    31ms]: Font <Symbol> 2
+[ 12344ms][    31ms]: Font <Tahoma>
+[ 12360ms][    16ms]: Font <Tempus Sans ITC>
+[ 12375ms][    15ms]: Font <Times New Roman>
+[ 12407ms][    32ms]: Font <Toledo>
+[ 12438ms][    31ms]: Font <Toledo Heavy>
+[ 12469ms][    31ms]: Font <Toledo Light>
+[ 12500ms][    31ms]: Font <Trebuchet MS>
+[ 12547ms][    47ms]: Font <Tw Cen MT>
+[ 12610ms][    63ms]: Font <Tw Cen MT Condensed>
+[ 12641ms][    31ms]: Font <Tw Cen MT Condensed Extra Bold>
+[ 12657ms][    16ms]: Font <Verdana>
+[ 12688ms][    31ms]: Font <Viner Hand ITC>
+[ 12719ms][    31ms]: Font <Vivaldi>
+[ 12735ms][    16ms]: Font <Vladimir Script>
+[ 12766ms][    31ms]: Font <Webdings> 2
+[ 12782ms][    16ms]: Font <Wide Latin>
+[ 12813ms][    31ms]: Font <Wingdings> 2
+[ 12829ms][    16ms]: Font <Wingdings 2> 2
+[ 12844ms][    15ms]: Font <Wingdings 3> 2
+[ 12875ms][    31ms]: Font <Yu Gothic>
+[ 12907ms][    32ms]: Font <Yu Gothic Light>
+[ 12922ms][    15ms]: Font <Yu Gothic Medium>
+[ 12954ms][    32ms]: Font <Yu Gothic UI>
+[ 13000ms][    46ms]: Font <Yu Gothic UI Light>
+[ 13032ms][    32ms]: Font <Yu Gothic UI Semibold>
+[ 13079ms][    47ms]: Font <Yu Gothic UI Semilight>
+[ 13125ms][    46ms]: comInit: QuickPath
+[ 13204ms][    79ms]: comInit: configFile
+[ 13204ms][     0ms]: Cached ini files after startup:
+[ 13235ms][    31ms]: C:\Proyecto\OneDrive\Documentos\SoftMaker\Settings\tmfo24config.ini
+
+[tmw]
+TmpPathGlobal=C:\Users\CAMILO~1\AppData\Local\Temp\~tmw0\
+Win32Info=free.32.1230
+AdsLastDate=17.4.2026
+FirstLaunch=4
+ShowWelcomeDocument=0
+WinSize=26,26,1051,545
+AsianFonts=0
+ArabicSupport=0
+TimeFormat=
+DateFormat=
+SidebarRatioLeft=-1073741824
+SidebarPage1=2386
+SidebarAdPic=2
+SidebarAdDate=12.04.2026
+CheckExtension=111110000000000000000
+Autocorrection=62
+NewProgWindow=1
+LanguageID=2058
+BackupFilesPath=C:\Proyecto\OneDrive\Documentos\SoftMaker\Backup\
+Revision=1230
+HtmlClipPictures=C:\Users\CAMILO~1\AppData\Local\Temp\~tmw0\21c07440.tmp
+WinMax=1
+SidebarRatioRight=-1073741824
+PreviewPos2=381,544,0
+Documents=C:\Users\CAMILO CANTOR\Desktop\
+Databases=C:\Proyecto\OneDrive\Documentos\SoftMaker\
+Pictures=C:\Proyecto\CDI\EH\Req Trafos\
+Macros=C:\Proyecto\OneDrive\Documentos\SoftMaker\
+PdfFiles=C:\Proyecto\OneDrive\Documentos\SoftMaker\
+PicturePreview=1
+[tmw Printer]
+[tmw History]
+RecentFilesPinned=0
+HistoryFile0=17,1,C:\Users\CAMILO CANTOR\Desktop\Se requiere adapatar el sistema.docx
+HistoryFile1=0,1,C:\Proyecto\BPM\Cosas por hacer y probar.docx
+HistoryFile2=-1,1,C:\Proyecto\OneDrive\Documentos\SoftMaker\Bienvenido a TextMaker.tmdx
+[Ignore]
+Warnings=65536
+
+[ 13282ms][    47ms]: comInit: Speller
+[ 13313ms][    31ms]: comInit: Register
+[ 13438ms][   125ms]: comInit: CFA
+[ 13657ms][   219ms]: comInit: ddeCmdList Start
+[ 13657ms][     0ms]: comInit: ddeCmdList End
+[ 13704ms][    47ms]: comInit: ShowWindow
+[ 13782ms][    78ms]: comInit: appCmdList (non-null) Start
+[ 13985ms][   203ms]: comInit: appOpenCommandList
+[ 14235ms][   250ms]: CmdLine: /Shell
+[ 14266ms][    31ms]: CmdLine: "C:\Users\CAMILO CANTOR\Downloads\Plan Ejecucion ALMACEN (1).docx"
+[ 14532ms][   266ms]: DDE: Document <C:\Users\CAMILO CANTOR\Downloads\Plan Ejecucion ALMACEN (1).docx>
+[ 14610ms][    78ms]: DDE: LoadDocument <C:\Users\CAMILO CANTOR\Downloads\Plan Ejecucion ALMACEN (1).docx>
+[ 14922ms][   312ms]: CreateWindowExSm <WP><Plan Ejecucion ALMACEN (1)>
+[ 14938ms][    16ms]: CreateWindowExSm <WPCHILD>
+[ 15125ms][   187ms]: CreateWindowExSm <SMRULER>
+[ 15125ms][     0ms]: CreateWindowExSm <SMRTAB>
+[ 15141ms][    16ms]: CreateWindowExSm <SMVRULER>
+[ 15188ms][    47ms]: CreateWindowExSm <SCROLLBAR>
+[ 15266ms][    78ms]: CreateWindowExSm <SCROLLBAR>
+[ 15297ms][    31ms]: CreateWindowExSm <SMSCROLLBAR>
+[ 15344ms][    47ms]: CreateWindowExSm <SMSCROLLBAR>
+[ 15375ms][    31ms]: CreateWindowExSm <SMVERTBUTTONS>
+[ 15438ms][    63ms]: CreateWindowExSm <SMVERTBUTTONS>
+[ 15469ms][    31ms]: CreateWindowExSm <AWERESIZER>
+[ 15500ms][    31ms]: CreateWindowExSm <AWERESIZER>
+[ 15563ms][    63ms]: CreateWindowExSm <SIDEWND>
+[ 15625ms][    62ms]: CreateWindowExSm <SIDEWND>
+[ 16391ms][   766ms]: CreateWindowExSm <UNICONTROL><UniControl1>
+[ 16391ms][     0ms]: CreateWindowExSm <SM_SEPARATOR>
+[ 16422ms][    31ms]: CreateWindowExSm <SM_OUTSCROLLAREA>
+[ 16438ms][    16ms]: CreateWindowExSm <SM_INSCROLLAREA>
+[ 16454ms][    16ms]: CreateWindowExSm <SM_SCROLLAREABUTTON>
+[ 16485ms][    31ms]: CreateWindowExSm <SM_SCROLLAREABUTTON>
+[ 16860ms][   375ms]: CreateWindowExSm <UNICONTROL><UniControl2>
+[ 16860ms][     0ms]: CreateWindowExSm <SM_SEPARATOR>
+[ 16875ms][    15ms]: CreateWindowExSm <SM_OUTSCROLLAREA>
+[ 16907ms][    32ms]: CreateWindowExSm <SM_INSCROLLAREA>
+[ 16922ms][    15ms]: CreateWindowExSm <SM_SCROLLAREABUTTON>
+[ 16938ms][    16ms]: CreateWindowExSm <SM_SCROLLAREABUTTON>
+[ 16985ms][    47ms]: CreateWindowExSm <UNICONTROL><UniControl3>
+[ 17016ms][    31ms]: CreateWindowExSm <SM_HLINK><Compare with SoftMaker Office>
+[ 17016ms][     0ms]: CreateWindowExSm <SM_BUTTON>
+[ 17047ms][    31ms]: CreateWindowExSm <SM_BUTTON>
+[ 17063ms][    16ms]: CreateWindowExSm <SM_BUTTON>
+[ 17079ms][    16ms]: CreateWindowExSm <SM_BUTTON>
+[ 17266ms][   187ms]: LoadDocument <C:\Users\CAMILO CANTOR\Downloads\Plan Ejecucion ALMACEN (1).docx>
+[ 17485ms][   219ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[ 17485ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[ 17516ms][    31ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[ 17547ms][    31ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[ 17563ms][    16ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[ 17579ms][    16ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[ 17719ms][   140ms]: ReadDocument <C:\Users\CAMILO CANTOR\Downloads\Plan Ejecucion ALMACEN (1).docx>
+[ 17813ms][    94ms]: ReadDocument End
+[ 17813ms][     0ms]: Access current printer
+[ 17875ms][    62ms]: Found current printer
+[ 17891ms][    16ms]: Document set to printer
+[ 18672ms][   781ms]: LoadDocument End
+[ 18688ms][    16ms]: comInit: appCmdList (non-null) End
+[ 18688ms][     0ms]: comInit: AutoLoad
+[ 18735ms][    47ms]: CreateWindowExSm <SMDIALOG><->
+[131422ms][112687ms]: comInit: Address
+[131422ms][     0ms]: comInit: UpdateCheck
+[131438ms][    16ms]: System information startup log finished.
+[131454ms][    16ms]: comInit: Dispatch
+[579250ms][447796ms]: CreateWindowExSm <tmwFrameBorder>
+[593844ms][ 14594ms]: CreateWindowExSm <tmwFrameBorder>
+[599094ms][  5250ms]: CreateWindowExSm <tmwFrameBorder>
+[600594ms][  1500ms]: CreateWindowExSm <tmwFrameBorder>
+[605579ms][  4985ms]: CmdLine </Shell "C:\Users\CAMILO CANTOR\Desktop\Se requiere adapatar el sistema.docx">
+[605579ms][     0ms]: comInit: appOpenCommandList
+[605594ms][    15ms]: CmdLine: /Shell
+[605594ms][     0ms]: CmdLine: "C:\Users\CAMILO CANTOR\Desktop\Se requiere adapatar el sistema.docx"
+[605610ms][    16ms]: DDE: Document <C:\Users\CAMILO CANTOR\Desktop\Se requiere adapatar el sistema.docx>
+[605625ms][    15ms]: DDE: LoadDocument <C:\Users\CAMILO CANTOR\Desktop\Se requiere adapatar el sistema.docx>
+[605625ms][     0ms]: comInit: CreateFrameMenus
+[605625ms][     0ms]: comInit: CreateFrameWindow
+[605641ms][    16ms]: CreateWindowExSm <tmwMdiFrame><TextMaker>
+[605641ms][     0ms]: CreateWindowExSm <SMMDICLIENT>
+[605672ms][    31ms]: comInit: CreateFrameStrips
+[605688ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605688ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[605704ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605704ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[605719ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[605735ms][    16ms]: CreateWindowExSm <SMCOMBOLB>
+[605735ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[605750ms][    15ms]: CreateWindowExSm <SMCOMBOLB>
+[605766ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605766ms][     0ms]: CreateWindowExSm <SMCOMBOLB>
+[605782ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605782ms][     0ms]: CreateWindowExSm <SMCOMBOLB>
+[605797ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[605813ms][    16ms]: CreateWindowExSm <SMCOMBOLB>
+[605813ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[605829ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605829ms][     0ms]: CreateWindowExSm <SMCTLSTRIP><Strip>
+[605860ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[605860ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[605860ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[605875ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[605875ms][     0ms]: CreateWindowExSm <SMCTLSTRIP><Strip>
+[605891ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605907ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605907ms][     0ms]: CreateWindowExSm <SMCOMBOLB>
+[605922ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[605938ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605938ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[605954ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605954ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[605969ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[605985ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[605985ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[605985ms][     0ms]: CreateWindowExSm <SMCOMBOLB>
+[606000ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[606032ms][    32ms]: CreateWindowExSm <SMCTLSTRIP>
+[606032ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[606032ms][     0ms]: CreateWindowExSm <SMCOMBOLB>
+[606047ms][    15ms]: CreateWindowExSm <SMCTLSTRIP>
+[606047ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[606063ms][    16ms]: CreateWindowExSm <SMCOMBOLB>
+[606079ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[606079ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[606110ms][    31ms]: CreateWindowExSm <SMCTLSTRIP>
+[606110ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[606125ms][    15ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[606125ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[606125ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[606157ms][    32ms]: CreateWindowExSm <SMCTLSTRIP>
+[606157ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[606157ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[606172ms][    15ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[606188ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[606188ms][     0ms]: CreateWindowExSm <SMCOMBOLB>
+[606204ms][    16ms]: CreateWindowExSm <SMCTLSTRIP>
+[606204ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[606219ms][    15ms]: CreateWindowExSm <SMCOMBOLB>
+[606219ms][     0ms]: CreateWindowExSm <SMCTLSTRIP>
+[606235ms][    16ms]: CreateWindowExSm <SMTOOLTIP>
+[606250ms][    15ms]: CreateWindowExSm <SMRIBBONHEADER>
+[606282ms][    32ms]: CreateWindowExSm <WP><Se requiere adapatar el sistema>
+[606282ms][     0ms]: CreateWindowExSm <WPCHILD>
+[606297ms][    15ms]: CreateWindowExSm <SMRULER>
+[606297ms][     0ms]: CreateWindowExSm <SMRTAB>
+[606297ms][     0ms]: CreateWindowExSm <SMVRULER>
+[606313ms][    16ms]: CreateWindowExSm <SCROLLBAR>
+[606329ms][    16ms]: CreateWindowExSm <SCROLLBAR>
+[606344ms][    15ms]: CreateWindowExSm <SMSCROLLBAR>
+[606344ms][     0ms]: CreateWindowExSm <SMSCROLLBAR>
+[606344ms][     0ms]: CreateWindowExSm <SMVERTBUTTONS>
+[606360ms][    16ms]: CreateWindowExSm <SMVERTBUTTONS>
+[606375ms][    15ms]: CreateWindowExSm <AWERESIZER>
+[606375ms][     0ms]: CreateWindowExSm <AWERESIZER>
+[606391ms][    16ms]: CreateWindowExSm <SIDEWND>
+[606391ms][     0ms]: CreateWindowExSm <SIDEWND>
+[606610ms][   219ms]: CreateWindowExSm <UNICONTROL><UniControl4>
+[606610ms][     0ms]: CreateWindowExSm <SM_SEPARATOR>
+[606625ms][    15ms]: CreateWindowExSm <SM_OUTSCROLLAREA>
+[606641ms][    16ms]: CreateWindowExSm <SM_INSCROLLAREA>
+[606641ms][     0ms]: CreateWindowExSm <SM_SCROLLAREABUTTON>
+[606641ms][     0ms]: CreateWindowExSm <SM_SCROLLAREABUTTON>
+[606829ms][   188ms]: CreateWindowExSm <UNICONTROL><UniControl5>
+[606829ms][     0ms]: CreateWindowExSm <SM_SEPARATOR>
+[606844ms][    15ms]: CreateWindowExSm <SM_OUTSCROLLAREA>
+[606844ms][     0ms]: CreateWindowExSm <SM_INSCROLLAREA>
+[606860ms][    16ms]: CreateWindowExSm <SM_SCROLLAREABUTTON>
+[606860ms][     0ms]: CreateWindowExSm <SM_SCROLLAREABUTTON>
+[606875ms][    15ms]: CreateWindowExSm <UNICONTROL><UniControl6>
+[606891ms][    16ms]: CreateWindowExSm <SM_HLINK><Compare with SoftMaker Office>
+[606891ms][     0ms]: CreateWindowExSm <SM_BUTTON>
+[606891ms][     0ms]: CreateWindowExSm <SM_BUTTON>
+[606907ms][    16ms]: CreateWindowExSm <SM_BUTTON>
+[606922ms][    15ms]: CreateWindowExSm <SM_BUTTON>
+[607000ms][    78ms]: LoadDocument <C:\Users\CAMILO CANTOR\Desktop\Se requiere adapatar el sistema.docx>
+[607047ms][    47ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[607047ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[607063ms][    16ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[607079ms][    16ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[607079ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[607079ms][     0ms]: CreateWindowExSm <SM_SLIDERCTRL>
+[607157ms][    78ms]: ReadDocument <C:\Users\CAMILO CANTOR\Desktop\Se requiere adapatar el sistema.docx>
+[607235ms][    78ms]: ReadDocument End
+[607235ms][     0ms]: Access current printer
+[607250ms][    15ms]: Found current printer
+[607266ms][    16ms]: Document set to printer
+[607360ms][    94ms]: LoadDocument End
+[607547ms][   187ms]: CreateWindowExSm <tmwFrameBorder>
+[607547ms][     0ms]: CreateWindowExSm <tmwFrameBorder>
+[611204ms][  3657ms]: CreateWindowExSm <tmwFrameBorder>
+[726719ms][115515ms]: CreateWindowExSm <tmwFrameBorder>
+[730032ms][  3313ms]: CreateWindowExSm <tmwFrameBorder>
+[809641ms][ 79609ms]: CreateWindowExSm <SM_DropHandler>
+[809641ms][     0ms]: CreateWindowExSm <UNICONTROL><UniControl7>
+[825594ms][ 15953ms]: CreateWindowExSm <tmwFrameBorder>
+[829094ms][  3500ms]: CreateWindowExSm <tmwFrameBorder>
+[847875ms][ 18781ms]: CreateWindowExSm <tmwFrameBorder>
+[850110ms][  2235ms]: CreateWindowExSm <tmwFrameBorder>
+[879766ms][ 29656ms]: CreateWindowExSm <tmwFrameBorder>
+[898047ms][ 18281ms]: CreateWindowExSm <tmwFrameBorder>
+[1001188ms][103141ms]: CreateWindowExSm <tmwFrameBorder>
+[1171735ms][170547ms]: CreateWindowExSm <tmwFrameBorder>
+[1175204ms][  3469ms]: CreateWindowExSm <tmwFrameBorder>
+[1180110ms][  4906ms]: CreateWindowExSm <tmwFrameBorder>
+[1249750ms][ 69640ms]: CreateWindowExSm <tmwFrameBorder>
+[1415610ms][165860ms]: CreateWindowExSm <tmwFrameBorder>
+[1418454ms][  2844ms]: CreateWindowExSm <tmwFrameBorder>
+[3144688ms][1726234ms]: DisplayChange <20 - 3000556>
+[3144719ms][    31ms]: DisplayChange <20 - 3000556>
+[3817079ms][672360ms]: CreateWindowExSm <tmwFrameBorder>
+[3817079ms][     0ms]: CreateWindowExSm <tmwFrameBorder>
+[3830266ms][ 13187ms]: CmdLine </Shell "C:\Users\CAMILO CANTOR\Desktop\Plan Ejecucion SERVICIOS ADMINISTRATIVOS.docx">
+[3830266ms][     0ms]: comInit: appOpenCommandList
+[3830282ms][    16ms]: CmdLine: /Shell
+[3830297ms][    15ms]: CmdLine: "C:\Users\CAMILO CANTOR\Desktop\Plan Ejecucion SERVICIOS ADMINISTRATIVOS.docx"
+[3830329ms][    32ms]: DDE: Document <C:\Users\CAMILO CANTOR\Desktop\Plan Ejecucion SERVICIOS ADMINISTRATIVOS.docx>
+[3830329ms][     0ms]: DDE: LoadDocument <C:\Users\CAMILO CANTOR\Desktop\Plan Ejecucion SERVICIOS ADMINISTRATIVOS.docx>
+[3830438ms][   109ms]: CreateWindowExSm <tmwFrameBorder>
+[3857594ms][ 27156ms]: CreateWindowExSm <tmwFrameBorder>
+[3865454ms][  7860ms]: CreateWindowExSm <tmwFrameBorder>
+[3868563ms][  3109ms]: CreateWindowExSm <tmwFrameBorder>
+[3876079ms][  7516ms]: CreateWindowExSm <tmwFrameBorder>
+[3879125ms][  3046ms]: CreateWindowExSm <tmwFrameBorder>
+[3890125ms][ 11000ms]: CreateWindowExSm <tmwFrameBorder>
+[3893922ms][  3797ms]: CreateWindowExSm <tmwFrameBorder>
+[3897594ms][  3672ms]: CreateWindowExSm <tmwFrameBorder>
+[3903172ms][  5578ms]: CreateWindowExSm <tmwFrameBorder>
+[3908454ms][  5282ms]: CreateWindowExSm <tmwFrameBorder>
+[3919282ms][ 10828ms]: CreateWindowExSm <tmwFrameBorder>
+[4021891ms][102609ms]: CreateWindowExSm <tmwFrameBorder>
+[4331313ms][309422ms]: CreateWindowExSm <tmwFrameBorder>
+[4338922ms][  7609ms]: CreateWindowExSm <tmwFrameBorder>
+[4361860ms][ 22938ms]: LoadDocument <C:\Users\CAMILO~1\AppData\Local\Temp\~tmw0\tmw2f744590.tmp>
+[4361875ms][    15ms]: ReadDocument <C:\Users\CAMILO~1\AppData\Local\Temp\~tmw0\tmw2f744590.tmp>
+[4361969ms][    94ms]: ReadDocument End
+[4361969ms][     0ms]: Access current printer
+[4361985ms][    16ms]: Found current printer
+[4362016ms][    31ms]: Document set to printer
+[4362016ms][     0ms]: LoadDocument End
+[4370016ms][  8000ms]: CreateWindowExSm <tmwFrameBorder>
+[4417391ms][ 47375ms]: CreateWindowExSm <tmwFrameBorder>
+[4423532ms][  6141ms]: CreateWindowExSm <SM_DropHandler>
+[4423532ms][     0ms]: CreateWindowExSm <UNICONTROL><UniControl8>
+[4573329ms][149797ms]: CreateWindowExSm <tmwFrameBorder>
+[4575016ms][  1687ms]: CreateWindowExSm <tmwFrameBorder>
+[4821844ms][246828ms]: CreateWindowExSm <tmwFrameBorder>
+[4822469ms][   625ms]: CreateWindowExSm <tmwFrameBorder>
+[5450235ms][627766ms]: CreateWindowExSm <tmwFrameBorder>
+[5479032ms][ 28797ms]: CreateWindowExSm <tmwFrameBorder>
+[5531235ms][ 52203ms]: CreateWindowExSm <tmwFrameBorder>
+[5532954ms][  1719ms]: CreateWindowExSm <tmwFrameBorder>
+[5625985ms][ 93031ms]: CreateWindowExSm <tmwFrameBorder>
+[5628657ms][  2672ms]: CloseApp
+[5628985ms][   328ms]: Shutdown: Graphica
+[5629016ms][    31ms]: Shutdown: Render
+[5629172ms][   156ms]: Shutdown: PDF
+[5629172ms][     0ms]: Shutdown: StoreWinSize
+[5629188ms][    16ms]: Shutdown: DDE
+[5629204ms][    16ms]: Shutdown: Memory
+[5629204ms][     0ms]: Reg: CurrentExt <111110000000000000000>
+[5629219ms][    15ms]: Reg: NextExt <111110000000000000000>
+[5629297ms][    78ms]: Shutdown: AppCleanup12
+[5629297ms][     0ms]: Shutdown: CleanupDialog
+[5629329ms][    32ms]: Shutdown: Complete
