@@ -39,23 +39,32 @@ interface SidebarItemProps {
     label: string;
     active?: boolean;
     onClick?: () => void;
+    isSubItem?: boolean;
 }
 
-const SidebarItem = ({ icon: Icon, label, active, onClick, isCollapsed }: SidebarItemProps & { isCollapsed?: boolean }) => (
+const SidebarItem = ({ icon: Icon, label, active, onClick, isCollapsed, isSubItem }: SidebarItemProps & { isCollapsed?: boolean }) => (
     <button
         onClick={onClick}
         title={isCollapsed ? label : undefined}
         className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200",
+            "w-full flex items-center transition-all duration-200",
+            isSubItem ? "gap-2.5 px-3 py-1.5 rounded-lg" : "gap-3 px-3 py-2 rounded-xl",
             isCollapsed && "justify-center px-0",
             active
                 ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/40"
                 : "text-slate-400 hover:bg-white/5 hover:text-white"
         )}
     >
-        <Icon className="w-5 h-5 flex-shrink-0" />
-        {!isCollapsed && <span className="font-semibold text-sm truncate">{label}</span>}
-        {active && !isCollapsed && <ChevronRight className="w-4 h-4 ml-auto flex-shrink-0" />}
+        <Icon className={cn("flex-shrink-0", isSubItem ? "w-4 h-4" : "w-5 h-5")} />
+        {!isCollapsed && (
+            <span className={cn(
+                "font-semibold truncate",
+                isSubItem ? "text-[12px]" : "text-sm"
+            )}>
+                {label}
+            </span>
+        )}
+        {active && !isCollapsed && <ChevronRight className={cn("ml-auto flex-shrink-0", isSubItem ? "w-3 h-3" : "w-4 h-4")} />}
     </button>
 );
 
@@ -288,6 +297,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                     active={activeSection === 'workflows'}
                                     onClick={() => onSectionChange('workflows')}
                                     isCollapsed={isCollapsed}
+                                    isSubItem
                                 />
                             )}
                             <SidebarItem
@@ -296,6 +306,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                 active={activeSection === 'kanban'}
                                 onClick={() => onSectionChange('kanban')}
                                 isCollapsed={isCollapsed}
+                                isSubItem
                             />
                             <SidebarItem
                                 icon={Activity}
@@ -303,6 +314,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                 active={activeSection === 'workload'}
                                 onClick={() => onSectionChange('workload')}
                                 isCollapsed={isCollapsed}
+                                isSubItem
                             />
                             <SidebarItem
                                 icon={Calendar}
@@ -310,6 +322,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                 active={activeSection === 'calendar'}
                                 onClick={() => onSectionChange('calendar')}
                                 isCollapsed={isCollapsed}
+                                isSubItem
                             />
                         </CollapsibleSection>
 
@@ -328,6 +341,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                     active={activeSection === 'puc'}
                                     onClick={() => onSectionChange('puc')}
                                     isCollapsed={isCollapsed}
+                                    isSubItem
                                 />
                             )}
                             <SidebarItem
@@ -336,6 +350,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                 active={activeSection === 'accounts'}
                                 onClick={() => onSectionChange('accounts')}
                                 isCollapsed={isCollapsed}
+                                isSubItem
                             />
                         </CollapsibleSection>
 
@@ -354,6 +369,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                     active={activeSection === 'users'}
                                     onClick={() => onSectionChange('users')}
                                     isCollapsed={isCollapsed}
+                                    isSubItem
                                 />
                             )}
                             {hasPermission('manage_users') && (
@@ -363,6 +379,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                     active={activeSection === 'roles'}
                                     onClick={() => onSectionChange('roles')}
                                     isCollapsed={isCollapsed}
+                                    isSubItem
                                 />
                             )}
                             {hasPermission('access_settings') && (
@@ -372,6 +389,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                     active={activeSection === 'organization'}
                                     onClick={() => onSectionChange('organization')}
                                     isCollapsed={isCollapsed}
+                                    isSubItem
                                 />
                             )}
                             <SidebarItem
@@ -380,6 +398,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                 active={activeSection === 'orgchart'}
                                 onClick={() => onSectionChange('orgchart')}
                                 isCollapsed={isCollapsed}
+                                isSubItem
                             />
                             {hasPermission('access_settings') && (
                                 <SidebarItem
@@ -388,6 +407,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                     active={activeSection === 'providers'}
                                     onClick={() => onSectionChange('providers')}
                                     isCollapsed={isCollapsed}
+                                    isSubItem
                                 />
                             )}
                             {hasPermission('access_settings') && (
@@ -397,6 +417,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                     active={activeSection === 'parameters'}
                                     onClick={() => onSectionChange('parameters')}
                                     isCollapsed={isCollapsed}
+                                    isSubItem
                                 />
                             )}
                         </CollapsibleSection>
@@ -417,6 +438,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                         active={activeSection === 'reports'}
                                         onClick={() => onSectionChange('reports')}
                                         isCollapsed={isCollapsed}
+                                        isSubItem
                                     />
                                     <SidebarItem
                                         icon={FileSpreadsheet}
@@ -424,6 +446,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                         active={activeSection === 'advanced-reports'}
                                         onClick={() => onSectionChange('advanced-reports')}
                                         isCollapsed={isCollapsed}
+                                        isSubItem
                                     />
                                 </>
                             )}
@@ -444,6 +467,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                     active={activeSection === 'monitor'}
                                     onClick={() => onSectionChange('monitor')}
                                     isCollapsed={isCollapsed}
+                                    isSubItem
                                 />
                             )}
                         </CollapsibleSection>
@@ -462,6 +486,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed }: Sidebar
                                 active={activeSection === 'crm'}
                                 onClick={() => onSectionChange('crm')}
                                 isCollapsed={isCollapsed}
+                                isSubItem
                             />
                         </CollapsibleSection>
                     </div>

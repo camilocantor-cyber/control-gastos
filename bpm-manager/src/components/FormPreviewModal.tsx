@@ -33,6 +33,7 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
     { value: 'number', label: 'Número' },
     { value: 'currency', label: 'Moneda ($)' },
     { value: 'date', label: 'Fecha' },
+    { value: 'time', label: 'Hora' },
     { value: 'select', label: 'Lista Desplegable' },
     { value: 'boolean', label: 'Interruptor (Sí/No)' },
     { value: 'email', label: 'Correo Electrónico' },
@@ -433,7 +434,7 @@ export function FormPreviewModal({
                         </div>
                     ) : (
                         <input
-                            type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                            type={field.type === 'number' ? 'number' : (field.type === 'date' || field.type === 'time') ? field.type : 'text'}
                             value={formData[field.name] || ''}
                             onChange={(e) => {
                                 const val = e.target.value;

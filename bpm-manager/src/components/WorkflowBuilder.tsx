@@ -1203,6 +1203,56 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                         placeholder="Instrucciones para la persona que realice esta tarea..."
                                                                     />
                                                                 </div>
+
+                                                                {/* Node Type Selector */}
+                                                                <div className="p-5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <div className="w-5 h-5 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                                                            <Settings2 className="w-3 h-3" />
+                                                                        </div>
+                                                                        <label className="block text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em]">Tipo de Nodo</label>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-4 gap-2">
+                                                                        {([
+                                                                            { value: 'start',      label: 'Inicio',      color: 'emerald' },
+                                                                            { value: 'task',       label: 'Tarea',       color: 'blue' },
+                                                                            { value: 'decision',   label: 'Decisión',    color: 'orange' },
+                                                                            { value: 'subprocess', label: 'Subproceso',  color: 'purple' },
+                                                                            { value: 'wait',       label: 'Espera',      color: 'amber' },
+                                                                            { value: 'sync',       label: 'Sincronía',   color: 'violet' },
+                                                                            { value: 'bot',        label: 'BOT',         color: 'slate' },
+                                                                            { value: 'end',        label: 'Fin',         color: 'rose' },
+                                                                        ] as { value: string; label: string; color: string }[]).map(({ value, label, color }) => {
+                                                                            const isSelected = activities.find(a => a.id === selectedActivityId)?.type === value;
+                                                                            const colorMap: Record<string, string> = {
+                                                                                emerald: 'bg-emerald-100 text-emerald-700 border-emerald-400 dark:bg-emerald-900/40 dark:text-emerald-300',
+                                                                                blue:    'bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/40 dark:text-blue-300',
+                                                                                orange:  'bg-orange-100 text-orange-700 border-orange-400 dark:bg-orange-900/40 dark:text-orange-300',
+                                                                                purple:  'bg-purple-100 text-purple-700 border-purple-400 dark:bg-purple-900/40 dark:text-purple-300',
+                                                                                amber:   'bg-amber-100 text-amber-700 border-amber-400 dark:bg-amber-900/40 dark:text-amber-300',
+                                                                                violet:  'bg-violet-100 text-violet-700 border-violet-400 dark:bg-violet-900/40 dark:text-violet-300',
+                                                                                slate:   'bg-slate-200 text-slate-700 border-slate-400 dark:bg-slate-700 dark:text-slate-300',
+                                                                                rose:    'bg-rose-100 text-rose-700 border-rose-400 dark:bg-rose-900/40 dark:text-rose-300',
+                                                                            };
+                                                                            return (
+                                                                                <button
+                                                                                    key={value}
+                                                                                    onClick={() => setActivities(prev => prev.map(a => a.id === selectedActivityId ? { ...a, type: value as any } : a))}
+                                                                                    className={cn(
+                                                                                        'px-2 py-2 rounded-xl border-2 text-[9px] font-black uppercase tracking-widest transition-all active:scale-95',
+                                                                                        isSelected
+                                                                                            ? colorMap[color]
+                                                                                            : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                                                                    )}
+                                                                                >
+                                                                                    {label}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                    <p className="text-[9px] text-slate-400 dark:text-slate-500 italic">Cambia cómo se comporta este nodo dentro del flujo. Guarda los cambios para aplicar.</p>
+                                                                </div>
+
                                                                 <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800/50">
                                                                     <div className="space-y-3">
                                                                         <div className="h-6 flex items-end">
@@ -2091,6 +2141,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                     <option value="number">Número</option>
                                                                                                     <option value="currency">Moneda ($)</option>
                                                                                                     <option value="date">Fecha</option>
+                                                                                                    <option value="time">Hora</option>
                                                                                                     <option value="select">Lista (Desplegable)</option>
                                                                                                     <option value="email">Correo Electrónico</option>
                                                                                                     <option value="phone">Teléfono</option>

@@ -208,7 +208,7 @@ export function DynamicForm({ fields, data, onChange }: { fields: any[], data: a
                         </div>
                     ) : (
                         <input
-                            type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'email' ? 'email' : 'text'}
+                            type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'time' ? 'time' : field.type === 'email' ? 'email' : 'text'}
                             value={data[field.name] || ''}
                             onChange={(e) => {
                                 const val = e.target.value;

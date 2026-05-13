@@ -21,6 +21,8 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
     const [savingNoSQL, setSavingNoSQL] = useState(false);
     const [showNoSQLUri, setShowNoSQLUri] = useState(false);
     const [noSQLForm, setNoSQLForm] = useState({ provider: 'mongodb', uri: '', db: '', collection: 'process_data' });
+    const [editingOrgName, setEditingOrgName] = useState(false);
+    const [orgNameDraft, setOrgNameDraft] = useState('');
 
     async function processImage(file: File, removeWhite: boolean): Promise<Blob> {
         return new Promise((resolve, reject) => {
@@ -95,7 +97,9 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
 
             const { error: updateError } = await supabase
                 .from('organizations')
-                .update({ logo_url: publicUrl })
+                .update({ 
+                    logo_url: publicUrl
+                })
                 .eq('id', org.id);
 
             if (updateError) throw updateError;
@@ -204,7 +208,9 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
         });
 
         if (hasChanges) {
-            const { error } = await supabase.from('organizations').update({ settings: newSettings }).eq('id', currentOrg.id);
+            const { error } = await supabase.from('organizations').update({ 
+                settings: newSettings
+            }).eq('id', currentOrg.id);
             if (!error) setOrg({ ...currentOrg, settings: newSettings });
         }
     }
@@ -298,7 +304,9 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
                 NOSQL_DB: noSQLForm.db,
                 NOSQL_COLLECTION: noSQLForm.collection || 'process_data',
             };
-            const { error } = await supabase.from('organizations').update({ settings: newSettings }).eq('id', org.id);
+            const { error } = await supabase.from('organizations').update({ 
+                settings: newSettings
+            }).eq('id', org.id);
             if (error) throw error;
             setOrg({ ...org, settings: newSettings });
             toast.success('Configuración NoSQL guardada correctamente');
@@ -317,7 +325,9 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
         delete newSettings.NOSQL_URI;
         delete newSettings.NOSQL_DB;
         delete newSettings.NOSQL_COLLECTION;
-        const { error } = await supabase.from('organizations').update({ settings: newSettings }).eq('id', org.id);
+        const { error } = await supabase.from('organizations').update({ 
+            settings: newSettings
+        }).eq('id', org.id);
         if (!error) {
             setOrg({ ...org, settings: newSettings });
             setNoSQLForm({ provider: 'mongodb', uri: '', db: '', collection: 'process_data' });
@@ -332,7 +342,9 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
             delete newSettings[oldKey];
         }
         newSettings[newKey] = newValue;
-        const { error } = await supabase.from('organizations').update({ settings: newSettings }).eq('id', org.id);
+        const { error } = await supabase.from('organizations').update({ 
+            settings: newSettings
+        }).eq('id', org.id);
         if (!error) setOrg({ ...org, settings: newSettings });
     }
 
@@ -504,7 +516,50 @@ export function OrganizationSettings({ onlyParameters }: { onlyParameters?: bool
                                     </span>
                                 )}
                             </div>
-                            <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">{org?.name}</h2>
+                            {editingOrgName ? (
+                                <div className="flex items-center gap-3 mt-1">
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        value={orgNameDraft}
+                                        onChange={e => setOrgNameDraft(e.target.value)}
+                                        onKeyDown={async (e) => {
+                                            if (e.key === 'Enter') {
+                                                const trimmed = orgNameDraft.trim();
+                                                if (trimmed && org) {
+                                                    const { error } = await supabase.from('organizations').update({ name: trimmed }).eq('id', org.id);
+                                                    if (!error) { setOrg({ ...org, name: trimmed }); toast.success('Nombre actualizado'); }
+                                                    else { console.error('Error Supabase:', error); toast.error('Error: ' + error.message); }
+                                                }
+                                                setEditingOrgName(false);
+                                            }
+                                            if (e.key === 'Escape') setEditingOrgName(false);
+                                        }}
+                                        onBlur={async () => {
+                                            const trimmed = orgNameDraft.trim();
+                                            if (trimmed && org && trimmed !== org.name) {
+                                                const { error } = await supabase.from('organizations').update({ name: trimmed }).eq('id', org.id);
+                                                if (!error) { setOrg({ ...org, name: trimmed }); toast.success('Nombre actualizado'); }
+                                                else { console.error('Error Supabase:', error); toast.error('Error: ' + error.message); }
+                                            }
+                                            setEditingOrgName(false);
+                                        }}
+                                        className="bg-white/10 border border-white/30 text-white font-black text-2xl uppercase tracking-tighter leading-none px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/40 w-full max-w-sm placeholder:text-white/40"
+                                        placeholder="Nombre de la empresa"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3 group/name mt-1">
+                                    <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">{org?.name}</h2>
+                                    <button
+                                        onClick={() => { setOrgNameDraft(org?.name || ''); setEditingOrgName(true); }}
+                                        className="opacity-0 group-hover/name:opacity-100 transition-opacity p-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white/70 hover:text-white"
+                                        title="Editar nombre de la empresa"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    </button>
+                                </div>
+                            )}
                             <p className="text-blue-100/60 font-medium text-xs mt-2 max-w-md">
                                 Panel central de administración de sucursales, parámetros globales y servicios de automatización.
                             </p>

@@ -287,6 +287,9 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                             } else if (field.type === 'date') {
                                 // Default to today's date if empty
                                 initialData[field.name] = new Date().toISOString().split('T')[0];
+                            } else if (field.type === 'time') {
+                                // Default to current time if empty (HH:mm)
+                                initialData[field.name] = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
                             } else if (field.type === 'consecutivo') {
                                 // Generar consecutivo
                                 const mask = field.consecutive_mask || 'CON-####';
@@ -1278,9 +1281,9 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                                     </select>
                                                                     <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 rotate-90 pointer-events-none group-focus-within:text-blue-500 transition-colors" />
                                                                 </div>
-                                                            ) : field.type === 'date' ? (
+                                                            ) : field.type === 'date' || field.type === 'time' ? (
                                                                 <input
-                                                                    type="date"
+                                                                    type={field.type}
                                                                     value={formData[field.name] || ''}
                                                                     onChange={(e) => {
                                                                         const val = e.target.value;
@@ -1978,7 +1981,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                                             </div>
                                                         ) : (
                                                             <input
-                                                                type={field.type === 'number' || field.type === 'currency' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                                                                type={field.type === 'number' || field.type === 'currency' ? 'number' : (field.type === 'date' || field.type === 'time') ? field.type : 'text'}
                                                                 step={field.type === 'currency' ? "0.01" : undefined}
                                                                 value={detailFormData[field.name] || ''}
                                                                 onChange={(e) => setDetailFormData({ ...detailFormData, [field.name]: e.target.value })}

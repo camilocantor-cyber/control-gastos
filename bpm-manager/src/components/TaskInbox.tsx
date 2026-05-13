@@ -123,12 +123,7 @@ export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger }: { onA
                                             <tr
                                                 key={task.id}
                                                 onClick={() => onAttendTask(task.id)}
-                                                className={`group cursor-pointer transition-all ${isOverdue
-                                                    ? 'bg-red-50/30 dark:bg-red-950/20 hover:bg-red-50/50'
-                                                    : isNearDue
-                                                        ? 'bg-amber-50/30 dark:bg-amber-950/20 hover:bg-amber-50/50'
-                                                        : 'hover:bg-slate-50 dark:hover:bg-blue-900/10'
-                                                    }`}
+                                                className="group cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-blue-900/10 border-b border-slate-50 dark:border-slate-800/50"
                                             >
                                                 <td className="px-3 py-1.5">
                                                     <div className="flex justify-start">
@@ -147,21 +142,13 @@ export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger }: { onA
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-1.5">
-                                                    <h4 className={`text-[11px] font-bold transition-colors truncate max-w-[180px] leading-tight ${isOverdue
-                                                        ? 'text-red-900 dark:text-red-200'
-                                                        : isNearDue
-                                                            ? 'text-amber-900 dark:text-amber-200'
-                                                            : 'text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400'
-                                                        }`}>
+                                                    <h4 className="text-[11px] font-bold transition-colors truncate max-w-[180px] leading-tight text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
                                                         {task.name}
                                                     </h4>
                                                 </td>
                                                 <td className="px-3 py-1.5">
                                                     <div className="flex items-center gap-2">
-                                                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${isOverdue ? 'text-red-700 dark:text-red-400' :
-                                                            isNearDue ? 'text-amber-700 dark:text-amber-400' :
-                                                                'text-slate-500 dark:text-slate-400'
-                                                            }`}>
+                                                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
                                                             {task.activities.name}
                                                         </span>
                                                         {isEscalated && (
@@ -226,12 +213,7 @@ export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger }: { onA
                                                          )}
 
                                                         {/* Attend Button */}
-                                                        <div className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm active:scale-95 ${isOverdue
-                                                            ? 'bg-red-100 dark:bg-red-900/40 text-red-600 group-hover:bg-blue-600 dark:group-hover:bg-blue-600 group-hover:text-white border border-red-200'
-                                                            : isNearDue
-                                                                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 group-hover:bg-blue-600 dark:group-hover:bg-blue-600 group-hover:text-white border border-amber-200'
-                                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 group-hover:bg-blue-600 dark:group-hover:bg-blue-600 group-hover:text-white border border-slate-100 dark:border-slate-800/50'
-                                                            }`}>
+                                                        <div className="w-7 h-7 flex items-center justify-center rounded-lg transition-all shadow-sm active:scale-95 bg-slate-50 dark:bg-slate-800/50 text-slate-400 group-hover:bg-blue-600 dark:group-hover:bg-blue-600 group-hover:text-white border border-slate-100 dark:border-slate-800/50">
                                                             <ArrowRight className="w-3 h-3" />
                                                         </div>
                                                     </div>
