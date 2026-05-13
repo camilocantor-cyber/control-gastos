@@ -116,6 +116,7 @@ export function DashboardAIWidget() {
         if (!prompt.trim() || isThinking) return;
 
         if (!activeKey) {
+            setIsOpen(true);
             setShowConfig(true);
             toast.error("Por favor, configura tu API Key primero.");
             return;
@@ -125,6 +126,7 @@ export function DashboardAIWidget() {
         setPrompt('');
         setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
         setIsThinking(true);
+        setIsOpen(true);
 
         try {
             // Save key
@@ -158,35 +160,56 @@ export function DashboardAIWidget() {
 
     return (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-300 w-full mb-2">
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between p-3 gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3 flex-shrink-0">
                     <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none text-white overflow-hidden relative">
                         <Sparkles className="w-4 h-4 absolute opacity-30 animate-pulse" />
                         <Bot className="w-5 h-5 z-10" />
                     </div>
-                    <div>
+                    <div className="hidden md:block">
                         <h2 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">Copilot Director</h2>
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Chat con tus datos operacionales</p>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Chat analítico</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+
+                {/* Main Search/Prompt in Header */}
+                <form onSubmit={handleAsk} className="flex-1 w-full max-w-2xl px-2">
+                    <div className="relative flex items-center">
+                        <input
+                            type="text"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder="Haz una pregunta sobre tus operaciones..."
+                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!prompt.trim() || isThinking}
+                            className="absolute right-1.5 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                            {isThinking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        </button>
+                    </div>
+                </form>
+
+                <div className="flex gap-2 flex-shrink-0">
                     <button
                         onClick={() => setShowConfig(!showConfig)}
-                        className="px-3 py-1.5 text-[10px] font-black uppercase text-slate-500 hover:text-blue-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-[9px] font-black uppercase text-slate-500 hover:text-blue-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
                     >
-                        {showConfig ? 'Ocultar Config' : 'Configurar IA'}
+                        {showConfig ? 'Config' : 'Configurar'}
                     </button>
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className="px-4 py-1.5 text-[10px] font-black uppercase text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 dark:shadow-none rounded-lg transition-colors"
+                        className="px-4 py-1.5 text-[9px] font-black uppercase text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 dark:shadow-none rounded-lg transition-colors"
                     >
-                        {isOpen ? 'Cerrar Chat' : 'Abrir Chat'}
+                        {isOpen ? 'Ocultar' : 'Chat'}
                     </button>
                 </div>
             </div>
 
             {isOpen && (
-                <div className="flex flex-col h-[250px]">
+                <div className="flex flex-col h-[350px] animate-in fade-in slide-in-from-top-2 duration-300">
                     {showConfig && (
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -218,11 +241,11 @@ export function DashboardAIWidget() {
                             <div className="h-full flex flex-col items-center justify-center opacity-50 px-6 text-center">
                                 <Bot className="w-10 h-10 text-slate-400 mb-3" />
                                 <p className="text-xs font-bold text-slate-600 dark:text-slate-400">¡Hola! Soy tu asistente directivo.</p>
-                                <p className="text-[10px] text-slate-500 mt-2">Puedes preguntarme cosas como: <br />"¿Cuál es el proceso que genera más cuellos de botella?" <br />"¿Quién es el usuario que tiene más tareas pendientes?" <br />"Resume los costos totales por workflow."</p>
+                                <p className="text-[10px] text-slate-500 mt-2">Puedes preguntarme sobre cuellos de botella, costos totales o carga de trabajo.</p>
                             </div>
                         ) : (
                             chatHistory.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
                                     <div className={`shadow-sm max-w-[85%] rounded-2xl px-4 py-3 text-[12px] ${msg.role === 'user'
                                         ? 'bg-blue-600 text-white rounded-tr-sm'
                                         : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-700 rounded-tl-sm'
@@ -242,25 +265,6 @@ export function DashboardAIWidget() {
                         )}
                         <div ref={messagesEndRef} />
                     </div>
-
-                    <form onSubmit={handleAsk} className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-                        <div className="relative flex items-center">
-                            <input
-                                type="text"
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder="Escribe tu consulta analítica aquí..."
-                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                            />
-                            <button
-                                type="submit"
-                                disabled={!prompt.trim() || isThinking}
-                                className="absolute right-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                            >
-                                <Send className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </form>
                 </div>
             )}
         </div>
