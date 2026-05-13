@@ -75,8 +75,18 @@ function AppContent() {
         setActiveSection(prevSection);
       }
     };
+
+    const handleOpenProcess = (e: any) => {
+      if (e.detail) setExecutingProcessId(e.detail);
+    };
+
     window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    window.addEventListener('bpm-open-process', handleOpenProcess);
+
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      window.removeEventListener('bpm-open-process', handleOpenProcess);
+    };
   }, [activeSection, prevSection]);
 
   if (isSuperadminPage) {

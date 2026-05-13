@@ -165,7 +165,12 @@ export function DashboardAIWidget() {
                     const actionData = JSON.parse(jsonStr);
                     if (actionData.workflow_id && user?.organization_id) {
                         toast.promise(
-                            startProcess(actionData.workflow_id, actionData.name || 'Trámite desde IA', user.organization_id),
+                            startProcess(actionData.workflow_id, actionData.name || 'Trámite desde IA', user.organization_id).then(res => {
+                                if (res.success && res.instance?.id) {
+                                    window.dispatchEvent(new CustomEvent('bpm-open-process', { detail: res.instance.id }));
+                                }
+                                return res;
+                            }),
                             {
                                 loading: 'Iniciando trámite...',
                                 success: '¡Trámite iniciado con éxito!',
