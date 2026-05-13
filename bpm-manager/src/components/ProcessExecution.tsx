@@ -12,9 +12,11 @@ import { InteractiveLookup } from './InteractiveLookup';
 import { IfcViewer } from './IfcViewer';
 import { HistoryDetailModal } from './HistoryDetailModal';
 import { GeoSelector } from './GeoSelector';
+import { useAuth } from '../hooks/useAuth';
 import * as XLSX from 'xlsx';
 
 export function ProcessExecution({ processId, onClose, onComplete }: { processId: string, onClose: () => void, onComplete: () => void }) {
+    const { user } = useAuth();
     const {
         advanceProcess,
         getFieldDefinitions,
@@ -235,6 +237,14 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                         };
                     }
                 });
+
+                // Forzar campos de organization_id a ser readonly
+                augmentedFields.forEach((f: any) => {
+                    if (f.db_column === 'organization_id' || f.name === 'organization_id') {
+                        f.is_readonly = true;
+                    }
+                });
+
                 setFields(augmentedFields);
 
                 const hasProviderField = augmentedFields.some((f: any) => f.type === 'provider');
@@ -278,12 +288,21 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                             } catch (err) {
                                 console.warn(`Failed to auto - populate field ${field.name} from source: `, err);
                             }
+                        } else if (field.db_column === 'organization_id' || field.name === 'organization_id' || field.name === 'organization-id') {
+                            const effectiveOrgId = ins.organization_id || ins.workflows?.organization_id || user?.organization_id;
+                            if (effectiveOrgId) {
+                                initialData[field.name] = effectiveOrgId;
+                            }
                         }
 
                         // Use default_value if still empty
                         if (!initialData[field.name]) {
                             if (field.default_value) {
-                                initialData[field.name] = field.default_value;
+                                let dv = field.default_value;
+                                if (dv === '{{ORGANIZATION_ID}}') {
+                                    dv = ins.organization_id || ins.workflows?.organization_id || user?.organization_id;
+                                }
+                                initialData[field.name] = dv;
                             } else if (field.type === 'date') {
                                 // Default to today's date if empty
                                 initialData[field.name] = new Date().toISOString().split('T')[0];
@@ -730,7 +749,17 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
             }
         }
 
-        console.log('[SYNC] Payload to save:', payload);
+        // Auto-inject organization_id if present in instance, workflow, or current user
+        const effectiveOrgId = instance?.organization_id || instance?.workflows?.organization_id || user?.organization_id;
+        
+        if (effectiveOrgId) {
+            console.log(`[SYNC] Injecting organization_id: ${effectiveOrgId}`);
+            payload.organization_id = effectiveOrgId;
+        } else {
+            console.warn('[SYNC] ⚠️ No organization_id found in instance, workflow, or user context.');
+        }
+
+        console.log('[SYNC] Final Payload to save:', payload);
         console.log('[SYNC] PK Fields:', pkFields);
 
         if (Object.keys(payload).length === 0) {
