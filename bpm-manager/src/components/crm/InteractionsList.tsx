@@ -5,8 +5,10 @@ import { Plus, Search, MessageSquare, MoreVertical, Calendar as CalendarIcon, Ph
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { InteractionFormModal } from './InteractionFormModal';
+import { useAuth } from '../../hooks/useAuth';
 
 export function InteractionsList() {
+    const { user } = useAuth();
     const [interactions, setInteractions] = useState<MktInteraccion[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -14,13 +16,16 @@ export function InteractionsList() {
     const [editingInteraction, setEditingInteraction] = useState<MktInteraccion | null>(null);
 
     useEffect(() => {
-        loadInteractions();
-    }, []);
+        if (user?.organization_id) {
+            loadInteractions();
+        }
+    }, [user?.organization_id]);
 
     const loadInteractions = async () => {
+        if (!user?.organization_id) return;
         try {
             setLoading(true);
-            const data = await crmService.getInteractions();
+            const data = await crmService.getInteractions(user.organization_id);
             setInteractions(data);
         } catch (error) {
             console.error('Error loading interactions:', error);

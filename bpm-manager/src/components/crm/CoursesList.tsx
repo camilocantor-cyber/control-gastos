@@ -5,8 +5,10 @@ import { Plus, Search, BookOpen, MoreVertical, Calendar as CalendarIcon, Clock, 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CourseFormModal } from './CourseFormModal';
+import { useAuth } from '../../hooks/useAuth';
 
 export function CoursesList() {
+    const { user } = useAuth();
     const [courses, setCourses] = useState<MktCurso[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -14,13 +16,16 @@ export function CoursesList() {
     const [editingCourse, setEditingCourse] = useState<MktCurso | null>(null);
 
     useEffect(() => {
-        loadCourses();
-    }, []);
+        if (user?.organization_id) {
+            loadCourses();
+        }
+    }, [user?.organization_id]);
 
     const loadCourses = async () => {
+        if (!user?.organization_id) return;
         try {
             setLoading(true);
-            const data = await crmService.getCourses();
+            const data = await crmService.getCourses(user.organization_id);
             setCourses(data);
         } catch (error) {
             console.error('Error loading courses:', error);

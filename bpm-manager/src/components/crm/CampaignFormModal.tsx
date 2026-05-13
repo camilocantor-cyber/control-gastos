@@ -3,6 +3,7 @@ import { X, Save } from 'lucide-react';
 import { crmService } from '../../services/crmService';
 import type { MktCampana } from '../../types/crm';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 
 interface CampaignFormModalProps {
     campaign?: MktCampana | null;
@@ -11,6 +12,7 @@ interface CampaignFormModalProps {
 }
 
 export function CampaignFormModal({ campaign, onClose, onSave }: CampaignFormModalProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<MktCampana>>({
         nombre: '',
@@ -50,6 +52,11 @@ export function CampaignFormModal({ campaign, onClose, onSave }: CampaignFormMod
             return;
         }
 
+        if (!user?.organization_id) {
+            toast.error('No se pudo identificar la organización');
+            return;
+        }
+
         try {
             setLoading(true);
             const campaignPayload = { ...formData };
@@ -64,7 +71,7 @@ export function CampaignFormModal({ campaign, onClose, onSave }: CampaignFormMod
                 savedCampaign = await crmService.updateCampaign(campaign.id_campaña, campaignPayload);
                 toast.success('Campaña actualizada exitosamente');
             } else {
-                savedCampaign = await crmService.createCampaign(campaignPayload);
+                savedCampaign = await crmService.createCampaign(campaignPayload, user.organization_id);
                 toast.success('Campaña creada exitosamente');
             }
 

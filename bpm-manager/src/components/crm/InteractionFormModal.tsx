@@ -3,6 +3,7 @@ import { X, Save } from 'lucide-react';
 import { crmService } from '../../services/crmService';
 import type { MktInteraccion, MktCliente } from '../../types/crm';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 
 interface InteractionFormModalProps {
     interaction?: MktInteraccion | null;
@@ -11,6 +12,7 @@ interface InteractionFormModalProps {
 }
 
 export function InteractionFormModal({ interaction, onClose, onSave }: InteractionFormModalProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
     const [clientes, setClientes] = useState<MktCliente[]>([]);
@@ -24,8 +26,10 @@ export function InteractionFormModal({ interaction, onClose, onSave }: Interacti
     });
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (user?.organization_id) {
+            loadData();
+        }
+    }, [user?.organization_id]);
 
     useEffect(() => {
         if (interaction && !fetchingData) {
@@ -40,9 +44,10 @@ export function InteractionFormModal({ interaction, onClose, onSave }: Interacti
     }, [interaction, fetchingData]);
 
     const loadData = async () => {
+        if (!user?.organization_id) return;
         try {
             setFetchingData(true);
-            const clientsData = await crmService.getClients();
+            const clientsData = await crmService.getClients(user.organization_id);
             setClientes(clientsData);
         } catch (error: any) {
             toast.error('Error al cargar clientes');
@@ -79,7 +84,11 @@ export function InteractionFormModal({ interaction, onClose, onSave }: Interacti
                 savedInteraction = await crmService.updateInteraction(interaction.id_interaccion, interactionPayload);
                 toast.success('Interacción actualizada exitosamente');
             } else {
-                savedInteraction = await crmService.createInteraction(interactionPayload);
+                if (!user?.organization_id) {
+                    toast.error('No se pudo identificar la organización');
+                    return;
+                }
+                savedInteraction = await crmService.createInteraction(interactionPayload, user.organization_id);
                 toast.success('Interacción registrada exitosamente');
             }
 

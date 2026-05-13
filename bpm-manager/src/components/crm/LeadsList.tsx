@@ -5,8 +5,10 @@ import { Plus, Search, Target, MoreVertical, Calendar as CalendarIcon, Link as L
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { LeadFormModal } from './LeadFormModal';
+import { useAuth } from '../../hooks/useAuth';
 
 export function LeadsList() {
+    const { user } = useAuth();
     const [leads, setLeads] = useState<MktLead[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -14,13 +16,16 @@ export function LeadsList() {
     const [editingLead, setEditingLead] = useState<MktLead | null>(null);
 
     useEffect(() => {
-        loadLeads();
-    }, []);
+        if (user?.organization_id) {
+            loadLeads();
+        }
+    }, [user?.organization_id]);
 
     const loadLeads = async () => {
+        if (!user?.organization_id) return;
         try {
             setLoading(true);
-            const data = await crmService.getLeads();
+            const data = await crmService.getLeads(user.organization_id);
             setLeads(data);
         } catch (error) {
             console.error('Error loading leads:', error);

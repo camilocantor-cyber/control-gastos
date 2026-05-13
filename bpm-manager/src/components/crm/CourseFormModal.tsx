@@ -3,6 +3,7 @@ import { X, Save } from 'lucide-react';
 import { crmService } from '../../services/crmService';
 import type { MktCurso } from '../../types/crm';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 
 interface CourseFormModalProps {
     course?: MktCurso | null;
@@ -11,6 +12,7 @@ interface CourseFormModalProps {
 }
 
 export function CourseFormModal({ course, onClose, onSave }: CourseFormModalProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<MktCurso>>({
         nombre_curso: '',
@@ -52,6 +54,11 @@ export function CourseFormModal({ course, onClose, onSave }: CourseFormModalProp
             return;
         }
 
+        if (!user?.organization_id) {
+            toast.error('No se pudo identificar la organización');
+            return;
+        }
+
         try {
             setLoading(true);
             const coursePayload = { ...formData };
@@ -63,7 +70,7 @@ export function CourseFormModal({ course, onClose, onSave }: CourseFormModalProp
                 savedCourse = await crmService.updateCourse(course.id_curso, coursePayload);
                 toast.success('Curso actualizado exitosamente');
             } else {
-                savedCourse = await crmService.createCourse(coursePayload);
+                savedCourse = await crmService.createCourse(coursePayload, user.organization_id);
                 toast.success('Curso creado exitosamente');
             }
 

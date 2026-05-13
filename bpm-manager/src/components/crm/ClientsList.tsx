@@ -3,8 +3,10 @@ import { crmService } from '../../services/crmService';
 import type { MktCliente } from '../../types/crm';
 import { Plus, Search, Mail, Phone, Users, MoreVertical, Building } from 'lucide-react';
 import { ClientFormModal } from './ClientFormModal';
+import { useAuth } from '../../hooks/useAuth';
 
 export function ClientsList() {
+    const { user } = useAuth();
     const [clients, setClients] = useState<MktCliente[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -12,13 +14,16 @@ export function ClientsList() {
     const [editingClient, setEditingClient] = useState<MktCliente | null>(null);
 
     useEffect(() => {
-        loadClients();
-    }, []);
+        if (user?.organization_id) {
+            loadClients();
+        }
+    }, [user?.organization_id]);
 
     const loadClients = async () => {
+        if (!user?.organization_id) return;
         try {
             setLoading(true);
-            const data = await crmService.getClients();
+            const data = await crmService.getClients(user.organization_id);
             setClients(data);
         } catch (error) {
             console.error('Error loading clients:', error);

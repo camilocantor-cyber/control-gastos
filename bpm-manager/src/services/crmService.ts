@@ -31,18 +31,19 @@ async function getNextId(tableName: string, idColumn: string): Promise<number> {
 
 export const crmService = {
     // --- CLIENTES ---
-    async getClients(): Promise<MktCliente[]> {
+    async getClients(organizationId: string): Promise<MktCliente[]> {
         const { data, error } = await supabase
             .from('mkt_clientes')
             .select('*')
+            .eq('organization_id', organizationId)
             .order('fecha_registro', { ascending: false });
         if (error) throw error;
         return data || [];
     },
-    async createClient(client: Partial<MktCliente>): Promise<MktCliente> {
+    async createClient(client: Partial<MktCliente>, organizationId: string): Promise<MktCliente> {
         // Manually generate ID
         const nextId = await getNextId('mkt_clientes', 'id_cliente');
-        const payload = { ...client, id_cliente: nextId };
+        const payload = { ...client, id_cliente: nextId, organization_id: organizationId };
 
         const { data, error } = await supabase.from('mkt_clientes').insert(payload).select().single();
         if (error) throw error;
@@ -55,18 +56,19 @@ export const crmService = {
     },
 
     // --- CAMPAÑAS ---
-    async getCampaigns(): Promise<MktCampana[]> {
+    async getCampaigns(organizationId: string): Promise<MktCampana[]> {
         const { data, error } = await supabase
             .from('mkt_campanas')
             .select('*')
+            .eq('organization_id', organizationId)
             .order('fecha_inicio', { ascending: false });
         if (error) throw error;
         return data || [];
     },
-    async createCampaign(campaign: Partial<MktCampana>): Promise<MktCampana> {
+    async createCampaign(campaign: Partial<MktCampana>, organizationId: string): Promise<MktCampana> {
         // Manually generate ID
         const nextId = await getNextId('mkt_campanas', 'id_campaña');
-        const payload = { ...campaign, "id_campaña": nextId };
+        const payload = { ...campaign, "id_campaña": nextId, organization_id: organizationId };
 
         const { data, error } = await supabase.from('mkt_campanas').insert(payload).select().single();
         if (error) throw error;
@@ -79,7 +81,7 @@ export const crmService = {
     },
 
     // --- LEADS ---
-    async getLeads(): Promise<MktLead[]> {
+    async getLeads(organizationId: string): Promise<MktLead[]> {
         const { data, error } = await supabase
             .from('mkt_leads')
             .select(`
@@ -87,14 +89,15 @@ export const crmService = {
                 cliente:mkt_clientes(*),
                 campana:mkt_campanas(*)
             `)
+            .eq('organization_id', organizationId)
             .order('fecha_lead', { ascending: false });
         if (error) throw error;
         return data || [];
     },
-    async createLead(lead: Partial<MktLead>): Promise<MktLead> {
+    async createLead(lead: Partial<MktLead>, organizationId: string): Promise<MktLead> {
         // Manually generate ID
         const nextId = await getNextId('mkt_leads', 'id_lead');
-        const payload = { ...lead, id_lead: nextId };
+        const payload = { ...lead, id_lead: nextId, organization_id: organizationId };
 
         const { data, error } = await supabase.from('mkt_leads').insert(payload).select().single();
         if (error) throw error;
@@ -107,18 +110,19 @@ export const crmService = {
     },
 
     // --- CURSOS ---
-    async getCourses(): Promise<MktCurso[]> {
+    async getCourses(organizationId: string): Promise<MktCurso[]> {
         const { data, error } = await supabase
             .from('mkt_cursos')
             .select('*')
+            .eq('organization_id', organizationId)
             .order('fecha_inicio', { ascending: false });
         if (error) throw error;
         return data || [];
     },
-    async createCourse(course: Partial<MktCurso>): Promise<MktCurso> {
+    async createCourse(course: Partial<MktCurso>, organizationId: string): Promise<MktCurso> {
         // Manually generate ID
         const nextId = await getNextId('mkt_cursos', 'id_curso');
-        const payload = { ...course, id_curso: nextId };
+        const payload = { ...course, id_curso: nextId, organization_id: organizationId };
 
         const { data, error } = await supabase.from('mkt_cursos').insert(payload).select().single();
         if (error) throw error;
@@ -131,10 +135,11 @@ export const crmService = {
     },
 
     // --- INTERACCIONES ---
-    async getInteractions(clienteId?: number): Promise<MktInteraccion[]> {
+    async getInteractions(organizationId: string, clienteId?: number): Promise<MktInteraccion[]> {
         let query = supabase
             .from('mkt_interacciones')
             .select('*, cliente:mkt_clientes(*)')
+            .eq('organization_id', organizationId)
             .order('fecha', { ascending: false });
         
         if (clienteId) {
@@ -145,10 +150,10 @@ export const crmService = {
         if (error) throw error;
         return data || [];
     },
-    async createInteraction(interaction: Partial<MktInteraccion>): Promise<MktInteraccion> {
+    async createInteraction(interaction: Partial<MktInteraccion>, organizationId: string): Promise<MktInteraccion> {
         // Manually generate ID
         const nextId = await getNextId('mkt_interacciones', 'id_interaccion');
-        const payload = { ...interaction, id_interaccion: nextId };
+        const payload = { ...interaction, id_interaccion: nextId, organization_id: organizationId };
 
         const { data, error } = await supabase.from('mkt_interacciones').insert(payload).select().single();
         if (error) throw error;
@@ -161,20 +166,22 @@ export const crmService = {
     },
 
     // --- INSCRIPCIONES ---
-    async getInscriptions(): Promise<MktInscripcion[]> {
+    async getInscriptions(organizationId: string): Promise<MktInscripcion[]> {
         const { data, error } = await supabase
             .from('mkt_inscripciones')
             .select('*, cliente:mkt_clientes(*), curso:mkt_cursos(*)')
+            .eq('organization_id', organizationId)
             .order('fecha_inscripcion', { ascending: false });
         if (error) throw error;
         return data || [];
     },
 
     // --- MENSAJES ---
-    async getMessages(clienteId?: number): Promise<MktMensaje[]> {
+    async getMessages(organizationId: string, clienteId?: number): Promise<MktMensaje[]> {
         let query = supabase
             .from('mkt_mensajes')
             .select('*, cliente:mkt_clientes(*)')
+            .eq('organization_id', organizationId)
             .order('fecha', { ascending: false });
         
         if (clienteId) {

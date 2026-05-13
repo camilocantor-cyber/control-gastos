@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import { crmService } from '../../services/crmService';
 import type { MktCliente } from '../../types/crm';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ClientFormModalProps {
     client?: MktCliente | null;
@@ -11,6 +12,7 @@ interface ClientFormModalProps {
 }
 
 export function ClientFormModal({ client, onClose, onSave }: ClientFormModalProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<MktCliente>>({
         nombre: '',
@@ -55,6 +57,11 @@ export function ClientFormModal({ client, onClose, onSave }: ClientFormModalProp
             return;
         }
 
+        if (!user?.organization_id) {
+            toast.error('No se pudo identificar la organización');
+            return;
+        }
+
         try {
             setLoading(true);
             const clientPayload = { ...formData };
@@ -68,7 +75,7 @@ export function ClientFormModal({ client, onClose, onSave }: ClientFormModalProp
                 savedClient = await crmService.updateClient(client.id_cliente, clientPayload);
                 toast.success('Cliente actualizado exitosamente');
             } else {
-                savedClient = await crmService.createClient(clientPayload);
+                savedClient = await crmService.createClient(clientPayload, user.organization_id);
                 toast.success('Cliente creado exitosamente');
             }
 

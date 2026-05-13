@@ -5,8 +5,10 @@ import { Plus, Search, Megaphone, MoreVertical, Calendar as CalendarIcon, Dollar
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CampaignFormModal } from './CampaignFormModal';
+import { useAuth } from '../../hooks/useAuth';
 
 export function CampaignsList() {
+    const { user } = useAuth();
     const [campaigns, setCampaigns] = useState<MktCampana[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -14,13 +16,16 @@ export function CampaignsList() {
     const [editingCampaign, setEditingCampaign] = useState<MktCampana | null>(null);
 
     useEffect(() => {
-        loadCampaigns();
-    }, []);
+        if (user?.organization_id) {
+            loadCampaigns();
+        }
+    }, [user?.organization_id]);
 
     const loadCampaigns = async () => {
+        if (!user?.organization_id) return;
         try {
             setLoading(true);
-            const data = await crmService.getCampaigns();
+            const data = await crmService.getCampaigns(user.organization_id);
             setCampaigns(data);
         } catch (error) {
             console.error('Error loading campaigns:', error);

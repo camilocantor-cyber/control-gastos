@@ -2,6 +2,7 @@ export type LeadStatus = 'nuevo' | 'contactado' | 'calificado' | 'convertido' | 
 
 export interface MktCliente {
     id_cliente: number;
+    organization_id: string;
     nombre: string;
     apellido?: string;
     email?: string;
@@ -17,6 +18,7 @@ export interface MktCliente {
 
 export interface MktCampana {
     id_campaña: number;
+    organization_id: string;
     nombre: string;
     plataforma?: string;
     presupuesto?: number;
@@ -27,6 +29,7 @@ export interface MktCampana {
 
 export interface MktLead {
     id_lead: number;
+    organization_id: string;
     id_cliente?: number;
     id_campaña?: number;
     fecha_lead?: string;
@@ -40,6 +43,7 @@ export interface MktLead {
 
 export interface MktInteraccion {
     id_interaccion: number;
+    organization_id: string;
     id_cliente?: number;
     tipo?: string;
     fecha?: string;
@@ -51,6 +55,7 @@ export interface MktInteraccion {
 
 export interface MktCurso {
     id_curso: number;
+    organization_id: string;
     nombre_curso: string;
     categoria?: string;
     descripcion?: string;
@@ -62,6 +67,7 @@ export interface MktCurso {
 
 export interface MktInscripcion {
     id_inscripcion: number;
+    organization_id: string;
     id_cliente?: number;
     id_curso?: number;
     fecha_inscripcion?: string;
@@ -74,6 +80,7 @@ export interface MktInscripcion {
 
 export interface MktMensaje {
     id_mensaje: number;
+    organization_id: string;
     id_cliente?: number;
     tipo?: string;
     contenido?: string;

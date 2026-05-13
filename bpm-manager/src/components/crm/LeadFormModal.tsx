@@ -3,6 +3,7 @@ import { X, Save } from 'lucide-react';
 import { crmService } from '../../services/crmService';
 import type { MktLead, MktCliente, MktCampana } from '../../types/crm';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 
 interface LeadFormModalProps {
     lead?: MktLead | null;
@@ -11,6 +12,7 @@ interface LeadFormModalProps {
 }
 
 export function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
     
@@ -26,8 +28,10 @@ export function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
     });
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (user?.organization_id) {
+            loadData();
+        }
+    }, [user?.organization_id]);
 
     useEffect(() => {
         if (lead && !fetchingData) {
@@ -42,11 +46,12 @@ export function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
     }, [lead, fetchingData]);
 
     const loadData = async () => {
+        if (!user?.organization_id) return;
         try {
             setFetchingData(true);
             const [clientsData, campaignsData] = await Promise.all([
-                crmService.getClients(),
-                crmService.getCampaigns()
+                crmService.getClients(user.organization_id),
+                crmService.getCampaigns(user.organization_id)
             ]);
             setClientes(clientsData);
             setCampanas(campaignsData);
@@ -74,6 +79,11 @@ export function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             return;
         }
 
+        if (!user?.organization_id) {
+            toast.error('No se pudo identificar la organización');
+            return;
+        }
+
         try {
             setLoading(true);
             const leadPayload = { ...formData };
@@ -87,7 +97,7 @@ export function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
                 savedLead = await crmService.updateLead(lead.id_lead, leadPayload);
                 toast.success('Lead actualizado exitosamente');
             } else {
-                savedLead = await crmService.createLead(leadPayload);
+                savedLead = await crmService.createLead(leadPayload, user.organization_id);
                 toast.success('Lead registrado exitosamente');
             }
 
