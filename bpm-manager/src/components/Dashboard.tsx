@@ -69,102 +69,118 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
         );
     }
 
+    const currentOrg = user?.available_organizations?.find((o: any) => o.id === user.organization_id);
+    const logoUrl = currentOrg?.logo_url;
+
     return (
         <div className={cn(
-            "space-y-4 animate-in fade-in duration-700 pb-10",
+            "space-y-4 animate-in fade-in duration-700 pb-10 relative min-h-[500px]",
             isViewer && "space-y-2"
         )}>
-            {user?.dashboard_widgets?.map((widgetId) => {
-                switch (widgetId) {
-                    case 'stats':
-                        return (
-                            <div key="stats" className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
-                                <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-2">
-                                    <StatCard
-                                        label="En Curso"
-                                        value={instancesActive.toString()}
-                                        color="blue"
-                                        icon={Activity}
-                                    />
-                                    <StatCard
-                                        label="Finalizados"
-                                        value={instancesCompleted.toString()}
-                                        color="emerald"
-                                        icon={CheckCircle2}
-                                    />
-                                    <StatCard
-                                        label="Log Acciones"
-                                        value={historyCount.toString()}
-                                        color="purple"
-                                        icon={TrendingUp}
-                                    />
-                                </div>
-                            </div>
-                        );
+            {/* Logo Marca de Agua */}
+            {logoUrl && (
+                <div className="fixed inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-0 opacity-[0.03] dark:opacity-[0.05] grayscale select-none mix-blend-multiply dark:mix-blend-overlay">
+                    <img
+                        src={logoUrl}
+                        alt="Watermark"
+                        className="w-[80vw] max-w-[1000px] object-contain rotate-[-15deg] transition-opacity duration-1000"
+                    />
+                </div>
+            )}
 
-                    case 'inbox':
-                        return (
-                            <div key="inbox" className="w-full">
-                                <TaskInbox
-                                    onAttendTask={(id) => onAction?.('attend-task', id)}
-                                    onViewProcess={(id) => onAction?.('view-process', id)}
-                                    refreshTrigger={refreshTrigger}
-                                />
-                            </div>
-                        );
-
-                    case 'efficiency':
-                        return (
-                            <div key="efficiency" className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-0">
-                                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm h-full">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <Clock className="w-4 h-4 text-orange-500" />
-                                        <h3 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mi Eficiencia</h3>
+            <div className="relative z-10 space-y-4">
+                {user?.dashboard_widgets?.map((widgetId) => {
+                    switch (widgetId) {
+                        case 'stats':
+                            return (
+                                <div key="stats" className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
+                                    <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        <StatCard
+                                            label="En Curso"
+                                            value={instancesActive.toString()}
+                                            color="blue"
+                                            icon={Activity}
+                                        />
+                                        <StatCard
+                                            label="Finalizados"
+                                            value={instancesCompleted.toString()}
+                                            color="emerald"
+                                            icon={CheckCircle2}
+                                        />
+                                        <StatCard
+                                            label="Log Acciones"
+                                            value={historyCount.toString()}
+                                            color="purple"
+                                            icon={TrendingUp}
+                                        />
                                     </div>
-
-                                    {userEfficiency.length > 0 ? (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {userEfficiency.map((wf) => (
-                                                <div
-                                                    key={wf.workflow_name}
-                                                    className="p-2.5 bg-slate-50 dark:bg-slate-800/20 rounded-xl border border-slate-100 dark:border-slate-800/40 hover:border-orange-500/20 transition-colors"
-                                                >
-                                                    <div className="flex justify-between items-start mb-1 min-w-0">
-                                                        <p className="text-[8.5px] font-black text-slate-500 dark:text-slate-400 truncate max-w-[85%]">{wf.workflow_name}</p>
-                                                        <span className="text-[8px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-1 rounded whitespace-nowrap">{wf.count}</span>
-                                                    </div>
-                                                    <p className="text-[13px] font-black text-slate-900 dark:text-white leading-none">{formatTime(wf.avg_hours)}</p>
-                                                    <div className="mt-1.5 w-full h-1 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
-                                                        <div
-                                                            className="h-full bg-orange-500 rounded-full"
-                                                            style={{ width: `${Math.min(100, (wf.avg_hours / 48) * 100)}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="h-[200px] flex flex-col items-center justify-center border-2 border-dashed border-slate-50 dark:border-slate-800 rounded-xl">
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase italic tracking-widest">Sin datos históricos</p>
-                                        </div>
-                                    )}
                                 </div>
-                                {user?.dashboard_widgets?.includes('workload') && !isViewer && <WorkloadMap key="workload" />}
-                            </div>
-                        );
+                            );
 
-                    case 'workload':
-                        // Handled inside efficiency container if combined, or separately here if efficiency not present
-                        if (user?.dashboard_widgets?.includes('efficiency')) return null;
-                        return !isViewer && <WorkloadMap key="workload" />;
+                        case 'inbox':
+                            return (
+                                <div key="inbox" className="w-full">
+                                    <TaskInbox
+                                        onAttendTask={(id) => onAction?.('attend-task', id)}
+                                        onViewProcess={(id) => onAction?.('view-process', id)}
+                                        refreshTrigger={refreshTrigger}
+                                    />
+                                </div>
+                            );
 
-                    case 'ai':
-                        return <DashboardAIWidget key="ai" />;
+                        case 'efficiency':
+                            return (
+                                <div key="efficiency" className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-0">
+                                    <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm h-full">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <Clock className="w-4 h-4 text-orange-500" />
+                                            <h3 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mi Eficiencia</h3>
+                                        </div>
 
-                    default:
-                        return null;
-                }
-            })}
+                                        {userEfficiency.length > 0 ? (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {userEfficiency.map((wf) => (
+                                                    <div
+                                                        key={wf.workflow_name}
+                                                        className="p-2.5 bg-slate-50 dark:bg-slate-800/20 rounded-xl border border-slate-100 dark:border-slate-800/40 hover:border-orange-500/20 transition-colors"
+                                                    >
+                                                        <div className="flex justify-between items-start mb-1 min-w-0">
+                                                            <p className="text-[8.5px] font-black text-slate-500 dark:text-slate-400 truncate max-w-[85%]">{wf.workflow_name}</p>
+                                                            <span className="text-[8px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-1 rounded whitespace-nowrap">{wf.count}</span>
+                                                        </div>
+                                                        <p className="text-[13px] font-black text-slate-900 dark:text-white leading-none">{formatTime(wf.avg_hours)}</p>
+                                                        <div className="mt-1.5 w-full h-1 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-orange-500 rounded-full"
+                                                                style={{ width: `${Math.min(100, (wf.avg_hours / 48) * 100)}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="h-[200px] flex flex-col items-center justify-center border-2 border-dashed border-slate-50 dark:border-slate-800 rounded-xl">
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase italic tracking-widest">Sin datos históricos</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {user?.dashboard_widgets?.includes('workload') && !isViewer && <WorkloadMap key="workload" />}
+                                </div>
+                            );
+
+                        case 'workload':
+                            // Handled inside efficiency container if combined, or separately here if efficiency not present
+                            if (user?.dashboard_widgets?.includes('efficiency')) return null;
+                            return !isViewer && <WorkloadMap key="workload" />;
+
+                        case 'ai':
+                            return <DashboardAIWidget key="ai" />;
+
+                        default:
+                            return null;
+                    }
+                })}
+            </div>
         </div>
     );
 }
@@ -185,7 +201,7 @@ function StatCard({ label, value, color, icon: Icon = TrendingUp }: { label: str
     }[color];
 
     return (
-        <div className="bg-white dark:bg-slate-900/40 backdrop-blur-xl rounded-xl p-2.5 border border-slate-100 dark:border-white/5 shadow-sm dark:shadow-xl dark:shadow-black/20 group hover:border-slate-200 dark:hover:bg-slate-800/60 transition-all cursor-default">
+        <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl rounded-xl p-2.5 border border-slate-100 dark:border-white/5 shadow-sm dark:shadow-xl dark:shadow-black/20 group hover:border-slate-200 dark:hover:bg-slate-800/60 transition-all cursor-default">
             <div className="flex items-center justify-between mb-1.5">
                 <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1">
                     {label}

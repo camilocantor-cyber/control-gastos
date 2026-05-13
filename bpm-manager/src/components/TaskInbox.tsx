@@ -55,7 +55,7 @@ export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger }: { onA
     }
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full relative">
+        <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full relative">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between transition-colors">
                 <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-blue-500" />
@@ -69,7 +69,7 @@ export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger }: { onA
             <div className="flex-1 overflow-x-auto">
                 <table className="w-full border-collapse">
                     <thead>
-                        <tr className="bg-slate-100/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                        <tr className="bg-slate-100/40 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                             <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest w-8">Tipo</th>
                             <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest w-24">ID</th>
                             <th className="px-3 py-1.5 text-left text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Nombre del Trámite</th>
