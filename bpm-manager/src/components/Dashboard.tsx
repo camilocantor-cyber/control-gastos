@@ -16,7 +16,7 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
     const isViewer = currentRole === 'viewer';
     const isTurista = currentRole === 'turista';
 
-    const { instancesActive, instancesCompleted, historyCount, loading, refresh: statsRefresh } = useDashboardStats();
+    const { instancesActive, instancesCompleted, loading, refresh: statsRefresh } = useDashboardStats();
     const { userEfficiency, refresh: analyticsRefresh } = useDashboardAnalytics();
 
     const refreshAll = () => {
