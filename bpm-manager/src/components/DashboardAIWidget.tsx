@@ -199,12 +199,6 @@ export function DashboardAIWidget() {
                     >
                         {showConfig ? 'Config' : 'Configurar'}
                     </button>
-                    <button
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="px-4 py-1.5 text-[9px] font-black uppercase text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 dark:shadow-none rounded-lg transition-colors"
-                    >
-                        {isOpen ? 'Ocultar' : 'Chat'}
-                    </button>
                 </div>
             </div>
 
