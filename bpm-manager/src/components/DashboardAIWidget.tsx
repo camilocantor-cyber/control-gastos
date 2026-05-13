@@ -73,7 +73,6 @@ export function DashboardAIWidget() {
 
     const activeKey = provider === 'openai' ? apiKey : geminiKey;
 
-    // Load deep stats for AI context (costs, all user speeds, etc)
     const prepareDeepContext = async () => {
         if (!user?.organization_id) return null;
         try {
@@ -108,7 +107,7 @@ export function DashboardAIWidget() {
 
             return {
                 costosTotalesPorFlujo: costByWf,
-                flujosDisponibles: workflows?.map(w => ({ id: w.id, nombre: w.name, descripcion: w.description })),
+                flujosDisponiblesParaIniciar: workflows?.map(w => ({ id: w.id, nombre: w.name, descripcion: w.description })),
                 ultimos500EventosHistóricos: historyData?.map(h => ({
                     accion: h.action,
                     usuario: (h.profiles as any)?.full_name || 'Desconocido',
@@ -150,11 +149,26 @@ export function DashboardAIWidget() {
                 setExtraData(deepContext);
             }
 
+            // Prepare a very clear context to avoid the "0 activities" confusion
+            const clearContext = {
+                resumenGlobal: {
+                    totalFlujosDefinidos: stats.workflows,
+                    totalActividadesDefinidas: stats.activities,
+                    totalUsuarios: stats.users
+                },
+                estadoDeOperaciones: {
+                    tramitesEnCurso: analytics.processStatus.active,
+                    tramitesCompletados: analytics.processStatus.completed,
+                    totalTareasActivasEnOrganizacion: analytics.processStatus.active // Alias for clarity
+                },
+                detalle: deepContext
+            };
+
             const aiResponse = await askDashboardAI(
                 userMsg,
                 activeKey,
-                { ...analytics, contextExtra: deepContext },
-                stats,
+                clearContext,
+                {}, // Passing empty stats as we merged them in clearContext
                 provider
             );
 
