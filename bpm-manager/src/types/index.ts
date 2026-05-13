@@ -130,7 +130,7 @@ export interface ProcessHistory {
     user_id: string;
 }
 
-export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup' | 'location' | 'consecutivo' | 'label' | 'accordion' | 'attachment';
+export type FieldType = 'text' | 'number' | 'date' | 'time' | 'boolean' | 'provider' | 'select' | 'email' | 'currency' | 'textarea' | 'phone' | 'grid' | 'lookup' | 'location' | 'consecutivo' | 'label' | 'accordion' | 'attachment';
 
 export interface GridColumn {
     id: string;

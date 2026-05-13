@@ -295,7 +295,8 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                 const dt = col.data_type.toLowerCase();
                 if (dt.includes('int') || dt.includes('numeric') || dt.includes('decimal') || dt.includes('float') || dt.includes('double')) fieldType = 'number';
                 else if (dt.includes('bool')) fieldType = 'boolean';
-                else if (dt.includes('date') || dt.includes('time')) fieldType = 'date';
+                else if (dt.includes('date')) fieldType = 'date';
+                else if (dt.includes('time')) fieldType = 'time';
 
                 return {
                     id: crypto.randomUUID(),
