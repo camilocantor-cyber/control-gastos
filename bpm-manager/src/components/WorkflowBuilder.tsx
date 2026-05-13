@@ -725,6 +725,13 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                     <div className="flex flex-col">
                         <div className="flex items-center gap-3">
                             <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-none">{workflowName}</h2>
+                            <button
+                                onClick={() => setShowWorkflowConfig(true)}
+                                className="p-1.5 hover:bg-white dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-indigo-600 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 shadow-sm"
+                                title="Configuración General del Flujo"
+                            >
+                                <Edit2 className="w-4 h-4" />
+                            </button>
                             <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800 shadow-sm transition-colors">
                                 <ActivityIcon className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                 <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{avgTime}h eficiencia</span>
@@ -930,6 +937,18 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                         onClick={(e) => e.stopPropagation()}
                         className="absolute bottom-6 left-6 flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl z-50 ring-1 ring-black/5"
                     >
+                        {!isReadOnly && (
+                            <>
+                                <button
+                                    onClick={handleAutoLayout}
+                                    className="p-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all active:scale-95"
+                                    title="Auto-Organizar Flujo"
+                                >
+                                    <GitBranch className="w-4 h-4 rotate-180" />
+                                </button>
+                                <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                            </>
+                        )}
                         <button onClick={() => setZoom(z => Math.min(z * 1.2, 3))} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 transition-all active:scale-95" title="Acercar"><ZoomIn className="w-4 h-4" /></button>
                         <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
                         <span className="text-[10px] font-black w-10 text-center text-slate-500 dark:text-slate-400">{Math.round(zoom * 100)}%</span>
@@ -1000,31 +1019,17 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                     <Settings2 className="w-4 h-4" />
                                     <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/edit:max-w-[100px] transition-all duration-300">Propiedades</span>
                                 </button>
-                                <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                                <button onClick={handleAutoLayout} className="p-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all flex items-center gap-2 group/layout active:scale-95" title="Auto-Organizar">
-                                    <GitBranch className="w-4 h-4 rotate-180" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/layout:max-w-[100px] transition-all duration-300">Organizar</span>
-                                </button>
 
                                 <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
                                 <button
                                     onClick={() => setShowDetailsManager(true)}
-                                    className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex items-center gap-2 group/details active:scale-95 shadow-sm"
+                                    className="p-2.5 bg-purple-600 text-white hover:bg-purple-700 rounded-xl transition-all flex items-center gap-2 group/details active:scale-95 shadow-lg shadow-purple-500/20"
                                     title="Gestor de Carpetas (Maestro-Detalle)"
                                 >
                                     <FolderOpen className="w-4 h-4" />
                                     <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/details:max-w-[150px] transition-all duration-300 whitespace-nowrap">Gestor de Carpetas</span>
                                 </button>
 
-                                <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                                <button
-                                    onClick={() => setShowWorkflowConfig(true)}
-                                    className="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-indigo-600 rounded-xl transition-all flex items-center gap-2 group/wfconfig active:scale-95 shadow-sm"
-                                    title="Configuración General del Flujo"
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest overflow-hidden max-w-0 group-hover/wfconfig:max-w-[100px] transition-all duration-300 whitespace-nowrap">Ajustes Globlales</span>
-                                </button>
                             </>
                         )}
                     </div> {/* Closes navigation controls div */}
