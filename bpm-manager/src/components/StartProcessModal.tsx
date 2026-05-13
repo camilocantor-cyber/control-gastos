@@ -24,7 +24,10 @@ export function StartProcessModal({ onClose, onStarted }: { onClose: () => void,
             query = query.eq('is_public', true);
         }
 
-        const { data } = await query;
+        const { data, error: fetchError } = await query;
+        if (fetchError) console.error('[START] Fetch error:', fetchError);
+        console.log('[START] User Org ID:', user.organization_id);
+        console.log('[START] Workflows found:', data?.length, data);
         setWorkflows(data || []);
     }
 
