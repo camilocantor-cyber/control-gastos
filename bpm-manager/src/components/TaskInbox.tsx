@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, ArrowRight, CheckCircle2, AlertCircle, Globe, X, Trash2, Eye } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle2, AlertCircle, Globe, X, Trash2, Eye, Activity } from 'lucide-react';
 import { useExecution } from '../hooks/useExecution';
 
 import { toast } from 'sonner';
 
-export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger }: { onAttendTask: (taskId: string) => void, onViewProcess?: (processId: string) => void, refreshTrigger?: number }) {
+export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger, instancesActive, instancesCompleted }: { 
+    onAttendTask: (taskId: string) => void, 
+    onViewProcess?: (processId: string) => void, 
+    refreshTrigger?: number,
+    instancesActive?: number,
+    instancesCompleted?: number
+}) {
     const { getActiveTasks, deleteProcessInstance, loading, error } = useExecution();
     const [tasks, setTasks] = useState<any[]>([]);
     const [escalatedTask, setEscalatedTask] = useState<any | null>(null);
@@ -56,14 +62,35 @@ export function TaskInbox({ onAttendTask, onViewProcess, refreshTrigger }: { onA
 
     return (
         <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full relative">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between transition-colors">
-                <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-blue-500" />
-                    <h3 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mis Tareas Pendientes</h3>
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                        <h3 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mis Tareas Pendientes</h3>
+                        <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[8px] font-black rounded-full border border-blue-100 dark:border-blue-800 uppercase tracking-widest">
+                            {tasks.length}
+                        </span>
+                    </div>
+
+                    <div className="h-4 w-[1px] bg-slate-100 dark:bg-slate-800 hidden sm:block" />
+
+                    <div className="flex items-center gap-3">
+                        {instancesActive !== undefined && (
+                            <div className="flex items-center gap-1.5" title="Trámites en Curso">
+                                <Activity className="w-3 h-3 text-blue-500" />
+                                <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">En Curso:</span>
+                                <span className="text-[10px] font-black text-slate-900 dark:text-white">{instancesActive}</span>
+                            </div>
+                        )}
+                        {instancesCompleted !== undefined && (
+                            <div className="flex items-center gap-1.5" title="Trámites Finalizados">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Finalizados:</span>
+                                <span className="text-[10px] font-black text-slate-900 dark:text-white">{instancesCompleted}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[8px] font-black rounded-full border border-blue-100 dark:border-blue-800 uppercase tracking-widest">
-                    {tasks.length}
-                </span>
             </div>
 
             <div className="flex-1 overflow-x-auto">

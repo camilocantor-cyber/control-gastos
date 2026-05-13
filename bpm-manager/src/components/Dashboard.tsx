@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import {
-    TrendingUp, Clock, Activity, CheckCircle2
+    Clock
 } from 'lucide-react';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
@@ -91,32 +91,6 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
             <div className="relative z-10 space-y-4">
                 {user?.dashboard_widgets?.map((widgetId) => {
                     switch (widgetId) {
-                        case 'stats':
-                            return (
-                                <div key="stats" className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
-                                    <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-2">
-                                        <StatCard
-                                            label="En Curso"
-                                            value={instancesActive.toString()}
-                                            color="blue"
-                                            icon={Activity}
-                                        />
-                                        <StatCard
-                                            label="Finalizados"
-                                            value={instancesCompleted.toString()}
-                                            color="emerald"
-                                            icon={CheckCircle2}
-                                        />
-                                        <StatCard
-                                            label="Log Acciones"
-                                            value={historyCount.toString()}
-                                            color="purple"
-                                            icon={TrendingUp}
-                                        />
-                                    </div>
-                                </div>
-                            );
-
                         case 'inbox':
                             return (
                                 <div key="inbox" className="w-full">
@@ -124,6 +98,8 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                                         onAttendTask={(id) => onAction?.('attend-task', id)}
                                         onViewProcess={(id) => onAction?.('view-process', id)}
                                         refreshTrigger={refreshTrigger}
+                                        instancesActive={instancesActive}
+                                        instancesCompleted={instancesCompleted}
                                     />
                                 </div>
                             );
@@ -180,40 +156,6 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                             return null;
                     }
                 })}
-            </div>
-        </div>
-    );
-}
-
-function StatCard({ label, value, color, icon: Icon = TrendingUp }: { label: string, value: string, color: 'blue' | 'orange' | 'emerald' | 'purple', icon?: any }) {
-    const bars = {
-        blue: "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]",
-        emerald: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]",
-        purple: "bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]",
-        orange: "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]",
-    }[color];
-
-    const icons = {
-        blue: "text-blue-500 dark:text-blue-400",
-        emerald: "text-emerald-500 dark:text-emerald-400",
-        purple: "text-purple-500 dark:text-purple-400",
-        orange: "text-orange-500 dark:text-orange-400",
-    }[color];
-
-    return (
-        <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl rounded-xl p-2.5 border border-slate-100 dark:border-white/5 shadow-sm dark:shadow-xl dark:shadow-black/20 group hover:border-slate-200 dark:hover:bg-slate-800/60 transition-all cursor-default">
-            <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                    {label}
-                    <span className="text-[10px] text-slate-900 dark:text-white">{value}</span>
-                </p>
-                <Icon className={cn("w-3 h-3", icons)} />
-            </div>
-            <div className="w-full h-1 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                <div
-                    className={cn("h-full transition-all duration-1000", bars)}
-                    style={{ width: value !== '0' ? (label === 'En Curso' ? '65%' : label === 'Finalizados' ? '100%' : '45%') : '0%' }}
-                />
             </div>
         </div>
     );
