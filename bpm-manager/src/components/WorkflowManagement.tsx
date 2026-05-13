@@ -29,6 +29,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const { categories } = useWorkflowCategories();
+    const [showPublic, setShowPublic] = useState(false);
 
     // Update internal state when prop changes without effects to avoid cascading renders
     if (openForm !== prevOpenForm) {
@@ -46,7 +47,8 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
         const matchesSearch = w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (w.description || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = selectedCategory === 'all' || w.category_id === selectedCategory;
-        return matchesSearch && matchesCategory;
+        const matchesPublic = showPublic || !w.is_public;
+        return matchesSearch && matchesCategory && matchesPublic;
     });
 
     const handleSave = async (data: Partial<Workflow>) => {
@@ -161,7 +163,28 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
                     />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 shadow-sm">
+                        <div className={clsx(
+                            "w-8 h-4 rounded-full transition-all relative flex items-center px-0.5",
+                            showPublic ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-800"
+                        )}>
+                            <div className={clsx(
+                                "w-3 h-3 bg-white rounded-full transition-all shadow-sm transform",
+                                showPublic ? "translate-x-4" : "translate-x-0"
+                            )} />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-blue-600 transition-colors">
+                            Ver flujos públicos
+                        </span>
+                        <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={showPublic}
+                            onChange={(e) => setShowPublic(e.target.checked)}
+                        />
+                    </label>
+
                     <div className="relative flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 shadow-sm">
                         <Filter className="w-3.5 h-3.5 text-slate-400 mr-2" />
                         <select
