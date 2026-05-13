@@ -936,12 +936,15 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                 {/* Header */}
                 <div className="px-8 py-2.5 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-white dark:bg-slate-950/80 backdrop-blur-xl z-20">
                     <div className="flex items-center gap-6">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-blue-200 dark:shadow-blue-900/20 overflow-hidden">
+                        <div className={clsx(
+                            "w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden",
+                            !instance.organization?.logo_url && "bg-blue-600 shadow-md shadow-blue-200 dark:shadow-blue-900/20"
+                        )}>
                             {instance.organization?.logo_url ? (
                                 <img
                                     src={instance.organization.logo_url}
                                     alt={instance.organization.name || 'Logo'}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-contain"
                                 />
                             ) : (
                                 <GitBranch className="w-5 h-5 text-white" />
