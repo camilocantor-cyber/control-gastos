@@ -401,7 +401,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
             setEditingActionId(null); // Reset action editing state
             setSelectedPreviewFieldId(null); // Ensure no specific field is focused
             if (isDoubleClick) {
-                setShowFormPreview(true);
+                setShowPropertiesModal(true);
             }
         }
     };
