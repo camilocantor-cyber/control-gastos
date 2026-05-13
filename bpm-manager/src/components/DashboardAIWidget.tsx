@@ -180,7 +180,7 @@ export function DashboardAIWidget() {
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder="Haz una pregunta sobre tus operaciones..."
-                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
+                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
                         />
                         <button
                             type="submit"
