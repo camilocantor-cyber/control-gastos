@@ -162,6 +162,7 @@ export interface FieldDefinition {
     visibility_condition?: string; // Logic to show/hide field based on other field values
     default_value?: string;
     is_readonly?: boolean;
+    is_hidden?: boolean;
     // Database synchronization mapping
     db_column?: string;
     db_type?: string;

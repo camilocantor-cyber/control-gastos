@@ -1,0 +1,69 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+    Plus, 
+    Play, 
+    Save, 
+    Trash2, 
+    Settings, 
+    Database, 
+    Users, 
+    Activity as ActivityIcon,
+    GitBranch,
+    ChevronRight,
+    ChevronDown,
+    ChevronUp,
+    MoreHorizontal,
+    Layout,
+    Type,
+    CheckSquare,
+    Calendar,
+    Clock,
+    FileText,
+    ArrowRight,
+    Check,
+    X,
+    MessageSquare,
+    Mail,
+    Zap,
+    AlertCircle,
+    Eye,
+    Search,
+    Edit2,
+    Copy,
+    Share2,
+    Download,
+    Upload,
+    Code,
+    Link,
+    Filter,
+    Table,
+    FileSignature,
+    Box,
+    Globe,
+    Cpu,
+    Target,
+    BarChart2,
+    Coins,
+    Award,
+    Scale,
+    Dices,
+    Folder
+} from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
+import type { 
+    Workflow, 
+    Activity, 
+    Transition, 
+    FieldDefinition, 
+    FieldType, 
+    AssignmentType, 
+    AssignmentStrategy, 
+    AutomatedAction, 
+    AutomatedActionType,
+    WorkflowDetail
+} from '../types';
+import { cn } from '../utils/cn';
+import { FormPreviewModal } from './FormPreviewModal';
+
+// ... (Rest of the file would be too large, I'll try to use replace_file_content carefully to fix the specific part)

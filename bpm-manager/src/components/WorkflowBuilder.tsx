@@ -2037,6 +2037,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                 <th className="px-3 py-3">Auto-llenar Desde</th>
                                                                                 <th className="px-3 py-3 text-center">Requerido</th>
                                                                                 <th className="px-3 py-3 text-center" title="Solo lectura">Lectura</th>
+                                                                                <th className="px-3 py-3 text-center" title="Ocultar del formulario">Oculto</th>
                                                                                 <th className="px-3 py-3 text-center">Límite</th>
                                                                                 <th className="px-3 py-3 text-center">Altura</th>
                                                                                 <th className="px-3 py-3 text-center">Acciones</th>
@@ -2217,6 +2218,23 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                                                                         }}
                                                                                                         className="w-4 h-4 rounded text-amber-500 border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-800 focus:ring-amber-400 cursor-pointer transition-all accent-amber-500"
                                                                                                         title="El usuario ve el valor pero no puede editarlo"
+                                                                                                    />
+                                                                                                </div>
+                                                                                            </td>
+                                                                                            <td className="px-3 py-2">
+                                                                                                <div className="flex items-center justify-center h-8">
+                                                                                                    <input
+                                                                                                        type="checkbox"
+                                                                                                        checked={!!field.is_hidden}
+                                                                                                        onChange={(e) => {
+                                                                                                            const isHidden = e.target.checked;
+                                                                                                            setActivities(prev => prev.map(a => a.id === selectedActivityId ? {
+                                                                                                                ...a,
+                                                                                                                fields: a.fields?.map(f => f.id === field.id ? { ...f, is_hidden: isHidden } : f)
+                                                                                                            } : a));
+                                                                                                        }}
+                                                                                                        className="w-4 h-4 rounded text-slate-600 border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-800 focus:ring-slate-500 cursor-pointer transition-all"
+                                                                                                        title="Ocultar este campo en el formulario de ejecución"
                                                                                                     />
                                                                                                 </div>
                                                                                             </td>

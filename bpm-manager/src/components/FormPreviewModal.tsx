@@ -172,7 +172,7 @@ export function FormPreviewModal({
 
     const renderField = (field: FieldDefinition) => {
         const isVisible = evaluateCondition(field.visibility_condition || '', formData);
-        if (!isVisible) return null;
+        if (!isVisible || field.is_hidden) return null;
 
         return (
             <div
@@ -1548,6 +1548,25 @@ export function FormPreviewModal({
                                                             <div className={clsx(
                                                                 "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
                                                                 selectedField.is_readonly ? "left-4" : "left-0.5"
+                                                            )} />
+                                                        </button>
+                                                    </label>
+
+                                                    <label className="flex items-center justify-between w-full h-[45px] px-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl cursor-pointer hover:border-slate-400 transition-all shadow-sm">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">Oculto</span>
+                                                            <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest opacity-60">(Hidden)</span>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => onUpdateField(selectedField.id, { is_hidden: !selectedField.is_hidden })}
+                                                            className={clsx(
+                                                                "w-8 h-4 rounded-full transition-all relative shrink-0 ml-2",
+                                                                selectedField.is_hidden ? "bg-slate-600 shadow-md shadow-slate-200" : "bg-slate-300 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={clsx(
+                                                                "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
+                                                                selectedField.is_hidden ? "left-4" : "left-0.5"
                                                             )} />
                                                         </button>
                                                     </label>

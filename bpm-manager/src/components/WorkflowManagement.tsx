@@ -47,7 +47,7 @@ export function WorkflowList({ onSelectWorkflow, openForm, onFormClose }: {
         const matchesSearch = w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (w.description || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = selectedCategory === 'all' || w.category_id === selectedCategory;
-        const matchesPublic = showPublic || !w.is_public;
+        const matchesPublic = showPublic || !w.is_public || w.organization_id === user?.organization_id;
         return matchesSearch && matchesCategory && matchesPublic;
     });
 

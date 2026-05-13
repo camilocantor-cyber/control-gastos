@@ -18,9 +18,10 @@ export function StartProcessModal({ onClose, onStarted }: { onClose: () => void,
         let query = supabase.from('workflows').select('*').eq('status', 'active');
 
         if (user.organization_id) {
+            // Show only my organization's workflows (even if they are public)
             query = query.eq('organization_id', user.organization_id);
         } else {
-            // Fallback for users without org (e.g. superadmins or public users)
+            // Fallback for users without org (e.g. superadmins) - show public ones
             query = query.eq('is_public', true);
         }
 

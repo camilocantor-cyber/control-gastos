@@ -1175,7 +1175,7 @@ export function ProcessExecution({ processId, onClose, onComplete }: { processId
                                             const sortedFields = [...fields].sort((a, b) => (Number(a.order_index ?? 9999) - Number(b.order_index ?? 9999)));
 
                                             const renderSingleField = (field: any) => {
-                                                if (!isFieldVisible(field)) return null;
+                                                if (!isFieldVisible(field) || field.is_hidden) return null;
 
                                                 if (field.type === 'label') {
                                                     return (
