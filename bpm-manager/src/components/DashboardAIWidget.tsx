@@ -5,6 +5,7 @@ import { askDashboardAI } from '../services/aiService';
 import type { AIProviderName } from '../services/aiService';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
+import { useExecution } from '../hooks/useExecution';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
@@ -12,6 +13,7 @@ export function DashboardAIWidget() {
     const { user } = useAuth();
     const stats = useDashboardStats();
     const analytics = useDashboardAnalytics();
+    const { startProcess } = useExecution();
 
     // AI State
     const [isOpen, setIsOpen] = useState(false);
@@ -97,8 +99,16 @@ export function DashboardAIWidget() {
                 .order('created_at', { ascending: false })
                 .limit(500);
 
+            // Fetch available workflows to know what can be started
+            const { data: workflows } = await supabase
+                .from('workflows')
+                .select('id, name, description')
+                .eq('organization_id', user.organization_id)
+                .eq('status', 'active');
+
             return {
                 costosTotalesPorFlujo: costByWf,
+                flujosDisponibles: workflows?.map(w => ({ id: w.id, nombre: w.name, descripcion: w.description })),
                 ultimos500EventosHistóricos: historyData?.map(h => ({
                     accion: h.action,
                     usuario: (h.profiles as any)?.full_name || 'Desconocido',
@@ -148,7 +158,29 @@ export function DashboardAIWidget() {
                 provider
             );
 
-            setChatHistory(prev => [...prev, { role: 'ai', content: aiResponse }]);
+            // Check for Action Request
+            if (aiResponse.includes('ACTION_START_PROCESS:')) {
+                try {
+                    const jsonStr = aiResponse.split('ACTION_START_PROCESS:')[1].trim();
+                    const actionData = JSON.parse(jsonStr);
+                    if (actionData.workflow_id && user?.organization_id) {
+                        toast.promise(
+                            startProcess(actionData.workflow_id, actionData.name || 'Trámite desde IA', user.organization_id),
+                            {
+                                loading: 'Iniciando trámite...',
+                                success: '¡Trámite iniciado con éxito!',
+                                error: (err) => `Error al iniciar: ${err.message}`
+                            }
+                        );
+                    }
+                } catch (e) {
+                    console.error('Error parsing AI action:', e);
+                }
+            }
+
+            // Clean response for display (remove action string)
+            const cleanResponse = aiResponse.split('ACTION_START_PROCESS:')[0].trim();
+            setChatHistory(prev => [...prev, { role: 'ai', content: cleanResponse }]);
 
         } catch (error: any) {
             toast.error(error.message || 'Error consultando al agente IA');

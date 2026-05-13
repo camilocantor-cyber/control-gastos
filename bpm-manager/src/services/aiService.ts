@@ -222,8 +222,16 @@ export async function askDashboardAI(prompt: string, apiKey: string, analyticsDa
     const systemPrompt = `Eres un asistente experto de Inteligencia Artificial para el Dashboard de BPM Manager.
 Tu objetivo es responder preguntas del usuario basándote ESTRICTAMENTE en los datos de abajo. 
 Los datos representan métricas en tiempo real de la organización (rendimiento, cuellos de botella, costos, usuarios).
-Si el usuario te pregunta por el flujo más costoso, el más demorado, o el usuario más rápido, busca la respuesta en este JSON.
-Responde de manera ejecutiva, clara, y con formato Markdown. NO inventes datos que no estén en el JSON.
+
+### CAPACIDAD DE ACCIÓN:
+Además de informar, puedes INICIAR TRÁMITES si el usuario lo solicita explícitamente (ej. "inicia un proceso de Nuevo Cliente").
+Si vas a realizar una acción, debes incluir al final de tu respuesta (o como única respuesta) un bloque JSON con el siguiente formato exacto:
+ACTION_START_PROCESS:{"workflow_id": "ID_DEL_FLUJO", "name": "NOMBRE_PARA_LA_INSTANCIA"}
+
+Reglas para acciones:
+1. Solo inicia procesos que existan en la lista de 'flujosDisponibles' provista en el JSON.
+2. El nombre de la instancia debe ser descriptivo (ej. "Nuevo Cliente solicitado por IA").
+3. Siempre confirma al usuario que estás iniciando el trámite antes o después del bloque JSON.
 
 DATOS DEL DASHBOARD ACTUALES:
 \`\`\`json
