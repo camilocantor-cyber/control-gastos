@@ -5,7 +5,6 @@ import {
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
 import { TaskInbox } from './TaskInbox';
-import { WorkloadMap } from './WorkloadMap';
 import { DashboardAIWidget } from './DashboardAIWidget';
 import { useAuth } from '../hooks/useAuth';
 import { cn } from '../utils/cn';
@@ -106,7 +105,7 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
 
                         case 'efficiency':
                             return (
-                                <div key="efficiency" className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-0">
+                                <div key="efficiency" className="pb-0">
                                     <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm h-full">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Clock className="w-4 h-4 text-orange-500" />
@@ -114,7 +113,7 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                                         </div>
 
                                         {userEfficiency.length > 0 ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                                 {userEfficiency.map((wf) => (
                                                     <div
                                                         key={wf.workflow_name}
@@ -135,19 +134,13 @@ export function Dashboard({ onAction, refreshTrigger }: { onAction?: (action: st
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="h-[200px] flex flex-col items-center justify-center border-2 border-dashed border-slate-50 dark:border-slate-800 rounded-xl">
+                                            <div className="h-[120px] flex flex-col items-center justify-center border-2 border-dashed border-slate-50 dark:border-slate-800 rounded-xl">
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase italic tracking-widest">Sin datos históricos</p>
                                             </div>
                                         )}
                                     </div>
-                                    {user?.dashboard_widgets?.includes('workload') && !isViewer && <WorkloadMap key="workload" />}
                                 </div>
                             );
-
-                        case 'workload':
-                            // Handled inside efficiency container if combined, or separately here if efficiency not present
-                            if (user?.dashboard_widgets?.includes('efficiency')) return null;
-                            return !isViewer && <WorkloadMap key="workload" />;
 
                         case 'ai':
                             return <DashboardAIWidget key="ai" />;
