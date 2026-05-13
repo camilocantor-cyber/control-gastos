@@ -3289,7 +3289,7 @@ export function WorkflowBuilder({ workflow, onBack, onOpenHelp }: WorkflowBuilde
                                                     </>
                                                 )}
                                             </button>
-                                            {(user?.role === 'admin' || user?.role === 'kommandant' || user?.email?.toLowerCase() === 'ccantor@gmail.com') && (
+                                            {(user?.role === 'admin' || user?.role === 'kommandant' || user?.role === 'editor' || user?.permissions?.includes('edit_workflows') || user?.email?.toLowerCase() === 'ccantor@gmail.com') && (
                                                 <button
                                                     onClick={confirmDeleteActivity}
                                                     className="flex-1 py-3 px-4 bg-rose-500/10 text-rose-500 font-black rounded-xl hover:bg-rose-500 hover:text-white transition-all text-[8px] leading-tight uppercase tracking-widest border border-rose-500/20 active:scale-95"
