@@ -51,7 +51,8 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
         if (config.type === 'ai' && !config.ai_prompt) return;
 
         const delayDebounceFn = setTimeout(async () => {
-            if (searchTerm.length < 2 && !isForcedSearch) return;
+            const minChars = config.min_chars !== undefined ? config.min_chars : 2;
+            if (searchTerm.length < minChars && !isForcedSearch) return;
 
             setIsLoading(true);
             setFetchError(null);
@@ -358,7 +359,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                             </div>
                         )}
 
-                        {!isLoading && !fetchError && results.length === 0 && searchTerm.length >= 2 && (
+                        {!isLoading && !fetchError && results.length === 0 && searchTerm.length >= (config?.min_chars !== undefined ? config.min_chars : 2) && (
                             <div className="p-8 text-center flex flex-col items-center gap-2 flex-1">
                                 <Search className="w-8 h-8 text-slate-200 dark:text-slate-700" />
                                 <span className="text-sm font-medium text-slate-500">No se encontraron resultados</span>
@@ -366,7 +367,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                             </div>
                         )}
 
-                        {!isLoading && !fetchError && results.length === 0 && searchTerm.length < 2 && (
+                        {!isLoading && !fetchError && results.length === 0 && searchTerm.length < (config?.min_chars !== undefined ? config.min_chars : 2) && (
                             <div className="p-8 text-center flex flex-col items-center gap-2 flex-1 opacity-50">
                                 <Search className="w-8 h-8 text-slate-200 dark:text-slate-700" />
                                 <span className="text-xs font-medium text-slate-500">Comienza a escribir</span>

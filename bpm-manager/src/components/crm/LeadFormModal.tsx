@@ -56,8 +56,8 @@ export function LeadFormModal({ lead, onClose, onSave }: LeadFormModalProps) {
             setClientes(clientsData);
             setCampanas(campaignsData);
         } catch (error: any) {
-            toast.error('Error al cargar clientes y campañas');
-            console.error(error);
+            toast.error(`Error al cargar: ${error?.message || error?.details || 'Error desconocido'}`);
+            console.error('Error fetching CRM data:', error);
         } finally {
             setFetchingData(false);
         }

@@ -193,6 +193,7 @@ export interface FieldDefinition {
         display_fields?: string[];
         value_field?: string;
         mapping?: Record<string, string>; // Maps response/row column names to current target form field names
+        min_chars?: number;
     };
     consecutive_mask?: string; // e.g. "CON-EH1-YYYY-MM-####" for consecutivo type
     consecutive_id?: string; // Optional name for a specific sequence (e.g. "FACTURA_VENTA")

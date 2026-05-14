@@ -1146,6 +1146,22 @@ export function FormPreviewModal({
                                             </div>
                                         )}
 
+                                        {/* Shared Lookup Settings */}
+                                        <div className="grid grid-cols-1 gap-4 pt-2">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Mínimo de Caracteres para Buscar</label>
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    value={selectedField.lookup_config?.min_chars ?? 2}
+                                                    onChange={e => onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, min_chars: parseInt(e.target.value) >= 0 ? parseInt(e.target.value) : 0 } as any })}
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 text-xs font-bold text-slate-900 dark:text-slate-100"
+                                                    placeholder="Por defecto: 2 (0 para cargar todo al inicio)"
+                                                />
+                                                <p className="text-[8px] text-slate-400 italic px-1 mt-1">Define cuántos caracteres debe escribir el usuario antes de disparar la búsqueda. Usa 0 para cargar datos inmediatamente al abrir el selector.</p>
+                                            </div>
+                                        </div>
+
                                         {/* Mapeo Automático (Común para ambos) */}
                                         <div className="col-span-full space-y-3 p-4 bg-slate-50/50 dark:bg-slate-950/50 border-2 border-slate-200 dark:border-slate-800 rounded-2xl">
                                             <div className="flex items-center justify-between px-1">
