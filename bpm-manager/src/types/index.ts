@@ -174,7 +174,7 @@ export interface FieldDefinition {
     lookup_entity?: string; // e.g., 'providers', 'users', 'departments'
     lookup_endpoint?: string; // In case we want external API lookups
     lookup_config?: {
-        type: 'rest' | 'database';
+        type: 'rest' | 'database' | 'ai';
         // Options for REST API
         url?: string;
         method?: 'GET' | 'POST';
@@ -185,6 +185,9 @@ export interface FieldDefinition {
         // Options for Database Catalog Search
         table_name?: string;
         search_column?: string;
+
+        // Options for AI Lookup
+        ai_prompt?: string;
 
         // Shared options
         display_fields?: string[];

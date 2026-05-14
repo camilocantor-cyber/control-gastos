@@ -995,6 +995,16 @@ export function FormPreviewModal({
                                                 >
                                                     API Externa
                                                 </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, type: 'ai', table_name: undefined, search_column: undefined, url: undefined } as any })}
+                                                    className={clsx(
+                                                        "px-3 py-1.5 text-[9px] font-black rounded-lg transition-all uppercase tracking-wider",
+                                                        (selectedField.lookup_config?.type === 'ai') ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30" : "text-slate-500 hover:text-purple-600"
+                                                    )}
+                                                >
+                                                    IA
+                                                </button>
                                             </div>
                                         </div>
 
@@ -1085,6 +1095,20 @@ export function FormPreviewModal({
                                                         </div>
                                                     </>
                                                 )}
+                                            </div>
+                                        ) : selectedField.lookup_config?.type === 'ai' ? (
+                                            /* CONFIGURACIÓN IA */
+                                            <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-1">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[11px] font-extrabold text-purple-500 dark:text-purple-400 uppercase tracking-widest px-1">Prompt para la IA (Búsqueda en Internet)</label>
+                                                    <textarea
+                                                        value={selectedField.lookup_config?.ai_prompt ?? ''}
+                                                        onChange={e => onUpdateField(selectedField.id, { lookup_config: { ...selectedField.lookup_config, ai_prompt: e.target.value, type: 'ai' } })}
+                                                        className="w-full px-4 py-2.5 bg-purple-50 dark:bg-slate-950 border-2 border-purple-200 dark:border-purple-800 rounded-xl outline-none focus:border-purple-500 text-xs font-bold text-slate-900 dark:text-slate-100 min-h-[100px] shadow-inner transition-all placeholder:text-purple-300 dark:placeholder:text-purple-800"
+                                                        placeholder="Ej: Búscame las especialidades médicas en Colombia..."
+                                                    />
+                                                    <p className="text-[9px] text-slate-400 px-1 mt-1 italic">La IA utilizará este prompt para generar la lista de opciones de forma dinámica cuando el usuario abra el campo.</p>
+                                                </div>
                                             </div>
                                         ) : (
                                             /* CONFIGURACIÓN API REST */

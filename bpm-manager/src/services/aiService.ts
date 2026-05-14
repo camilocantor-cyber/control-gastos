@@ -280,3 +280,76 @@ ${rawData}
         return data.choices[0]?.message?.content || 'Sin respuesta.';
     }
 }
+
+export async function askAILookup(prompt: string, aiPrompt: string, apiKey: string, provider: AIProviderName = 'openai'): Promise<any[]> {
+    const systemPrompt = `Eres un asistente de datos para un campo de búsqueda interactiva (Lookup).
+El administrador del sistema ha configurado este campo con el siguiente requerimiento: "${aiPrompt}"
+El usuario está buscando: "${prompt || 'Mostrar opciones generales'}"
+
+Debes devolver ÚNICAMENTE un arreglo JSON con los resultados.
+Estructura OBLIGATORIA (Arreglo de objetos con 'id' y 'name'):
+[
+  { "id": "1", "name": "Opción A" },
+  { "id": "2", "name": "Opción B" }
+]
+Si la consulta del usuario es específica, filtra la lista según esa consulta. Si es general, devuelve las opciones más comunes o relevantes.
+NO devuelvas nada más que el JSON raw.`;
+
+    let rawContent = "[]";
+
+    try {
+        if (provider === 'gemini') {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    system_instruction: { parts: [{ text: systemPrompt }] },
+                    contents: [{ role: 'user', parts: [{ text: prompt || "listar opciones" }] }],
+                    generationConfig: { temperature: 0.3, responseMimeType: "application/json" }
+                })
+            });
+
+            if (!response.ok) throw new Error('Error con Gemini');
+            const data = await response.json();
+            rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+        } else {
+            const url = "https://api.openai.com/v1/chat/completions";
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: prompt || "listar opciones" }
+                    ],
+                    temperature: 0.3,
+                    response_format: { type: "json_object" } // OpenAI needs a wrapper object if forcing json_object, but we can just ask for json array and parse.
+                })
+            });
+
+            if (!response.ok) throw new Error('Error con OpenAI');
+            const data = await response.json();
+            rawContent = data.choices?.[0]?.message?.content || "[]";
+            
+            // Extract array from object if needed
+            const parsed = JSON.parse(rawContent);
+            if (!Array.isArray(parsed) && typeof parsed === 'object') {
+                 const arrayKey = Object.keys(parsed).find(key => Array.isArray(parsed[key]));
+                 if (arrayKey) return parsed[arrayKey];
+                 return [parsed];
+            }
+            return Array.isArray(parsed) ? parsed : [];
+        }
+
+        const parsed = JSON.parse(rawContent);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e: any) {
+        console.error("AI Lookup Error:", e);
+        throw new Error("No se pudo obtener datos de la IA: " + e.message);
+    }
+}

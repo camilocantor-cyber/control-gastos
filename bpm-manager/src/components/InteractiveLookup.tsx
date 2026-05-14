@@ -3,6 +3,7 @@ import { Search, Loader2, X, Check, MapPin, Database, ChevronLeft, ChevronRight 
 import { cn } from '../utils/cn';
 import type { FieldDefinition } from '../types';
 import { supabase } from '../lib/supabase';
+import { askAILookup } from '../services/aiService';
 
 interface InteractiveLookupProps {
     field: FieldDefinition;
@@ -47,6 +48,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
         if (!isOpen || !config) return;
         if (config.type === 'rest' && !config.url) return;
         if (config.type === 'database' && !config.table_name) return;
+        if (config.type === 'ai' && !config.ai_prompt) return;
 
         const delayDebounceFn = setTimeout(async () => {
             if (searchTerm.length < 2 && !isForcedSearch) return;
@@ -56,7 +58,21 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
             setIsForcedSearch(false);
 
             try {
-                if (config.type === 'database') {
+                if (config.type === 'ai') {
+                    // --- AI Lookup Search ---
+                    if (!config.ai_prompt) throw new Error("Prompt de IA no configurado");
+                    
+                    const apiKey = localStorage.getItem('bpm_gemini_key') || localStorage.getItem('bpm_openai_key');
+                    const provider = localStorage.getItem('bpm_gemini_key') ? 'gemini' : (localStorage.getItem('bpm_openai_key') ? 'openai' : 'gemini');
+                    
+                    if (!apiKey) {
+                        throw new Error("Por favor configura una API Key de OpenAI o Gemini en el Dashboard para usar la búsqueda por IA.");
+                    }
+
+                    const data = await askAILookup(searchTerm, config.ai_prompt, apiKey, provider as any);
+                    setResults(data);
+
+                } else if (config.type === 'database') {
                     // --- Database Catalog Search using RPC ---
                     if (!config.table_name || !config.search_column) {
                         throw new Error("Configuración de base de datos incompleta");
@@ -171,7 +187,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
         if (!config) return;
 
         // 1. Determinar el valor base
-        let finalMainValue = config.value_field ? row[config.value_field] : row.id;
+        let finalMainValue = row._actualValueField ? row[row._actualValueField] : (config.value_field ? row[config.value_field] : row.id);
         let mappedValueForMainField = null;
 
         // 2. Procesar mapeos. 
@@ -252,7 +268,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                 </div>
 
                 <div className="flex-1 min-w-0 text-sm font-bold text-slate-700 dark:text-slate-200 text-left truncate select-none">
-                    {value ? (displayLabel || value) : <span className="text-slate-400 font-medium">{field.placeholder || `Seleccionar ${config?.table_name || 'registro'}...`}</span>}
+                    {value ? (displayLabel || value) : <span className="text-slate-400 font-medium">{field.placeholder || (config?.type === 'ai' ? 'Buscar con IA...' : `Seleccionar ${config?.table_name || 'registro'}...`)}</span>}
                 </div>
 
                 {value && !disabled && (
@@ -284,7 +300,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                     </div>
                                     <div>
                                         <h3 className="text-[11px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-wider">
-                                            Búsqueda: {config?.table_name || 'Catálogo'}
+                                            Búsqueda: {config?.type === 'ai' ? 'Asistente IA' : (config?.table_name || 'Catálogo')}
                                         </h3>
                                     </div>
                                 </div>
@@ -362,7 +378,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 z-20 shadow-sm">
                                         <tr>
-                                            {config?.display_fields?.map((df, i) => (
+                                            {(config?.display_fields?.length ? config.display_fields : (config?.type === 'ai' ? ['id', 'name'] : ['id'])).map((df, i) => (
                                                 <th key={i} className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-r border-slate-200 dark:border-slate-800 last:border-r-0">
                                                     {df}
                                                 </th>
@@ -371,11 +387,14 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                         {paginatedResults.map((row, i) => {
-                                            const isSelected = value === row[config?.value_field || ''];
+                                            const actualValueField = config?.value_field || (config?.type === 'ai' ? 'name' : 'id');
+                                            const isSelected = value === row[actualValueField];
+                                            const displayCols = config?.display_fields?.length ? config.display_fields : (config?.type === 'ai' ? ['id', 'name'] : ['id']);
+                                            
                                             return (
                                                 <tr
                                                     key={i}
-                                                    onClick={() => handleSelect(row)}
+                                                    onClick={() => handleSelect({ ...row, _actualValueField: actualValueField })}
                                                     className={cn(
                                                         "cursor-pointer transition-colors",
                                                         isSelected
@@ -385,7 +404,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                                                 : "bg-slate-50/50 dark:bg-slate-900/30 hover:bg-slate-100/50 dark:hover:bg-slate-900/80"
                                                     )}
                                                 >
-                                                    {config?.display_fields?.map((df, j) => (
+                                                    {displayCols.map((df, j) => (
                                                         <td key={j} className="px-4 py-1.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px] border-r border-slate-100 dark:border-slate-800 last:border-r-0">
                                                             <div className="flex items-center gap-2">
                                                                 {j === 0 && (
@@ -393,7 +412,9 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                                                         {isSelected ? (
                                                                             <Check className="w-4 h-4 text-emerald-500" />
                                                                         ) : (
-                                                                            config?.table_name?.toLowerCase().includes('ciudad') ? (
+                                                                            config?.type === 'ai' ? (
+                                                                                <Search className="w-3.5 h-3.5 text-purple-400 dark:text-purple-600" />
+                                                                            ) : config?.table_name?.toLowerCase().includes('ciudad') ? (
                                                                                 <MapPin className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
                                                                             ) : (
                                                                                 <Database className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
@@ -405,7 +426,7 @@ export function InteractiveLookup({ field, value, onChange, setFormData, error, 
                                                                     "truncate text-[10px]",
                                                                     isSelected ? "text-indigo-900 dark:text-indigo-200 font-bold" : "text-slate-600 dark:text-slate-300 font-medium"
                                                                 )}>
-                                                                    {String(row[df])}
+                                                                    {String(row[df] || '')}
                                                                 </span>
                                                             </div>
                                                         </td>
